@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 
 import { GraphCanvas } from "@/components/GraphCanvas";
 import { DatabaseTogglePanel } from "@/components/DatabaseTogglePanel";
@@ -17,6 +17,17 @@ type Props = {
 export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings }: Props) {
   const [selectedDetail, setSelectedDetail] = useState<NodeDetail | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+
+  // Dark mode — persisted in localStorage
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("theme") === "dark";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
+    localStorage.setItem("theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
 
   // Warnings are dismissible
   const [warningsDismissed, setWarningsDismissed] = useState(false);
@@ -93,16 +104,14 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
           position: "absolute",
           top: 20,
           left: 24,
-          pointerEvents: "none",
           zIndex: 20,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
         }}
         className="animate-fade-up"
       >
-        <div style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: 8,
-        }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, pointerEvents: "none" }}>
           <span style={{
             fontFamily: "'Lora', Georgia, serif",
             fontSize: 20,
@@ -121,6 +130,39 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
             notion graph
           </span>
         </div>
+
+        {/* Dark mode toggle */}
+        <button
+          type="button"
+          onClick={() => setDarkMode((d) => !d)}
+          title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            border: "1px solid var(--border-default)",
+            background: "var(--panel-bg)",
+            backdropFilter: "blur(12px)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 14,
+            color: "var(--text-muted)",
+            transition: "background 0.15s, color 0.15s, border-color 0.15s",
+            boxShadow: "var(--shadow-sm)",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
+            (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "var(--panel-bg)";
+            (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
+          }}
+        >
+          {darkMode ? "☀" : "◑"}
+        </button>
       </div>
 
       {/* Floating bottom-left stats bar */}

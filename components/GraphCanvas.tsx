@@ -84,6 +84,22 @@ function quatNorm(q: Quat): Quat {
   return [q[0]/len, q[1]/len, q[2]/len, q[3]/len];
 }
 
+function quatSlerp(a: Quat, b: Quat, t: number): Quat {
+  let dot = a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3];
+  // Choose shortest path
+  const b2: Quat = dot < 0 ? [-b[0], -b[1], -b[2], -b[3]] : [...b];
+  dot = Math.abs(dot);
+  if (dot > 0.9995) {
+    // Linear fallback for nearly identical quats
+    return quatNorm([a[0]+(b2[0]-a[0])*t, a[1]+(b2[1]-a[1])*t, a[2]+(b2[2]-a[2])*t, a[3]+(b2[3]-a[3])*t]);
+  }
+  const omega = Math.acos(Math.min(1, dot));
+  const sinOmega = Math.sin(omega);
+  const sa = Math.sin((1-t)*omega) / sinOmega;
+  const sb = Math.sin(t*omega) / sinOmega;
+  return [sa*a[0]+sb*b2[0], sa*a[1]+sb*b2[1], sa*a[2]+sb*b2[2], sa*a[3]+sb*b2[3]];
+}
+
 /**
  * Distribute nodes evenly across the entire sphere, with each database's
  * nodes interleaved throughout so all databases are represented everywhere.
@@ -175,6 +191,13 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId }: Props) {
   const [rotation, setRotation] = useState<Quat>(QUAT_IDENTITY);
   const [zoom, setZoom]         = useState(1.0);
 
+  // Animation state for smooth focus transitions
+  const animFrameRef    = useRef<number | null>(null);
+  const animStartRef    = useRef<number>(0);
+  const animFromRef     = useRef<Quat>(QUAT_IDENTITY);
+  const animToRef       = useRef<Quat>(QUAT_IDENTITY);
+  const ANIM_DURATION   = 600; // ms
+
   const isDragging   = useRef(false);
   const dragStart    = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const rotAtDrag    = useRef<Quat>(QUAT_IDENTITY);
@@ -212,9 +235,69 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphKey]);
 
-  // ── Sync external deselect ──
+  // ── Sync external selection (from detail panel) ──
   useEffect(() => {
-    if (!selectedNodeId) setLocalSelectedId(null);
+    if (!selectedNodeId) {
+      setLocalSelectedId(null);
+      return;
+    }
+    setLocalSelectedId(selectedNodeId);
+
+    // Find the node's unit-sphere position
+    const node = simNodes.find((n) => n.id === selectedNodeId);
+    if (!node) return;
+
+    // We want to rotate the sphere so the node ends up at front-center,
+    // but offset upward to 2/3 of the viewport height (1/3 from top).
+    // The sphere center is at cy = h/2; 2/3 up means screenY = h/3.
+    // That corresponds to a vertical offset of -h/6 from center in world space.
+    // We achieve this by targeting the node at (0, yOffset, 1) direction
+    // where yOffset = -( (h/6) / sphereRadius ).
+    // Since we want the node on the front (z=1 after rotation), we need to
+    // find a rotation that maps node's sphere pos to (0, yTarget, 1)-normalised.
+    const sphereRadius = Math.min(size.w, size.h) * SPHERE_FILL_RATIO;
+    const yOffset = -(size.h / 6) / sphereRadius; // negative = up
+    const targetY = Math.max(-0.85, Math.min(0.85, yOffset));
+    const targetX = 0;
+    const targetZ = Math.sqrt(Math.max(0, 1 - targetX * targetX - targetY * targetY));
+    const target: Vec3 = [targetX, targetY, targetZ];
+
+    // Rotation that takes node's current world position to `target`:
+    // We solve for q such that q * nodePos = target.
+    // Use the half-angle between nodePos (after current rotation) and target.
+    const nodeWorld = quatRotate(rotation, [node.sx, node.sy, node.sz]);
+    const dot = Math.max(-1, Math.min(1, nodeWorld[0]*target[0] + nodeWorld[1]*target[1] + nodeWorld[2]*target[2]));
+    if (dot > 0.9999) return; // already there
+
+    const cross: Vec3 = [
+      nodeWorld[1]*target[2] - nodeWorld[2]*target[1],
+      nodeWorld[2]*target[0] - nodeWorld[0]*target[2],
+      nodeWorld[0]*target[1] - nodeWorld[1]*target[0],
+    ];
+    const crossLen = Math.sqrt(cross[0]**2 + cross[1]**2 + cross[2]**2) || 1;
+    const axis: Vec3 = [cross[0]/crossLen, cross[1]/crossLen, cross[2]/crossLen];
+    const angle = Math.acos(dot);
+    const deltaQ = quatFromAxisAngle(axis, angle);
+    const targetRotation = quatNorm(quatMul(deltaQ, rotation));
+
+    // Animate from current rotation to targetRotation
+    if (animFrameRef.current !== null) cancelAnimationFrame(animFrameRef.current);
+    animFromRef.current = rotation;
+    animToRef.current = targetRotation;
+    animStartRef.current = performance.now();
+
+    function animate(now: number) {
+      const t = Math.min(1, (now - animStartRef.current) / ANIM_DURATION);
+      const ease = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; // ease-in-out quad
+      setRotation(quatNorm(quatSlerp(animFromRef.current, animToRef.current, ease)));
+      if (t < 1) {
+        animFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animFrameRef.current = null;
+      }
+    }
+    animFrameRef.current = requestAnimationFrame(animate);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNodeId]);
 
   // ── Fetch node detail when selection changes ──

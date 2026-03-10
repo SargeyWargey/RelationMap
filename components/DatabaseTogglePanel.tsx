@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useRef, useCallback, useEffect } from "react";
+
 type Props = {
   allDatabaseIds: string[];
   dbIdToName: Record<string, string>;
@@ -15,17 +17,56 @@ export function DatabaseTogglePanel({
   enabledDbs,
   onToggle,
 }: Props) {
-  if (allDatabaseIds.length === 0) return null;
+  // Default position: right side, vertically centered
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Initialize position once we know window size
+  useEffect(() => {
+    setPos({ x: window.innerWidth - 212, y: Math.round(window.innerHeight / 2 - 100) });
+  }, []);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    // Only drag on header
+    if ((e.target as HTMLElement).closest("button")) return;
+    e.preventDefault();
+    setDragging(true);
+    dragOffset.current = {
+      x: e.clientX - (pos?.x ?? 0),
+      y: e.clientY - (pos?.y ?? 0),
+    };
+  }, [pos]);
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e: MouseEvent) => {
+      setPos({
+        x: Math.max(0, Math.min(window.innerWidth - 200, e.clientX - dragOffset.current.x)),
+        y: Math.max(0, Math.min(window.innerHeight - 80, e.clientY - dragOffset.current.y)),
+      });
+    };
+    const onUp = () => setDragging(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [dragging]);
+
+  if (allDatabaseIds.length === 0 || pos === null) return null;
 
   const enabledCount = allDatabaseIds.filter((id) => enabledDbs.has(id)).length;
 
   return (
     <div
+      ref={panelRef}
       style={{
-        position: "absolute",
-        top: "50%",
-        right: 24,
-        transform: "translateY(-50%)",
+        position: "fixed",
+        left: pos.x,
+        top: pos.y,
         zIndex: 20,
         width: 188,
         background: "var(--panel-bg)",
@@ -34,17 +75,22 @@ export function DatabaseTogglePanel({
         borderRadius: 12,
         boxShadow: "var(--shadow-md)",
         overflow: "hidden",
+        userSelect: "none",
       }}
       className="animate-fade-up"
     >
-      {/* Header */}
-      <div style={{
-        padding: "9px 14px 8px",
-        borderBottom: "1px solid var(--border-subtle)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}>
+      {/* Header — drag handle */}
+      <div
+        onMouseDown={onMouseDown}
+        style={{
+          padding: "9px 14px 8px",
+          borderBottom: "1px solid var(--border-subtle)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          cursor: dragging ? "grabbing" : "grab",
+        }}
+      >
         <span style={{
           fontFamily: "'DM Mono', monospace",
           fontSize: 10,
@@ -97,7 +143,6 @@ export function DatabaseTogglePanel({
                 (e.currentTarget as HTMLElement).style.background = "transparent";
               }}
             >
-              {/* Color dot — bright when on, dim when off */}
               <span style={{
                 flexShrink: 0,
                 width: 8,
@@ -107,8 +152,6 @@ export function DatabaseTogglePanel({
                 boxShadow: enabled ? `0 0 6px ${color}99` : "none",
                 transition: "background 0.2s, box-shadow 0.2s",
               }} />
-
-              {/* Name */}
               <span style={{
                 fontFamily: "'Geist', sans-serif",
                 fontSize: 12,
