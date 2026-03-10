@@ -84,15 +84,51 @@ function quatNorm(q: Quat): Quat {
   return [q[0]/len, q[1]/len, q[2]/len, q[3]/len];
 }
 
-function fibonacciSphere(n: number): Vec3[] {
-  if (n === 1) return [[0, 0, 1]];
+/**
+ * Distribute nodes evenly across the entire sphere, with each database's
+ * nodes interleaved throughout so all databases are represented everywhere.
+ * Achieved by sorting nodes so databases alternate, then running a single
+ * fibonacci spiral over the full sorted list.
+ */
+function fibonacciSphereByDatabase(
+  nodes: Array<{ id: string; databaseId: string }>,
+): Map<string, Vec3> {
+  const total = nodes.length;
+  if (total === 0) return new Map();
+
+  // Group nodes by database, preserving insertion order of databases
+  const dbOrder: string[] = [];
+  const dbGroups = new Map<string, string[]>();
+  for (const n of nodes) {
+    if (!dbGroups.has(n.databaseId)) {
+      dbOrder.push(n.databaseId);
+      dbGroups.set(n.databaseId, []);
+    }
+    dbGroups.get(n.databaseId)!.push(n.id);
+  }
+
+  // Interleave: round-robin across databases so nodes from each db are
+  // spread throughout the spiral index range rather than clumped together
+  const interleaved: string[] = [];
+  const maxLen = Math.max(...dbOrder.map((db) => dbGroups.get(db)!.length));
+  for (let i = 0; i < maxLen; i++) {
+    for (const db of dbOrder) {
+      const group = dbGroups.get(db)!;
+      if (i < group.length) interleaved.push(group[i]);
+    }
+  }
+
+  // Single fibonacci spiral over all nodes
   const phi = Math.PI * (3 - Math.sqrt(5));
-  return Array.from({ length: n }, (_, i) => {
-    const y = 1 - (i / (n - 1)) * 2;
-    const r = Math.sqrt(1 - y * y);
+  const result = new Map<string, Vec3>();
+  interleaved.forEach((id, i) => {
+    const y = 1 - (i / (total - 1)) * 2;
+    const r = Math.sqrt(Math.max(0, 1 - y * y));
     const theta = phi * i;
-    return [Math.cos(theta) * r, y, Math.sin(theta) * r] as Vec3;
+    result.set(id, [Math.cos(theta) * r, y, Math.sin(theta) * r]);
   });
+
+  return result;
 }
 
 function slerp(a: Vec3, b: Vec3, t: number): Vec3 {
@@ -167,11 +203,11 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId }: Props) {
     if (graphKey === lastGraphKey.current) return;
     lastGraphKey.current = graphKey;
     if (graph.nodes.length === 0) { setSimNodes([]); return; }
-    const positions = fibonacciSphere(graph.nodes.length);
-    setSimNodes(graph.nodes.map((n, i) => ({
-      id: n.id, name: n.name, color: n.color, databaseId: n.databaseId,
-      sx: positions[i][0], sy: positions[i][1], sz: positions[i][2],
-    })));
+    const positions = fibonacciSphereByDatabase(graph.nodes);
+    setSimNodes(graph.nodes.map((n) => {
+      const [sx, sy, sz] = positions.get(n.id)!;
+      return { id: n.id, name: n.name, color: n.color, databaseId: n.databaseId, sx, sy, sz };
+    }));
     setRotation(QUAT_IDENTITY);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphKey]);
