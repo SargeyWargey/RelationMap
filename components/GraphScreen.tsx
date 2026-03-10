@@ -20,10 +20,13 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
   const [shape, setShape] = useState<ShapeLayout>("sphere");
 
   // Dark mode — persisted in localStorage
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("theme") === "dark";
-  });
+  const [darkMode, setDarkMode] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Hydrate from localStorage after mount to avoid SSR mismatch
+    const stored = localStorage.getItem("theme");
+    if (stored === "dark") setDarkMode(true);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { GraphEdge, GraphNode, NodeDetail } from "@/lib/types";
 
 type Props = {
@@ -11,12 +11,42 @@ type Props = {
   enabledDbs?: Set<string>;
 };
 
+const MIN_WIDTH = 260;
+const MAX_WIDTH = 600;
+
 export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes = [], allEdges = [], enabledDbs }: Props) {
   const [expandedDb, setExpandedDb] = useState<string | null>(null);
+  const [width, setWidth] = useState(320);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
 
   useEffect(() => {
     setExpandedDb(null);
   }, [detail?.id]);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    dragging.current = true;
+    startX.current = e.clientX;
+    startWidth.current = width;
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!dragging.current) return;
+      const delta = startX.current - ev.clientX;
+      setWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth.current + delta)));
+    };
+    const onMouseUp = () => {
+      dragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  }, [width]);
 
   function toggleDb(dbName: string) {
     setExpandedDb((prev) => (prev === dbName ? null : dbName));
@@ -71,9 +101,9 @@ export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes
         top: 0,
         right: 0,
         bottom: 0,
-        width: 320,
+        width,
         zIndex: 40,
-        transform: open ? "translateX(0)" : "translateX(340px)",
+        transform: open ? "translateX(0)" : `translateX(${width + 20}px)`,
         transition: "transform 0.35s cubic-bezier(0.32, 0, 0.15, 1)",
         display: "flex",
         flexDirection: "column",
@@ -83,6 +113,20 @@ export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes
         boxShadow: "var(--shadow-panel)",
       }}
     >
+      {/* Resize handle */}
+      <div
+        onMouseDown={onMouseDown}
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 5,
+          cursor: "ew-resize",
+          zIndex: 10,
+        }}
+      />
+
       {/* Header */}
       <div style={{
         padding: "20px 20px 16px",
@@ -307,7 +351,7 @@ export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes
                           }}>
                             {conns.map(({ node, relationName }, i) => (
                               <button
-                                key={node.id}
+                                key={`${node.id}-${relationName}-${i}`}
                                 type="button"
                                 onClick={() => onSelectNode?.({
                                   id: node.id,
