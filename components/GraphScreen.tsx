@@ -180,7 +180,7 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
       >
         {[
           ["scroll", "zoom"],
-          ["drag", "pan"],
+          ["drag", "rotate"],
           ["click", "select"],
         ].map(([key, action]) => (
           <span key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>

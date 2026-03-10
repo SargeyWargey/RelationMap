@@ -12,17 +12,21 @@ import type { GraphData, NodeDetail } from "@/lib/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Vec2 = { x: number; y: number };
+type Vec3 = [number, number, number];
+type Quat = [number, number, number, number]; // [x, y, z, w]
 
 type SimNode = {
   id: string;
   name: string;
   color: string;
   databaseId: string;
-  px: number;
-  py: number;
-  vx: number;
-  vy: number;
+  sx: number; sy: number; sz: number; // unit sphere position
+};
+
+type ProjectedNode = SimNode & {
+  screenX: number;
+  screenY: number;
+  depth: number; // 0 = back, 1 = front
 };
 
 type Props = {
@@ -33,236 +37,240 @@ type Props = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MIN_ZOOM = 0.06;
+const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 5.0;
 const NODE_RADIUS = 7;
 const NODE_RADIUS_SELECTED = 10;
+const SPHERE_FILL_RATIO = 0.40;
+const FOV_BASE = 2.5;
+const DRAG_SENSITIVITY = 0.006;
+const DEPTH_MIN_OPACITY = 0.18;
+const DEPTH_MIN_RADIUS = 0.38;
 
-// ─── Force simulation ─────────────────────────────────────────────────────────
+// ─── 3D Math ──────────────────────────────────────────────────────────────────
 
-function runForceLayout(
-  nodes: SimNode[],
-  edges: Array<{ source: string; target: string }>,
-  iterations: number,
-): void {
-  const REPULSION     = 6000;
-  const LINK_DIST     = 170;
-  const LINK_STRENGTH = 0.10;
-  const GRAVITY       = 0.016;
-  const DAMPING       = 0.70;
+const QUAT_IDENTITY: Quat = [0, 0, 0, 1];
 
-  const idxMap = new Map(nodes.map((n, i) => [n.id, i]));
+function quatMul(a: Quat, b: Quat): Quat {
+  return [
+    a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1],
+    a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+    a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3],
+    a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2],
+  ];
+}
 
-  for (let iter = 0; iter < iterations; iter++) {
-    const cooling = 1 - iter / iterations;
+function quatFromAxisAngle(axis: Vec3, angle: number): Quat {
+  const s = Math.sin(angle / 2);
+  return [axis[0]*s, axis[1]*s, axis[2]*s, Math.cos(angle / 2)];
+}
 
-    for (const n of nodes) { n.vx = 0; n.vy = 0; }
+function quatRotate(q: Quat, v: Vec3): Vec3 {
+  // v' = q * [v,0] * q^-1  (optimized form)
+  const [qx, qy, qz, qw] = q;
+  const [vx, vy, vz] = v;
+  const tx = 2*(qy*vz - qz*vy);
+  const ty = 2*(qz*vx - qx*vz);
+  const tz = 2*(qx*vy - qy*vx);
+  return [
+    vx + qw*tx + qy*tz - qz*ty,
+    vy + qw*ty + qz*tx - qx*tz,
+    vz + qw*tz + qx*ty - qy*tx,
+  ];
+}
 
-    // Repulsion
-    for (let i = 0; i < nodes.length; i++) {
-      for (let j = i + 1; j < nodes.length; j++) {
-        const a = nodes[i], b = nodes[j];
-        let dx = b.px - a.px, dy = b.py - a.py;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
-        const force = (REPULSION / (dist * dist)) * cooling;
-        dx = (dx / dist) * force; dy = (dy / dist) * force;
-        a.vx -= dx; a.vy -= dy;
-        b.vx += dx; b.vy += dy;
-      }
-    }
+function quatNorm(q: Quat): Quat {
+  const len = Math.sqrt(q[0]**2 + q[1]**2 + q[2]**2 + q[3]**2) || 1;
+  return [q[0]/len, q[1]/len, q[2]/len, q[3]/len];
+}
 
-    // Attraction along edges
-    for (const edge of edges) {
-      const si = idxMap.get(edge.source), ti = idxMap.get(edge.target);
-      if (si === undefined || ti === undefined) continue;
-      const a = nodes[si], b = nodes[ti];
-      const dx = b.px - a.px, dy = b.py - a.py;
-      const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
-      const delta = (dist - LINK_DIST) * LINK_STRENGTH * cooling;
-      const fx = (dx / dist) * delta, fy = (dy / dist) * delta;
-      a.vx += fx; a.vy += fy;
-      b.vx -= fx; b.vy -= fy;
-    }
+function fibonacciSphere(n: number): Vec3[] {
+  if (n === 1) return [[0, 0, 1]];
+  const phi = Math.PI * (3 - Math.sqrt(5));
+  return Array.from({ length: n }, (_, i) => {
+    const y = 1 - (i / (n - 1)) * 2;
+    const r = Math.sqrt(1 - y * y);
+    const theta = phi * i;
+    return [Math.cos(theta) * r, y, Math.sin(theta) * r] as Vec3;
+  });
+}
 
-    // Gravity to center
-    for (const n of nodes) {
-      n.vx -= n.px * GRAVITY;
-      n.vy -= n.py * GRAVITY;
-    }
-
-    // Integrate
-    for (const n of nodes) {
-      n.px += n.vx * DAMPING;
-      n.py += n.vy * DAMPING;
-    }
+function slerp(a: Vec3, b: Vec3, t: number): Vec3 {
+  const dot = Math.max(-1, Math.min(1, a[0]*b[0] + a[1]*b[1] + a[2]*b[2]));
+  const omega = Math.acos(dot);
+  if (omega < 0.001) {
+    // linear fallback for nearly identical points
+    const x = a[0] + (b[0]-a[0])*t;
+    const y = a[1] + (b[1]-a[1])*t;
+    const z = a[2] + (b[2]-a[2])*t;
+    const len = Math.sqrt(x*x+y*y+z*z)||1;
+    return [x/len, y/len, z/len];
   }
+  const sinOmega = Math.sin(omega);
+  const sa = Math.sin((1-t)*omega)/sinOmega;
+  const sb = Math.sin(t*omega)/sinOmega;
+  return [sa*a[0]+sb*b[0], sa*a[1]+sb*b[1], sa*a[2]+sb*b[2]];
+}
+
+function project(
+  rotated: Vec3,
+  cx: number, cy: number,
+  sphereRadius: number,
+  fov: number,
+): { screenX: number; screenY: number; depth: number } {
+  const scale = fov / (fov - rotated[2]);
+  return {
+    screenX: cx + rotated[0] * sphereRadius * scale,
+    screenY: cy + rotated[1] * sphereRadius * scale,
+    depth: (rotated[2] + 1) / 2,
+  };
+}
+
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * Math.max(0, Math.min(1, t));
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function GraphCanvas({ graph, onSelectNode, selectedNodeId }: Props) {
-  const svgRef       = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef       = useRef<SVGSVGElement>(null);
 
-  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
-  const isPanning   = useRef(false);
-  const panStart    = useRef<Vec2>({ x: 0, y: 0 });
-  const txAtPanStart = useRef({ x: 0, y: 0, scale: 1 });
+  const [rotation, setRotation] = useState<Quat>(QUAT_IDENTITY);
+  const [zoom, setZoom]         = useState(1.0);
 
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const isDragging   = useRef(false);
+  const dragStart    = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const rotAtDrag    = useRef<Quat>(QUAT_IDENTITY);
+
+  const [hoveredId, setHoveredId]             = useState<string | null>(null);
   const [localSelectedId, setLocalSelectedId] = useState<string | null>(null);
-  const [simNodes, setSimNodes] = useState<SimNode[]>([]);
+  const [simNodes, setSimNodes]               = useState<SimNode[]>([]);
 
-  // Stable key representing which nodes are in the graph — re-run sim when set changes
+  // Container size for projection
+  const [size, setSize] = useState({ w: 800, h: 600 });
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const obs = new ResizeObserver((entries) => {
+      const r = entries[0].contentRect;
+      setSize({ w: r.width, h: r.height });
+    });
+    obs.observe(containerRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  // ── Graph change → place nodes on sphere ──
   const graphKey = graph.nodes.map((n) => n.id).sort().join(",");
-  const lastGraphKey = useRef<string>("");
-  const animFrameRef = useRef<number>(0);
+  const lastGraphKey = useRef("");
 
-  // ── Build & run simulation ──
   useEffect(() => {
     if (graphKey === lastGraphKey.current) return;
     lastGraphKey.current = graphKey;
-
-    // Cancel any in-flight animation from a previous run
-    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-
-    if (graph.nodes.length === 0) {
-      setSimNodes([]);
-      return;
-    }
-
-    const nodes: SimNode[] = graph.nodes.map((n, i) => ({
+    if (graph.nodes.length === 0) { setSimNodes([]); return; }
+    const positions = fibonacciSphere(graph.nodes.length);
+    setSimNodes(graph.nodes.map((n, i) => ({
       id: n.id, name: n.name, color: n.color, databaseId: n.databaseId,
-      px: isFinite(n.x) ? n.x * 0.55 : Math.cos(i * 2.4) * (50 + i * 8),
-      py: isFinite(n.y) ? n.y * 0.55 : Math.sin(i * 2.4) * (50 + i * 8),
-      vx: 0, vy: 0,
-    }));
-
-    const TOTAL = 320, CHUNK = 30;
-    let done = 0;
-
-    function tick() {
-      runForceLayout(nodes, graph.edges, CHUNK);
-      done += CHUNK;
-      setSimNodes(nodes.map((n) => ({ ...n })));
-      if (done < TOTAL) {
-        animFrameRef.current = requestAnimationFrame(tick);
-      } else {
-        // Auto-fit once simulation settles
-        const rect = containerRef.current?.getBoundingClientRect();
-        if (rect) fitNodes(nodes, rect.width, rect.height);
-      }
-    }
-    animFrameRef.current = requestAnimationFrame(tick);
+      sx: positions[i][0], sy: positions[i][1], sz: positions[i][2],
+    })));
+    setRotation(QUAT_IDENTITY);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphKey]);
 
-  // ── Fit nodes into viewport ──
-  function fitNodes(nodes: SimNode[], w: number, h: number) {
-    if (nodes.length === 0) return;
-    const xs = nodes.map((n) => n.px).filter(isFinite);
-    const ys = nodes.map((n) => n.py).filter(isFinite);
-    if (!xs.length) return;
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1;
-    const padding = 80;
-    const s = Math.max(
-      MIN_ZOOM,
-      Math.min(
-        (w - padding * 2) / rangeX,
-        (h - padding * 2) / rangeY,
-        MAX_ZOOM,
-      ),
-    );
-    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-    setTransform({ scale: s, x: w / 2 - cx * s, y: h / 2 - cy * s });
-  }
-
-  // ── Sync external deselect (panel close) ──
+  // ── Sync external deselect ──
   useEffect(() => {
     if (!selectedNodeId) setLocalSelectedId(null);
   }, [selectedNodeId]);
 
-  // ── Fetch node detail when local selection changes ──
+  // ── Fetch node detail when selection changes ──
   useEffect(() => {
-    if (!localSelectedId) {
-      onSelectNode(null);
-      return;
-    }
+    if (!localSelectedId) { onSelectNode(null); return; }
     void fetch(`/api/node/${localSelectedId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((payload: NodeDetail | null) => onSelectNode(payload))
       .catch(() => onSelectNode(null));
   }, [localSelectedId, onSelectNode]);
 
-  const nodeMap = useMemo(
-    () => new Map(simNodes.map((n) => [n.id, n])),
-    [simNodes],
-  );
+  // ── Project all nodes ──
+  const { projected, projectedMap } = useMemo(() => {
+    const cx = size.w / 2;
+    const cy = size.h / 2;
+    const sphereRadius = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
+    const fov = FOV_BASE;
 
-  // ── Pan ──
+    const list: ProjectedNode[] = simNodes.map((n) => {
+      const rotated = quatRotate(rotation, [n.sx, n.sy, n.sz]);
+      const { screenX, screenY, depth } = project(rotated, cx, cy, sphereRadius, fov);
+      return { ...n, screenX, screenY, depth };
+    });
+
+    // Sort back-to-front so front nodes paint over back nodes
+    list.sort((a, b) => a.depth - b.depth);
+
+    const map = new Map<string, ProjectedNode>(list.map((n) => [n.id, n]));
+    return { projected: list, projectedMap: map };
+  }, [simNodes, rotation, zoom, size]);
+
+  // ── Mouse handlers ──
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as Element).closest("[data-node]")) return;
-    isPanning.current = true;
-    panStart.current = { x: e.clientX, y: e.clientY };
-    txAtPanStart.current = { ...transform };
-  }, [transform]);
+    isDragging.current = true;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    rotAtDrag.current = rotation;
+  }, [rotation]);
 
   const onMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isPanning.current) return;
-    const dx = e.clientX - panStart.current.x;
-    const dy = e.clientY - panStart.current.y;
-    setTransform({ ...txAtPanStart.current, x: txAtPanStart.current.x + dx, y: txAtPanStart.current.y + dy });
+    if (!isDragging.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 0.5) return;
+    const axis: Vec3 = [dy/dist, dx/dist, 0];
+    const angle = dist * DRAG_SENSITIVITY;
+    const delta = quatFromAxisAngle(axis, angle);
+    setRotation(quatNorm(quatMul(delta, rotAtDrag.current)));
   }, []);
 
-  const stopPan = useCallback(() => { isPanning.current = false; }, []);
+  const stopDrag = useCallback(() => { isDragging.current = false; }, []);
 
-  // ── Zoom ──
+  // ── Wheel zoom ──
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-    setTransform((p) => {
-      const ns = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, p.scale * factor));
-      const sd = ns / p.scale;
-      return { scale: ns, x: mx - (mx - p.x) * sd, y: my - (my - p.y) * sd };
-    });
+    const factor = e.deltaY < 0 ? 1.12 : 1/1.12;
+    setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * factor)));
   }, []);
 
-  // ── Touch ──
+  // ── Touch handlers ──
   const lastTouches = useRef<React.Touch[]>([]);
+  const touchRotStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const touchRotCapture = useRef<Quat>(QUAT_IDENTITY);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     lastTouches.current = Array.from(e.touches);
-  }, []);
+    if (e.touches.length === 1) {
+      touchRotStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      touchRotCapture.current = rotation;
+    }
+  }, [rotation]);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     const touches = Array.from(e.touches);
-    if (touches.length === 1 && lastTouches.current.length === 1) {
-      const dx = touches[0].clientX - lastTouches.current[0].clientX;
-      const dy = touches[0].clientY - lastTouches.current[0].clientY;
-      setTransform((p) => ({ ...p, x: p.x + dx, y: p.y + dy }));
+    if (touches.length === 1) {
+      const dx = touches[0].clientX - touchRotStart.current.x;
+      const dy = touches[0].clientY - touchRotStart.current.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 0.5) return;
+      const axis: Vec3 = [dy/dist, dx/dist, 0];
+      const angle = dist * DRAG_SENSITIVITY;
+      const delta = quatFromAxisAngle(axis, angle);
+      setRotation(quatNorm(quatMul(delta, touchRotCapture.current)));
     } else if (touches.length === 2 && lastTouches.current.length >= 2) {
-      const distNow = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+      const distNow  = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
       const distPrev = Math.hypot(lastTouches.current[0].clientX - lastTouches.current[1].clientX, lastTouches.current[0].clientY - lastTouches.current[1].clientY);
       const factor = distNow / (distPrev || 1);
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const mx = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
-      const my = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
-      setTransform((p) => {
-        const ns = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, p.scale * factor));
-        const sd = ns / p.scale;
-        return { scale: ns, x: mx - (mx - p.x) * sd, y: my - (my - p.y) * sd };
-      });
+      setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * factor)));
     }
     lastTouches.current = touches;
   }, []);
-
-  const { x: tx, y: ty, scale } = transform;
 
   return (
     <div
@@ -271,13 +279,13 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId }: Props) {
         width: "100%", height: "100%",
         position: "relative", overflow: "hidden",
         userSelect: "none",
-        cursor: isPanning.current ? "grabbing" : "grab",
+        cursor: isDragging.current ? "grabbing" : "grab",
         background: "var(--bg-base)",
       }}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
-      onMouseUp={stopPan}
-      onMouseLeave={stopPan}
+      onMouseUp={stopDrag}
+      onMouseLeave={stopDrag}
       onWheel={onWheel}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -295,109 +303,131 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId }: Props) {
           </filter>
         </defs>
 
-        <g transform={`translate(${tx},${ty}) scale(${scale})`}>
-          {/* Edges */}
-          {graph.edges.map((edge) => {
-            const src = nodeMap.get(edge.source);
-            const tgt = nodeMap.get(edge.target);
-            if (!src || !tgt) return null;
+        {/* Sphere outline hint */}
+        <ellipse
+          cx={size.w / 2}
+          cy={size.h / 2}
+          rx={Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom}
+          ry={Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom}
+          fill="none"
+          stroke="var(--border-subtle)"
+          strokeWidth={1}
+          opacity={0.35}
+        />
 
-            const isRelated = localSelectedId !== null && (
-              edge.source === localSelectedId || edge.target === localSelectedId
-            );
-            const isDimmed = localSelectedId !== null && !isRelated;
+        {/* Edges — drawn before nodes */}
+        {graph.edges.map((edge) => {
+          const src = projectedMap.get(edge.source);
+          const tgt = projectedMap.get(edge.target);
+          if (!src || !tgt) return null;
 
-            const x1 = src.px || 0, y1 = src.py || 0, x2 = tgt.px || 0, y2 = tgt.py || 0;
-            if (!isFinite(x1) || !isFinite(y1) || !isFinite(x2) || !isFinite(y2)) return null;
+          const avgDepth = (src.depth + tgt.depth) / 2;
 
-            return (
-              <line
-                key={edge.id}
-                x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={isRelated ? "var(--accent-warm)" : "var(--edge-color)"}
-                strokeWidth={(isRelated ? 1.6 : 0.9) / scale}
-                opacity={isDimmed ? 0.1 : isRelated ? 0.8 : 1}
-                style={{ transition: "opacity 0.25s, stroke 0.25s" }}
-              />
-            );
-          })}
+          // Great-circle arc via slerp midpoint as quadratic bezier control
+          const rotSrc = quatRotate(rotation, [src.sx, src.sy, src.sz]);
+          const rotTgt = quatRotate(rotation, [tgt.sx, tgt.sy, tgt.sz]);
+          const mid3   = slerp(rotSrc, rotTgt, 0.5);
+          const cx2    = size.w / 2;
+          const cy2    = size.h / 2;
+          const sphereR = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
+          const mid2   = project(mid3, cx2, cy2, sphereR, FOV_BASE);
 
-          {/* Nodes */}
-          {simNodes.map((node) => {
-            if (!isFinite(node.px) || !isFinite(node.py)) return null;
-            const isSelected = node.id === localSelectedId;
-            const isHovered  = node.id === hoveredId;
-            const isDimmed   = localSelectedId !== null && !isSelected;
-            const r = (isSelected ? NODE_RADIUS_SELECTED : NODE_RADIUS);
+          const isRelated = localSelectedId !== null && (
+            edge.source === localSelectedId || edge.target === localSelectedId
+          );
+          const isDimmed = localSelectedId !== null && !isRelated;
 
-            const showLabel = isHovered || isSelected;
+          return (
+            <path
+              key={edge.id}
+              d={`M ${src.screenX},${src.screenY} Q ${mid2.screenX},${mid2.screenY} ${tgt.screenX},${tgt.screenY}`}
+              fill="none"
+              stroke={isRelated ? "var(--accent-warm)" : "var(--edge-color)"}
+              strokeWidth={isRelated ? lerp(0.6, 1.8, avgDepth) : lerp(0.3, 1.0, avgDepth)}
+              opacity={isDimmed ? 0.05 : lerp(0.04, isRelated ? 0.85 : 0.55, avgDepth)}
+              style={{ transition: "opacity 0.25s, stroke 0.25s" }}
+            />
+          );
+        })}
 
-            return (
-              <g
-                key={node.id}
-                data-node="true"
-                style={{ cursor: "pointer" }}
-                onClick={() => setLocalSelectedId(isSelected ? null : node.id)}
-                onMouseEnter={() => setHoveredId(node.id)}
-                onMouseLeave={() => setHoveredId(null)}
-              >
-                {/* Selection ring */}
-                {isSelected && (
-                  <circle
-                    cx={node.px} cy={node.py} r={r + 7}
-                    fill="none"
-                    stroke={node.color}
-                    strokeWidth={1 / scale}
-                    opacity={0.28}
-                  />
-                )}
+        {/* Nodes — sorted back to front */}
+        {projected.map((node) => {
+          const isSelected = node.id === localSelectedId;
+          const isHovered  = node.id === hoveredId;
+          const isDimmed   = localSelectedId !== null && !isSelected;
 
-                {/* Hover aura */}
-                {isHovered && !isSelected && (
-                  <circle
-                    cx={node.px} cy={node.py} r={r + 4}
-                    fill={node.color}
-                    opacity={0.12}
-                  />
-                )}
+          const baseR  = isSelected ? NODE_RADIUS_SELECTED : NODE_RADIUS;
+          const r      = baseR * lerp(DEPTH_MIN_RADIUS, 1.0, node.depth);
+          const opacityBase = lerp(DEPTH_MIN_OPACITY, 1.0, node.depth);
+          const opacity = isDimmed ? opacityBase * 0.2 : opacityBase;
 
-                {/* Main circle */}
+          const showLabel = isHovered || isSelected;
+
+          return (
+            <g
+              key={node.id}
+              data-node="true"
+              style={{ cursor: "pointer" }}
+              onClick={() => setLocalSelectedId(isSelected ? null : node.id)}
+              onMouseEnter={() => setHoveredId(node.id)}
+              onMouseLeave={() => setHoveredId(null)}
+            >
+              {/* Selection ring */}
+              {isSelected && (
                 <circle
-                  cx={node.px} cy={node.py} r={r}
-                  fill={node.color}
-                  stroke={
-                    isSelected ? "var(--bg-base)" :
-                    isHovered  ? "rgba(255,255,255,0.9)" :
-                                 "rgba(255,255,255,0.4)"
-                  }
-                  strokeWidth={(isSelected ? 2.5 : 1.5) / scale}
-                  opacity={isDimmed ? 0.15 : 1}
-                  filter={isSelected ? "url(#node-glow)" : isHovered ? "url(#node-glow-soft)" : undefined}
-                  style={{ transition: "opacity 0.2s" }}
+                  cx={node.screenX} cy={node.screenY} r={r + 7}
+                  fill="none"
+                  stroke={node.color}
+                  strokeWidth={1}
+                  opacity={0.28}
                 />
+              )}
 
-                {/* Label */}
-                {showLabel && (
-                  <text
-                    x={node.px + r + 5}
-                    y={node.py + 4}
-                    fontSize={12 / scale}
-                    fontFamily="'Geist', sans-serif"
-                    fontWeight={isSelected ? "500" : "400"}
-                    fill={isSelected ? "var(--text-primary)" : "var(--text-secondary)"}
-                    stroke="var(--bg-base)"
-                    strokeWidth={3 / scale}
-                    strokeLinejoin="round"
-                    paintOrder="stroke"
-                    style={{ pointerEvents: "none" }}
-                  >
-                    {node.name}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </g>
+              {/* Hover aura */}
+              {isHovered && !isSelected && (
+                <circle
+                  cx={node.screenX} cy={node.screenY} r={r + 4}
+                  fill={node.color}
+                  opacity={0.12}
+                />
+              )}
+
+              {/* Main circle */}
+              <circle
+                cx={node.screenX} cy={node.screenY} r={r}
+                fill={node.color}
+                stroke={
+                  isSelected ? "var(--bg-base)" :
+                  isHovered  ? "rgba(255,255,255,0.9)" :
+                               "rgba(255,255,255,0.4)"
+                }
+                strokeWidth={isSelected ? 2.5 : 1.5}
+                opacity={opacity}
+                filter={isSelected ? "url(#node-glow)" : isHovered ? "url(#node-glow-soft)" : undefined}
+                style={{ transition: "opacity 0.2s" }}
+              />
+
+              {/* Label */}
+              {showLabel && (
+                <text
+                  x={node.screenX + r + 5}
+                  y={node.screenY + 4}
+                  fontSize={12}
+                  fontFamily="'Geist', sans-serif"
+                  fontWeight={isSelected ? "500" : "400"}
+                  fill={isSelected ? "var(--text-primary)" : "var(--text-secondary)"}
+                  stroke="var(--bg-base)"
+                  strokeWidth={3}
+                  strokeLinejoin="round"
+                  paintOrder="stroke"
+                  style={{ pointerEvents: "none" }}
+                >
+                  {node.name}
+                </text>
+              )}
+            </g>
+          );
+        })}
       </svg>
 
       {/* Zoom buttons */}
@@ -412,16 +442,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId }: Props) {
           <button
             key={label}
             type="button"
-            onClick={() => {
-              const rect = containerRef.current?.getBoundingClientRect();
-              if (!rect) return;
-              const cx = rect.width / 2, cy = rect.height / 2;
-              setTransform((p) => {
-                const ns = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, p.scale * delta));
-                const sd = ns / p.scale;
-                return { scale: ns, x: cx - (cx - p.x) * sd, y: cy - (cy - p.y) * sd };
-              });
-            }}
+            onClick={() => setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * delta)))}
             style={zoomBtnStyle}
             onMouseEnter={(e) => Object.assign((e.currentTarget as HTMLElement).style, zoomBtnHover)}
             onMouseLeave={(e) => Object.assign((e.currentTarget as HTMLElement).style, zoomBtnStyle)}
@@ -429,33 +450,16 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId }: Props) {
             {label}
           </button>
         ))}
-        {/* Reset to center */}
+        {/* Reset rotation */}
         <button
           type="button"
           title="Reset view"
-          onClick={() => {
-            const rect = containerRef.current?.getBoundingClientRect();
-            if (rect) setTransform({ x: rect.width / 2, y: rect.height / 2, scale: 1 });
-          }}
+          onClick={() => { setRotation(QUAT_IDENTITY); setZoom(1); }}
           style={{ ...zoomBtnStyle, fontSize: 13 }}
           onMouseEnter={(e) => Object.assign((e.currentTarget as HTMLElement).style, zoomBtnHover)}
           onMouseLeave={(e) => Object.assign((e.currentTarget as HTMLElement).style, { ...zoomBtnStyle, fontSize: "13px" })}
         >
           ⌖
-        </button>
-        {/* Fit all nodes */}
-        <button
-          type="button"
-          title="Fit graph to screen"
-          onClick={() => {
-            const rect = containerRef.current?.getBoundingClientRect();
-            if (rect) fitNodes(simNodes, rect.width, rect.height);
-          }}
-          style={{ ...zoomBtnStyle, fontSize: 12 }}
-          onMouseEnter={(e) => Object.assign((e.currentTarget as HTMLElement).style, zoomBtnHover)}
-          onMouseLeave={(e) => Object.assign((e.currentTarget as HTMLElement).style, { ...zoomBtnStyle, fontSize: "12px" })}
-        >
-          ⊡
         </button>
       </div>
     </div>
