@@ -19,6 +19,9 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
   const [panelOpen, setPanelOpen] = useState(false);
   const [shape, setShape] = useState<ShapeLayout>("sphere");
 
+  // Deep highlight mode — shows full connection web with opacity decay
+  const [deepHighlight, setDeepHighlight] = useState(false);
+
   // Dark mode — persisted in localStorage
   const [darkMode, setDarkMode] = useState<boolean>(false);
 
@@ -101,6 +104,7 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
         onSelectNode={handleSelectNode}
         selectedNodeId={selectedDetail?.id ?? null}
         shape={shape}
+        deepHighlight={deepHighlight}
       />
 
       {/* Floating top-left wordmark */}
@@ -173,6 +177,39 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
             {s === "sphere" ? "○" : s === "seven" ? "7" : "🐴"}
           </button>
         ))}
+
+        {/* Deep highlight toggle */}
+        <button
+          type="button"
+          onClick={() => setDeepHighlight((d) => !d)}
+          title={deepHighlight ? "Deep highlight: on — shows full connection web" : "Deep highlight: off — shows only direct connections"}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            border: `1px solid ${deepHighlight ? "var(--accent-warm)" : "var(--border-default)"}`,
+            background: deepHighlight ? "var(--bg-overlay)" : "var(--panel-bg)",
+            backdropFilter: "blur(12px)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 13,
+            color: deepHighlight ? "var(--text-primary)" : "var(--text-muted)",
+            transition: "background 0.15s, color 0.15s, border-color 0.15s",
+            boxShadow: "var(--shadow-sm)",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
+            (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = deepHighlight ? "var(--bg-overlay)" : "var(--panel-bg)";
+            (e.currentTarget as HTMLElement).style.color = deepHighlight ? "var(--text-primary)" : "var(--text-muted)";
+          }}
+        >
+          ❋
+        </button>
 
         {/* Dark mode toggle */}
         <button

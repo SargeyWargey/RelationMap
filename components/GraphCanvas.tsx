@@ -36,6 +36,7 @@ type Props = {
   onSelectNode: (detail: NodeDetail | null) => void;
   selectedNodeId: string | null;
   shape?: ShapeLayout;
+  deepHighlight?: boolean;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -445,7 +446,7 @@ function lerp(a: number, b: number, t: number) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphere" }: Props) {
+export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphere", deepHighlight = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef       = useRef<SVGSVGElement>(null);
 
@@ -574,16 +575,39 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
       .catch(() => onSelectNode(null));
   }, [localSelectedId, onSelectNode]);
 
-  // ── Neighbors of selected node ──
+  // ── BFS distance map from selected node ──
+  // distance 0 = selected, 1 = direct neighbor, 2 = two hops, etc.
+  // In normal mode only distance 0 and 1 are "highlighted" (others dimmed).
+  // In deepHighlight mode all reachable nodes are shown with opacity decay.
+  const distanceMap = useMemo(() => {
+    if (!localSelectedId) return new Map<string, number>();
+    const dist = new Map<string, number>();
+    dist.set(localSelectedId, 0);
+    const queue: string[] = [localSelectedId];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      const curDist = dist.get(cur)!;
+      if (!deepHighlight && curDist >= 1) break; // in normal mode only need 1 hop
+      for (const edge of graph.edges) {
+        let neighbor: string | null = null;
+        if (edge.source === cur) neighbor = edge.target;
+        else if (edge.target === cur) neighbor = edge.source;
+        if (neighbor && !dist.has(neighbor)) {
+          dist.set(neighbor, curDist + 1);
+          queue.push(neighbor);
+        }
+      }
+    }
+    return dist;
+  }, [localSelectedId, graph.edges, deepHighlight]);
+
   const selectedNeighbors = useMemo(() => {
-    if (!localSelectedId) return new Set<string>();
     const neighbors = new Set<string>();
-    for (const edge of graph.edges) {
-      if (edge.source === localSelectedId) neighbors.add(edge.target);
-      if (edge.target === localSelectedId) neighbors.add(edge.source);
+    for (const [id, d] of distanceMap) {
+      if (d === 1) neighbors.add(id);
     }
     return neighbors;
-  }, [localSelectedId, graph.edges]);
+  }, [distanceMap]);
 
   // ── Connection degree per node ──
   const degreeMap = useMemo(() => {
@@ -742,16 +766,33 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
           const isRelated = localSelectedId !== null && (
             edge.source === localSelectedId || edge.target === localSelectedId
           );
-          const isDimmed = localSelectedId !== null && !isRelated;
+          // In deep highlight mode, an edge is "related" if either endpoint has a finite distance
+          const srcDist = distanceMap.get(edge.source) ?? Infinity;
+          const tgtDist = distanceMap.get(edge.target) ?? Infinity;
+          const edgeDist = Math.min(srcDist, tgtDist); // distance of the closer endpoint
+          const isDeepRelated = deepHighlight && localSelectedId !== null && edgeDist < Infinity;
+          const isDimmed  = localSelectedId !== null && !isRelated && !isDeepRelated;
+          const isHiddenEdge = deepHighlight && localSelectedId !== null && !isRelated && !isDeepRelated;
+
+          // Decay edge opacity by hop distance in deep mode
+          const edgeDepthDecay = isDeepRelated && !isRelated
+            ? Math.max(0.3, Math.pow(0.80, edgeDist))
+            : 1;
+
+          // In deep mode color the edge by the farther endpoint's node color
+          // (the node further from the selected root, i.e. higher distance)
+          const deepEdgeColor = deepHighlight && isDeepRelated && !isRelated
+            ? (srcDist >= tgtDist ? src.color : tgt.color)
+            : null;
 
           return (
             <path
               key={edge.id}
               d={`M ${src.screenX},${src.screenY} Q ${mid2.screenX},${mid2.screenY} ${tgt.screenX},${tgt.screenY}`}
               fill="none"
-              stroke={isRelated ? "var(--accent-warm)" : "var(--edge-color)"}
+              stroke={isRelated ? "var(--accent-warm)" : deepEdgeColor ?? "var(--edge-color)"}
               strokeWidth={isRelated ? lerp(0.6, 1.8, avgDepth) : lerp(0.3, 1.0, avgDepth)}
-              opacity={isDimmed ? 0.05 : lerp(0.04, isRelated ? 0.85 : 0.55, avgDepth)}
+              opacity={isHiddenEdge ? 0 : isDimmed ? 0.05 : lerp(0.04, isRelated ? 0.85 : 0.55, avgDepth) * edgeDepthDecay}
               style={{ transition: "opacity 0.25s, stroke 0.25s" }}
             />
           );
@@ -762,14 +803,23 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
           const isSelected = node.id === localSelectedId;
           const isHovered  = node.id === hoveredId;
           const isNeighbor = selectedNeighbors.has(node.id);
-          const isDimmed   = localSelectedId !== null && !isSelected && !isNeighbor;
+          const nodeDist   = distanceMap.get(node.id) ?? Infinity;
+          const isDimmed   = localSelectedId !== null && !isSelected && !isNeighbor &&
+                             (!deepHighlight || nodeDist === Infinity);
+          const isHidden   = deepHighlight && localSelectedId !== null && nodeDist === Infinity;
 
           const degree = degreeMap.get(node.id) ?? 0;
           const degreeScale = lerp(0.6, 2.2, degree / maxDegree);
           const baseR  = (isSelected ? NODE_RADIUS_SELECTED : NODE_RADIUS) * degreeScale;
           const r      = baseR * lerp(DEPTH_MIN_RADIUS, 1.0, node.depth);
           const opacityBase = lerp(DEPTH_MIN_OPACITY, 1.0, node.depth);
-          const opacity = isDimmed ? opacityBase * 0.2 : opacityBase;
+
+          // In deep highlight mode, decay opacity by hop distance
+          // dist 1 → 0.90, dist 2 → 0.72, dist 3 → 0.58, dist 4 → 0.47, …
+          const depthDecay = deepHighlight && localSelectedId !== null && !isSelected && nodeDist < Infinity
+            ? Math.max(0.35, Math.pow(0.80, nodeDist - 1))
+            : 1;
+          const opacity = isHidden ? 0 : isDimmed ? opacityBase * 0.2 : opacityBase * depthDecay;
 
           const showLabel = isHovered || isSelected;
 
