@@ -147,3 +147,12 @@ body {
 .animate-slide-right {
   animation: slideInRight 0.35s cubic-bezier(0.32, 0, 0.15, 1) both;
 }
+
+@keyframes textFlash {
+  0%, 100% { color: var(--text-faint); }
+  50%       { color: var(--accent-warm); }
+}
+
+.animate-text-flash {
+  animation: textFlash 1.4s ease-in-out infinite;
+}

@@ -37,6 +37,7 @@ type Props = {
   selectedNodeId: string | null;
   shape?: ShapeLayout;
   deepHighlight?: boolean;
+  panelOpen?: boolean;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -446,7 +447,7 @@ function lerp(a: number, b: number, t: number) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphere", deepHighlight = false }: Props) {
+export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphere", deepHighlight = false, panelOpen = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef       = useRef<SVGSVGElement>(null);
 
@@ -467,6 +468,12 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
   const [hoveredId, setHoveredId]             = useState<string | null>(null);
   const [localSelectedId, setLocalSelectedId] = useState<string | null>(null);
   const [simNodes, setSimNodes]               = useState<SimNode[]>([]);
+
+  // Fade transition when first database is selected
+  const [beanOpacity, setBeanOpacity]     = useState(1);
+  const [sphereOpacity, setSphereOpacity] = useState(0);
+  const [showBean, setShowBean]           = useState(true);
+  const wasEmptyRef = useRef(true);
 
   // Container size for projection
   const [size, setSize] = useState({ w: 800, h: 600 });
@@ -500,6 +507,28 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
     setRotation(QUAT_IDENTITY);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphKey, shape]);
+
+  // ── Fade in sphere / fade out bean on first database selection ──
+  useEffect(() => {
+    const isEmpty = simNodes.length === 0;
+    if (wasEmptyRef.current && !isEmpty) {
+      // Transition: empty → has nodes
+      wasEmptyRef.current = false;
+      setSphereOpacity(1);
+      setBeanOpacity(0);
+      const timer = setTimeout(() => setShowBean(false), 2000);
+      return () => clearTimeout(timer);
+    }
+    if (!wasEmptyRef.current && isEmpty) {
+      // Transition: has nodes → empty (deselect all dbs)
+      wasEmptyRef.current = true;
+      setSphereOpacity(0);
+      // Mount bean at opacity 0, then fade it in on next frame so CSS transition fires
+      setBeanOpacity(0);
+      setShowBean(true);
+      requestAnimationFrame(() => setBeanOpacity(1));
+    }
+  }, [simNodes.length]);
 
   // ── Sync external selection (from detail panel) ──
   useEffect(() => {
@@ -747,23 +776,25 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
         />
 
         {/* Empty state — no database selected */}
-        {simNodes.length === 0 && (() => {
+        {showBean && (() => {
           const r = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
           const imgSize = r * 2 * 0.9;
           return (
-            <g style={{ pointerEvents: "none" }}>
+            <g style={{ pointerEvents: "none", transition: "opacity 2s ease", opacity: beanOpacity }}>
               <image
                 href="/bean.png"
                 x={size.w / 2 - imgSize / 2}
                 y={size.h / 2 - imgSize / 2}
                 width={imgSize}
                 height={imgSize}
-                opacity={0.22}
                 preserveAspectRatio="xMidYMid meet"
               />
             </g>
           );
         })()}
+
+        {/* Sphere content — fades in when first database is selected */}
+        <g style={{ opacity: sphereOpacity, transition: "opacity 2s ease" }}>
 
         {/* Edges — drawn before nodes */}
         {graph.edges.map((edge) => {
@@ -907,17 +938,20 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
             </g>
           );
         })}
+
+        </g>{/* end sphere content */}
       </svg>
 
       {/* Zoom buttons */}
       <div style={{
         position: "absolute",
         top: 60,
-        right: 24,
+        right: panelOpen ? 332 : 24,
         display: "flex",
         flexDirection: "column",
         gap: 12,
         zIndex: 20,
+        transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1)",
       }}>
         {([
           { label: "+", delta: 1.4 },

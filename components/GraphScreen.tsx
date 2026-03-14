@@ -105,6 +105,7 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
         selectedNodeId={selectedDetail?.id ?? null}
         shape={shape}
         deepHighlight={deepHighlight}
+        panelOpen={panelOpen}
       />
 
       {/* Floating top-left wordmark */}
@@ -136,9 +137,9 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
             alignItems: "center",
             gap: 8,
           }}>
-            Project Ground Control
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/bean.png" alt="Bean" style={{ width: 24, height: 24, objectFit: "contain" }} />
+            Project Ground Control
           </span>
           <span style={{
             fontFamily: "'DM Mono', monospace",
@@ -155,11 +156,12 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
         style={{
           position: "absolute",
           top: 20,
-          right: 24,
+          right: panelOpen ? 332 : 24,
           zIndex: 20,
           display: "flex",
           alignItems: "center",
           gap: 12,
+          transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1)",
         }}
         className="animate-fade-up"
       >

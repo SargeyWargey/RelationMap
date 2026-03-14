@@ -107,14 +107,17 @@ export function DatabaseTogglePanel({
           cursor: dragging ? "grabbing" : "grab",
         }}
       >
-        <span style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: 10,
-          fontWeight: 500,
-          letterSpacing: "0.07em",
-          color: "var(--text-faint)",
-          textTransform: "uppercase",
-        }}>
+        <span
+          className={enabledCount === 0 ? "animate-text-flash" : undefined}
+          style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: "0.07em",
+            color: "var(--text-faint)",
+            textTransform: "uppercase",
+          }}
+        >
           Databases
         </span>
         <span style={{
@@ -190,12 +193,15 @@ export function DatabaseTogglePanel({
         padding: "5px 14px 8px",
         borderTop: "1px solid var(--border-subtle)",
       }}>
-        <span style={{
-          fontFamily: "'Geist', sans-serif",
-          fontSize: 10,
-          color: "var(--text-faint)",
-          lineHeight: 1.4,
-        }}>
+        <span
+          className={enabledCount === 0 ? "animate-text-flash" : undefined}
+          style={{
+            fontFamily: "'Geist', sans-serif",
+            fontSize: 10,
+            color: "var(--text-faint)",
+            lineHeight: 1.4,
+          }}
+        >
           {enabledCount === 0
             ? "Click to load a database"
             : "Click to toggle visibility"}
