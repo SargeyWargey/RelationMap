@@ -114,13 +114,18 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
           top: 20,
           left: 24,
           zIndex: 20,
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
         }}
         className="animate-fade-up"
       >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, pointerEvents: "none" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: 2,
+            pointerEvents: "none",
+          }}
+        >
           <span style={{
             fontFamily: "'Lora', Georgia, serif",
             fontSize: 20,
@@ -128,7 +133,7 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
             color: "var(--text-primary)",
             letterSpacing: "-0.01em",
           }}>
-            RelationMap
+            Project Ground Control
           </span>
           <span style={{
             fontFamily: "'DM Mono', monospace",
@@ -139,7 +144,20 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
             notion graph
           </span>
         </div>
+      </div>
 
+      <div
+        style={{
+          position: "absolute",
+          top: 20,
+          right: 24,
+          zIndex: 20,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+        }}
+        className="animate-fade-up"
+      >
         {/* Shape toggles */}
         {(["sphere", "seven", "horse"] as const).map((s) => (
           <button

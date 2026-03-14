@@ -17,7 +17,7 @@ export function DatabaseTogglePanel({
   enabledDbs,
   onToggle,
 }: Props) {
-  // Default position: right side, vertically centered
+  // Default position: bottom-left, above the floating stats bar
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -25,8 +25,24 @@ export function DatabaseTogglePanel({
 
   // Initialize position once we know window size
   useEffect(() => {
-    setPos({ x: window.innerWidth - 212, y: Math.round(window.innerHeight / 2 - 100) });
-  }, []);
+    const leftMargin = 24;
+    const bottomMargin = 20;
+    const statusBarHeight = 48;
+    const gapAboveStatusBar = 36;
+    const estimatedRowHeight = 29;
+    const estimatedPanelHeight = 58 + allDatabaseIds.length * estimatedRowHeight;
+    const maxY = Math.max(0, window.innerHeight - 80);
+    const targetY = window.innerHeight
+      - bottomMargin
+      - statusBarHeight
+      - gapAboveStatusBar
+      - estimatedPanelHeight;
+
+    setPos({
+      x: leftMargin,
+      y: Math.max(0, Math.min(maxY, targetY)),
+    });
+  }, [allDatabaseIds.length]);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     // Only drag on header

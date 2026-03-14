@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RelationMap",
-  description: "Obsidian-style graph for Notion databases",
+  title: "Project Ground Control",
+  description: "Notion graph for IT project management databases",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

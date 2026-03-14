@@ -746,6 +746,23 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
           opacity={0.35}
         />
 
+        {/* Empty state — no database selected */}
+        {simNodes.length === 0 && (
+          <text
+            x={size.w / 2}
+            y={size.h / 2}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={15}
+            fontFamily="'Geist', sans-serif"
+            fontWeight="400"
+            fill="var(--text-faint)"
+            style={{ pointerEvents: "none" }}
+          >
+            Select a Database
+          </text>
+        )}
+
         {/* Edges — drawn before nodes */}
         {graph.edges.map((edge) => {
           const src = projectedMap.get(edge.source);
@@ -892,8 +909,13 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
 
       {/* Zoom buttons */}
       <div style={{
-        position: "absolute", top: 20, right: 24,
-        display: "flex", flexDirection: "column", gap: 4, zIndex: 20,
+        position: "absolute",
+        top: 60,
+        right: 24,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        zIndex: 20,
       }}>
         {([
           { label: "+", delta: 1.4 },
@@ -927,14 +949,15 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
 }
 
 const zoomBtnStyle: React.CSSProperties = {
-  width: 32, height: 32,
+  width: 28,
+  height: 28,
   background: "var(--panel-bg)",
   backdropFilter: "blur(12px)",
   border: "1px solid var(--border-default)",
   borderRadius: 8,
   cursor: "pointer",
-  fontSize: 18,
-  color: "var(--text-secondary)",
+  fontSize: 14,
+  color: "var(--text-muted)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
