@@ -132,8 +132,13 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
             fontWeight: 600,
             color: "var(--text-primary)",
             letterSpacing: "-0.01em",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
           }}>
             Project Ground Control
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/bean.png" alt="Bean" style={{ width: 24, height: 24, objectFit: "contain" }} />
           </span>
           <span style={{
             fontFamily: "'DM Mono', monospace",
@@ -192,7 +197,7 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
               (e.currentTarget as HTMLElement).style.color = shape === s ? "var(--text-primary)" : "var(--text-muted)";
             }}
           >
-            {s === "sphere" ? "○" : s === "seven" ? "7" : "🐴"}
+            {s === "sphere" ? "○" : s === "seven" ? "7" : "H"}
           </button>
         ))}
 
@@ -311,7 +316,7 @@ export function GraphScreen({ initialGraph, databaseColors, lastSyncAt, warnings
         style={{
           position: "absolute",
           bottom: 20,
-          right: panelOpen ? 364 : 220,
+          right: panelOpen ? 332 : 24,
           zIndex: 20,
           display: "flex",
           alignItems: "center",

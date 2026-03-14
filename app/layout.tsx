@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Project Ground Control",
   description: "Notion graph for IT project management databases",
+  icons: {
+    icon: "/bean.png",
+    apple: "/bean.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

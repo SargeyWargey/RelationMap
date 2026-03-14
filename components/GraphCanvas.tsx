@@ -747,21 +747,23 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
         />
 
         {/* Empty state — no database selected */}
-        {simNodes.length === 0 && (
-          <text
-            x={size.w / 2}
-            y={size.h / 2}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize={15}
-            fontFamily="'Geist', sans-serif"
-            fontWeight="400"
-            fill="var(--text-faint)"
-            style={{ pointerEvents: "none" }}
-          >
-            Select a Database
-          </text>
-        )}
+        {simNodes.length === 0 && (() => {
+          const r = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
+          const imgSize = r * 2 * 0.9;
+          return (
+            <g style={{ pointerEvents: "none" }}>
+              <image
+                href="/bean.png"
+                x={size.w / 2 - imgSize / 2}
+                y={size.h / 2 - imgSize / 2}
+                width={imgSize}
+                height={imgSize}
+                opacity={0.22}
+                preserveAspectRatio="xMidYMid meet"
+              />
+            </g>
+          );
+        })()}
 
         {/* Edges — drawn before nodes */}
         {graph.edges.map((edge) => {
