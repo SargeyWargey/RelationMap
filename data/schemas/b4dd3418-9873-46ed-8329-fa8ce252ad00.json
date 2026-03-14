@@ -1,0 +1,392 @@
+{
+  "databaseId": "b4dd3418-9873-46ed-8329-fa8ce252ad00",
+  "databaseName": "Documentation",
+  "fields": [
+    {
+      "id": "%3FVF%7B",
+      "name": "Tags",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "m=\\o",
+          "name": "EDI",
+          "color": "blue"
+        },
+        {
+          "id": "{`Xi",
+          "name": "SFTP",
+          "color": "gray"
+        },
+        {
+          "id": "vVo[",
+          "name": "Integration",
+          "color": "green"
+        },
+        {
+          "id": "B[cS",
+          "name": "Finance",
+          "color": "brown"
+        },
+        {
+          "id": "zfzr",
+          "name": "Tax",
+          "color": "red"
+        },
+        {
+          "id": "eIQ;",
+          "name": "Security",
+          "color": "pink"
+        },
+        {
+          "id": "U`=|",
+          "name": "Operations",
+          "color": "default"
+        },
+        {
+          "id": "xWBf",
+          "name": "Troubleshooting",
+          "color": "red"
+        },
+        {
+          "id": "dGlQ",
+          "name": "How-to",
+          "color": "green"
+        },
+        {
+          "id": "l[_f",
+          "name": "Payroll",
+          "color": "gray"
+        },
+        {
+          "id": "^=y>",
+          "name": "Compliance",
+          "color": "red"
+        },
+        {
+          "id": ";StC",
+          "name": "AS2",
+          "color": "pink"
+        },
+        {
+          "id": "CdYZ",
+          "name": "WebEDI",
+          "color": "green"
+        },
+        {
+          "id": "}kMA",
+          "name": "Property Works",
+          "color": "default"
+        },
+        {
+          "id": "ltxY",
+          "name": "Lease Accounting",
+          "color": "blue"
+        },
+        {
+          "id": "stYK",
+          "name": "FAQ",
+          "color": "orange"
+        },
+        {
+          "id": "p^RX",
+          "name": "Reporting",
+          "color": "blue"
+        },
+        {
+          "id": "hz@e",
+          "name": "Project Management",
+          "color": "purple"
+        },
+        {
+          "id": "ora|",
+          "name": "Data Migration",
+          "color": "green"
+        },
+        {
+          "id": "ajQT",
+          "name": "Recruiting",
+          "color": "pink"
+        },
+        {
+          "id": "}eet",
+          "name": "API",
+          "color": "gray"
+        },
+        {
+          "id": "Dc{P",
+          "name": "Access Control",
+          "color": "red"
+        },
+        {
+          "id": "~@DS",
+          "name": "Key Management",
+          "color": "orange"
+        },
+        {
+          "id": "yeub",
+          "name": "X12",
+          "color": "brown"
+        },
+        {
+          "id": "e>cz",
+          "name": "SSO",
+          "color": "purple"
+        },
+        {
+          "id": "TShe",
+          "name": "Benefits",
+          "color": "green"
+        },
+        {
+          "id": "U~u]",
+          "name": "Banking",
+          "color": "blue"
+        },
+        {
+          "id": "jD_O",
+          "name": "POS",
+          "color": "orange"
+        },
+        {
+          "id": "Tztj",
+          "name": "Ticketing",
+          "color": "blue"
+        },
+        {
+          "id": "Jjbr",
+          "name": "MFA",
+          "color": "red"
+        },
+        {
+          "id": "s^;G",
+          "name": "Process",
+          "color": "yellow"
+        },
+        {
+          "id": "2a8e9ba4-1492-438a-9076-254bb053db5a",
+          "name": "Loyalty",
+          "color": "purple"
+        },
+        {
+          "id": "455d2fe8-336a-4e8a-8d7b-faed4f4185ea",
+          "name": "AI Setup",
+          "color": "orange"
+        },
+        {
+          "id": "c657fc36-d655-429d-8fd2-14911042fc04",
+          "name": "Training",
+          "color": "green"
+        },
+        {
+          "id": "9b5fa1a0-f9e9-40cf-bdb6-0f6b8778409e",
+          "name": "Training Program",
+          "color": "blue"
+        },
+        {
+          "id": "5a40e540-3ae4-4b85-8cc7-4062c8ed0af0",
+          "name": "Notion Training",
+          "color": "yellow"
+        },
+        {
+          "id": "81852429-b95e-4eef-84c7-723d6c984109",
+          "name": "Brew Summaries",
+          "color": "gray"
+        },
+        {
+          "id": "9c5d9cd8-fa67-4ed9-9d13-67f1d08853a7",
+          "name": "Excel Reports",
+          "color": "blue"
+        },
+        {
+          "id": "4d58450d-0c5a-4767-99b9-19a737279c38",
+          "name": "Summary Analysis",
+          "color": "pink"
+        },
+        {
+          "id": "6d727b50-77a0-446d-9c84-d1f0c8ccdc36",
+          "name": "Quote",
+          "color": "blue"
+        },
+        {
+          "id": "1f8c2475-8cdc-43e8-9d73-e946c65c4c62",
+          "name": "FSQA",
+          "color": "orange"
+        },
+        {
+          "id": "45933578-7352-4487-95bb-17b98dd70cdd",
+          "name": "NDA",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "id": "Bj%7BY",
+      "name": "Status",
+      "type": "select",
+      "options": [
+        {
+          "id": "T}H}",
+          "name": "Draft",
+          "color": "blue"
+        },
+        {
+          "id": "dNZ_",
+          "name": "In Review",
+          "color": "purple"
+        },
+        {
+          "id": "@Ra=",
+          "name": "Published",
+          "color": "green"
+        },
+        {
+          "id": "HZcy",
+          "name": "Archived",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "id": "E%5Bs%60",
+      "name": "Last edited time",
+      "type": "last_edited_time"
+    },
+    {
+      "id": "Kl%5BH",
+      "name": "Author",
+      "type": "people"
+    },
+    {
+      "id": "LxLD",
+      "name": "Related Applications",
+      "type": "relation"
+    },
+    {
+      "id": "YN%7C%3B",
+      "name": "Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "T}H}",
+          "name": "Guide",
+          "color": "blue"
+        },
+        {
+          "id": "dNZ_",
+          "name": "Tutorial",
+          "color": "purple"
+        },
+        {
+          "id": "@Ra=",
+          "name": "Reference",
+          "color": "green"
+        },
+        {
+          "id": "HZcy",
+          "name": "FAQ",
+          "color": "orange"
+        },
+        {
+          "id": "Z]C>",
+          "name": "Policy",
+          "color": "pink"
+        },
+        {
+          "id": "d051e6b8-5d27-4ebb-8393-1ac6e7131a45",
+          "name": "Process",
+          "color": "yellow"
+        },
+        {
+          "id": "d3fa65b3-c19e-45e2-be5a-39c3bfcf52d5",
+          "name": "Questions",
+          "color": "default"
+        },
+        {
+          "id": "b896a40b-17dd-49b0-9872-bc3479aa387f",
+          "name": "Specification",
+          "color": "red"
+        },
+        {
+          "id": "`zks",
+          "name": "PRD",
+          "color": "blue"
+        },
+        {
+          "id": "M\\Z\\",
+          "name": "Technical Spec",
+          "color": "purple"
+        },
+        {
+          "id": "<_Tw",
+          "name": "Functional Spec",
+          "color": "green"
+        },
+        {
+          "id": "DWHe",
+          "name": "Implementation Plan",
+          "color": "orange"
+        },
+        {
+          "id": "OklX",
+          "name": "Training Doc",
+          "color": "yellow"
+        },
+        {
+          "id": "229a65d0-ca30-42d0-9324-1e2814041344",
+          "name": "Customer Agreement",
+          "color": "gray"
+        },
+        {
+          "id": "9442fd99-fefc-4a3f-9bc1-1ba39c0fa24b",
+          "name": "Quote",
+          "color": "brown"
+        },
+        {
+          "id": "ad03739a-3f8f-41ed-8174-a6ea567d31db",
+          "name": "Notes",
+          "color": "red"
+        },
+        {
+          "id": "0b515165-952e-46a7-aad9-03dc7680c487",
+          "name": "MSA",
+          "color": "pink"
+        }
+      ]
+    },
+    {
+      "id": "_vJk",
+      "name": "Cleanup",
+      "type": "formula"
+    },
+    {
+      "id": "f%3DhL",
+      "name": "Description",
+      "type": "rich_text"
+    },
+    {
+      "id": "mIZX",
+      "name": "Projects",
+      "type": "relation"
+    },
+    {
+      "id": "s%7Dqy",
+      "name": "Last edited by",
+      "type": "last_edited_by"
+    },
+    {
+      "id": "zCJT",
+      "name": "Dev-Jira Issues",
+      "type": "relation"
+    },
+    {
+      "id": "zgz%3C",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
+      "id": "title",
+      "name": "Title",
+      "type": "title"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "databaseId": "d7485e57-64ae-4bbc-8777-4253dd4dc94a",
+  "databaseName": "Departments",
+  "fields": [
+    {
+      "id": "%3ElAS",
+      "name": "R-Worker Cost",
+      "type": "rollup"
+    },
+    {
+      "id": "Jh%3DR",
+      "name": "R-Annual App Cost",
+      "type": "rollup"
+    },
+    {
+      "id": "Pzss",
+      "name": "R-Total Adjusted Hours",
+      "type": "rollup"
+    },
+    {
+      "id": "%5B%5CPq",
+      "name": "Annual IT Support and App Cost",
+      "type": "rollup"
+    },
+    {
+      "id": "oZAj",
+      "name": "Applications",
+      "type": "relation"
+    },
+    {
+      "id": "ycU%5D",
+      "name": "Total Adjusted Hours",
+      "type": "formula"
+    },
+    {
+      "id": "title",
+      "name": "Department Name",
+      "type": "title"
+    }
+  ]
+}

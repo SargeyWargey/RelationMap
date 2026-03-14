@@ -1,0 +1,11 @@
+{
+  "databaseId": "2dce0acc-3ac4-8000-a57a-ef62df82758f",
+  "databaseName": "Templates",
+  "fields": [
+    {
+      "id": "title",
+      "name": "Name",
+      "type": "title"
+    }
+  ]
+}

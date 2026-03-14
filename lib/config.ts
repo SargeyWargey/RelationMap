@@ -4,6 +4,7 @@ export const DATA_DIR = path.join(process.cwd(), "data");
 export const NODES_DIR = path.join(DATA_DIR, "nodes");
 export const GRAPH_FILE = path.join(DATA_DIR, "graph.json");
 export const CONFIG_FILE = path.join(DATA_DIR, "config.json");
+export const SCHEMAS_DIR = path.join(DATA_DIR, "schemas");
 
 export const DEFAULT_COLORS = [
   "#0D9488",

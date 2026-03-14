@@ -1,0 +1,659 @@
+{
+  "databaseId": "26c09982-3e4f-4960-bfd0-9e57283ada88",
+  "databaseName": "Sprint Backlog",
+  "fields": [
+    {
+      "id": "%3CYI~",
+      "name": "Requester",
+      "type": "people"
+    },
+    {
+      "id": "%3E%3EES",
+      "name": "Priority",
+      "type": "select",
+      "options": [
+        {
+          "id": "Ed;Y",
+          "name": "1-Critical",
+          "color": "purple"
+        },
+        {
+          "id": "PtB{",
+          "name": "2-High",
+          "color": "red"
+        },
+        {
+          "id": "Dl]C",
+          "name": "3-Medium",
+          "color": "yellow"
+        },
+        {
+          "id": "hEzT",
+          "name": "4-Low",
+          "color": "green"
+        },
+        {
+          "id": "MGlG",
+          "name": "5-Nice to Have",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "id": "%3FD%3Ff",
+      "name": "Create to Resolution Days",
+      "type": "formula"
+    },
+    {
+      "id": "AH%7CV",
+      "name": "Must Have Date",
+      "type": "date"
+    },
+    {
+      "id": "HfB%60",
+      "name": "ID",
+      "type": "unique_id"
+    },
+    {
+      "id": "N%3BD%5D",
+      "name": "Projects",
+      "type": "relation"
+    },
+    {
+      "id": "N_%40%5D",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
+      "id": "OamA",
+      "name": "Rollout Phase",
+      "type": "select",
+      "options": [
+        {
+          "id": "RCBG",
+          "name": "Phase 2",
+          "color": "default"
+        },
+        {
+          "id": "N?c>",
+          "name": "Phase 1.5",
+          "color": "orange"
+        },
+        {
+          "id": "drzP",
+          "name": "ACS",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "id": "S%40%5Bg",
+      "name": "Last edited time",
+      "type": "last_edited_time"
+    },
+    {
+      "id": "S%40vC",
+      "name": "T-Shirt Size",
+      "type": "select",
+      "options": [
+        {
+          "id": "9e3f2db8-bdf9-44f5-b765-85bf55b150fb",
+          "name": "Small",
+          "color": "yellow"
+        },
+        {
+          "id": "641a40d0-4109-4577-bb38-c477b3a4e0ed",
+          "name": "Medium",
+          "color": "green"
+        },
+        {
+          "id": "a4cfdc7b-eb12-47c4-b5cf-1bf4605f9876",
+          "name": "Large",
+          "color": "blue"
+        },
+        {
+          "id": "bed567a6-9b7f-45fb-94a6-8c2e0d682705",
+          "name": "Pending",
+          "color": "pink"
+        },
+        {
+          "id": "MGlG",
+          "name": "X-Large",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "YRia",
+      "name": "Sprint Burndown",
+      "type": "formula"
+    },
+    {
+      "id": "%5CQ%5B%5B",
+      "name": "Actual Points",
+      "type": "number"
+    },
+    {
+      "id": "%5DY%3FP",
+      "name": "Assigned To-",
+      "type": "relation"
+    },
+    {
+      "id": "_jrm",
+      "name": "Story points",
+      "type": "number"
+    },
+    {
+      "id": "%60G%5EK",
+      "name": "Cleanup",
+      "type": "formula"
+    },
+    {
+      "id": "eS_A",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "Sq@N",
+          "name": "Inbox",
+          "color": "gray"
+        },
+        {
+          "id": "sXpb",
+          "name": "Pending Sizing",
+          "color": "yellow"
+        },
+        {
+          "id": "=UcC",
+          "name": "To Do",
+          "color": "purple"
+        },
+        {
+          "id": "UpiG",
+          "name": "On Hold",
+          "color": "brown"
+        },
+        {
+          "id": "}Qo]",
+          "name": "In Progress",
+          "color": "blue"
+        },
+        {
+          "id": ":JUg",
+          "name": "Testing",
+          "color": "pink"
+        },
+        {
+          "id": "bUnF",
+          "name": "Complete",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "g%3DAz",
+      "name": "Requester-",
+      "type": "relation"
+    },
+    {
+      "id": "hB%5D%5D",
+      "name": "Sprint Dates",
+      "type": "rollup"
+    },
+    {
+      "id": "hR_%5C",
+      "name": "Assigned To",
+      "type": "people"
+    },
+    {
+      "id": "lECz",
+      "name": "System",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "RCBG",
+          "name": "NetSuite",
+          "color": "blue"
+        },
+        {
+          "id": "N?c>",
+          "name": "Workday",
+          "color": "green"
+        },
+        {
+          "id": "drzP",
+          "name": "EDI",
+          "color": "orange"
+        },
+        {
+          "id": "Ed;Y",
+          "name": "Fresh",
+          "color": "pink"
+        },
+        {
+          "id": "MGlG",
+          "name": "Okta",
+          "color": "purple"
+        },
+        {
+          "id": "U>?I",
+          "name": "Xenial",
+          "color": "yellow"
+        },
+        {
+          "id": "?gVT",
+          "name": "Concur",
+          "color": "brown"
+        },
+        {
+          "id": "\\LC@",
+          "name": "Stampli",
+          "color": "gray"
+        },
+        {
+          "id": "][;m",
+          "name": "PowerBI",
+          "color": "default"
+        },
+        {
+          "id": "WVFP",
+          "name": "Informatica",
+          "color": "red"
+        },
+        {
+          "id": "OMRd",
+          "name": "CrunchTime",
+          "color": "green"
+        },
+        {
+          "id": "aQNv",
+          "name": "NSAW",
+          "color": "blue"
+        },
+        {
+          "id": "B}q\\",
+          "name": "SiteFolio",
+          "color": "pink"
+        },
+        {
+          "id": "D<S_",
+          "name": "Adobe",
+          "color": "red"
+        },
+        {
+          "id": "Ydpi",
+          "name": "ProCore",
+          "color": "orange"
+        },
+        {
+          "id": "IKns",
+          "name": "Navisphere",
+          "color": "purple"
+        },
+        {
+          "id": "?Kij",
+          "name": "Avalara",
+          "color": "yellow"
+        }
+      ]
+    },
+    {
+      "id": "nA%3EB",
+      "name": "Issue Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "Dl]C",
+          "name": "Enhancement",
+          "color": "green"
+        },
+        {
+          "id": "PtB{",
+          "name": "Break Fix",
+          "color": "red"
+        },
+        {
+          "id": "d2fe5adf-8b07-4055-aa92-48d83414f1d9",
+          "name": "Research",
+          "color": "purple"
+        },
+        {
+          "id": "aQNv",
+          "name": "Training",
+          "color": "yellow"
+        },
+        {
+          "id": "f0acd771-35d1-4c65-9882-f1591e0eb126",
+          "name": "Administrative",
+          "color": "blue"
+        },
+        {
+          "id": "bdbe80c8-b10c-43ef-a103-0c446ffc5aa4",
+          "name": "Maintain",
+          "color": "pink"
+        },
+        {
+          "id": "c21ef695-0875-478c-b88c-adfee48ca772",
+          "name": "Project",
+          "color": "brown"
+        }
+      ]
+    },
+    {
+      "id": "oM%3DM",
+      "name": "Team",
+      "type": "select",
+      "options": [
+        {
+          "id": "85b16b36-d114-4f2d-8172-43306927abb7",
+          "name": "IT",
+          "color": "gray"
+        },
+        {
+          "id": "8dfe1e13-367e-4429-b35a-e006fd570151",
+          "name": "MHI",
+          "color": "blue"
+        },
+        {
+          "id": "a00e673a-f2b8-41aa-9f0f-a6d417438e64",
+          "name": "ACS",
+          "color": "green"
+        },
+        {
+          "id": "D]>:",
+          "name": "PWC",
+          "color": "pink"
+        },
+        {
+          "id": "6f5889a3-2eb3-4936-9e58-9d648d531861",
+          "name": "Premium Support",
+          "color": "brown"
+        },
+        {
+          "id": "c040d04c-cd9b-4af8-8c21-9665963adb5a",
+          "name": "Gratuity Solutions",
+          "color": "orange"
+        },
+        {
+          "id": "c1695384-66ed-4cea-8c9c-fa4e5eb945de",
+          "name": "Acct & Fin",
+          "color": "purple"
+        },
+        {
+          "id": "f841b05c-2016-4277-bc09-c31c4a52aa96",
+          "name": "Workday",
+          "color": "yellow"
+        },
+        {
+          "id": "807f2de4-8b0d-4e9e-9845-d0e110a0a82c",
+          "name": "Acuity",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "osj%3F",
+      "name": "Business Area",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "f271bf52-044a-4a3f-b691-136a564a6853",
+          "name": "People",
+          "color": "yellow"
+        },
+        {
+          "id": "dac42c62-add3-4b53-bbf0-b6a7e5874a48",
+          "name": "Acct & Fin",
+          "color": "green"
+        },
+        {
+          "id": "57d7e66d-b8db-4f59-ad19-cd26a68f2c62",
+          "name": "Supply Chain",
+          "color": "pink"
+        },
+        {
+          "id": "21aeb603-0f94-4241-bd79-c0e70e5db342",
+          "name": "Admin/Misc",
+          "color": "purple"
+        }
+      ]
+    },
+    {
+      "id": "pQba",
+      "name": "Created by",
+      "type": "created_by"
+    },
+    {
+      "id": "paV%60",
+      "name": "Topic",
+      "type": "select",
+      "options": [
+        {
+          "id": "IVMO",
+          "name": "91 7 Energy - Production Run",
+          "color": "pink"
+        },
+        {
+          "id": "I\\=g",
+          "name": "Integrations - Stand POS Data",
+          "color": "orange"
+        },
+        {
+          "id": "vh;Y",
+          "name": "Stand and Corporate HW and SW",
+          "color": "green"
+        },
+        {
+          "id": "D]>:",
+          "name": "Record to Report",
+          "color": "brown"
+        },
+        {
+          "id": ":|sF",
+          "name": "92 Fixed Assets",
+          "color": "gray"
+        },
+        {
+          "id": "[>Bo",
+          "name": "95 CTAR Stand Build and Sale",
+          "color": "yellow"
+        },
+        {
+          "id": "TdcG",
+          "name": "Accounts Payable (Stampli & NetSuite)",
+          "color": "default"
+        },
+        {
+          "id": "LvNb",
+          "name": "95 CTAR Equipment & Purchase",
+          "color": "purple"
+        },
+        {
+          "id": "iDaq",
+          "name": "95 CTAR 7Construction",
+          "color": "blue"
+        },
+        {
+          "id": "\\fNC",
+          "name": "92 Stand POS Revenue & COGS",
+          "color": "red"
+        },
+        {
+          "id": "=d_C",
+          "name": "Integrations - CrunchTime COGS",
+          "color": "green"
+        },
+        {
+          "id": "J;Om",
+          "name": "Integrations - Disti EDI Invoice",
+          "color": "pink"
+        },
+        {
+          "id": "?PIU",
+          "name": "Integrations - Concur",
+          "color": "green"
+        },
+        {
+          "id": ">>ky",
+          "name": "96 Brew Culture Franchise Agreement",
+          "color": "brown"
+        },
+        {
+          "id": "IKns",
+          "name": "Data Management",
+          "color": "blue"
+        },
+        {
+          "id": "?Kij",
+          "name": "Purchasing",
+          "color": "green"
+        },
+        {
+          "id": "i;^U",
+          "name": "AR",
+          "color": "pink"
+        },
+        {
+          "id": "wzV\\",
+          "name": "CTAR Equipment",
+          "color": "orange"
+        },
+        {
+          "id": "ViAQ",
+          "name": "POS Data",
+          "color": "yellow"
+        },
+        {
+          "id": "zpUb",
+          "name": "Quoting",
+          "color": "purple"
+        },
+        {
+          "id": "f:OM",
+          "name": "CTAR Build",
+          "color": "red"
+        },
+        {
+          "id": "\\NXO",
+          "name": "CTAR Building",
+          "color": "red"
+        },
+        {
+          "id": "J;Rc",
+          "name": "Tax",
+          "color": "gray"
+        },
+        {
+          "id": "eish",
+          "name": "AP",
+          "color": "default"
+        },
+        {
+          "id": "no\\j",
+          "name": "7Energy",
+          "color": "pink"
+        },
+        {
+          "id": "NToB",
+          "name": "Expense and Reimbursements",
+          "color": "green"
+        },
+        {
+          "id": "^Zw;",
+          "name": "Data Hub",
+          "color": "blue"
+        },
+        {
+          "id": "hFbZ",
+          "name": "Stand Equipment",
+          "color": "orange"
+        },
+        {
+          "id": "VJSb",
+          "name": "Franchisee Agreements",
+          "color": "purple"
+        },
+        {
+          "id": "Ow[|",
+          "name": "Fixed Assets",
+          "color": "gray"
+        },
+        {
+          "id": "{=Ie",
+          "name": "POS Weekly Invoices",
+          "color": "yellow"
+        },
+        {
+          "id": "<=WW",
+          "name": "Supply Chain",
+          "color": "brown"
+        },
+        {
+          "id": ">]EA",
+          "name": "International",
+          "color": "red"
+        },
+        {
+          "id": ";?OI",
+          "name": "7Construction",
+          "color": "blue"
+        },
+        {
+          "id": "CgLL",
+          "name": "MDM",
+          "color": "green"
+        },
+        {
+          "id": "xb:D",
+          "name": "IT",
+          "color": "gray"
+        },
+        {
+          "id": "`WDl",
+          "name": "CPG",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "id": "qfvi",
+      "name": "Meeting Notes",
+      "type": "relation"
+    },
+    {
+      "id": "vCyL",
+      "name": "In Progress to Resolution Days",
+      "type": "formula"
+    },
+    {
+      "id": "wmvx",
+      "name": "Completed Date",
+      "type": "date"
+    },
+    {
+      "id": "zee%5B",
+      "name": "Can Update",
+      "type": "people"
+    },
+    {
+      "id": "%7Bh%7BI",
+      "name": "In Progress Time",
+      "type": "date"
+    },
+    {
+      "id": "title",
+      "name": "Task name",
+      "type": "title"
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Fdescription_property",
+      "name": "Description",
+      "type": "rich_text"
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Ftask_sprint_relation",
+      "name": "Sprints",
+      "type": "relation"
+    }
+  ]
+}

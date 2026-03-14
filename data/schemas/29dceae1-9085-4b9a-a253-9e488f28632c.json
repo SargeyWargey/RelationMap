@@ -1,0 +1,11 @@
+{
+  "databaseId": "29dceae1-9085-4b9a-a253-9e488f28632c",
+  "databaseName": "Business Team",
+  "fields": [
+    {
+      "id": "title",
+      "name": "Name",
+      "type": "title"
+    }
+  ]
+}

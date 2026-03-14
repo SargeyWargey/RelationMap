@@ -1,0 +1,125 @@
+{
+  "databaseId": "2dfe0acc-3ac4-809a-a61a-ec91cd704be8",
+  "databaseName": "Application Documentation",
+  "fields": [
+    {
+      "id": "%5BjvR",
+      "name": "Expiration Date",
+      "type": "date"
+    },
+    {
+      "id": "d%60%40E",
+      "name": "Effective Date",
+      "type": "date"
+    },
+    {
+      "id": "lSA%5B",
+      "name": "Vendor/Partner",
+      "type": "rich_text"
+    },
+    {
+      "id": "pAE~",
+      "name": "Document Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "D>M{",
+          "name": "MSA",
+          "color": "pink"
+        },
+        {
+          "id": "jBTR",
+          "name": "Contract",
+          "color": "gray"
+        },
+        {
+          "id": "rxYb",
+          "name": "SLA",
+          "color": "purple"
+        },
+        {
+          "id": "K|up",
+          "name": "SOW",
+          "color": "yellow"
+        },
+        {
+          "id": "HOaj",
+          "name": "Amendment",
+          "color": "green"
+        },
+        {
+          "id": "uxG>",
+          "name": "Order Form",
+          "color": "default"
+        },
+        {
+          "id": "ZcFj",
+          "name": "DPA",
+          "color": "orange"
+        },
+        {
+          "id": "P;<]",
+          "name": "Other",
+          "color": "brown"
+        }
+      ]
+    },
+    {
+      "id": "qKaI",
+      "name": "Applications",
+      "type": "relation"
+    },
+    {
+      "id": "y%40%40M",
+      "name": "Owner",
+      "type": "people"
+    },
+    {
+      "id": "%7DvKq",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "\\IN`",
+          "name": "Draft",
+          "color": "gray"
+        },
+        {
+          "id": "YjEc",
+          "name": "In Review",
+          "color": "blue"
+        },
+        {
+          "id": "T{J}",
+          "name": "Pending Signature",
+          "color": "yellow"
+        },
+        {
+          "id": "juR=",
+          "name": "Signed",
+          "color": "green"
+        },
+        {
+          "id": "\\DqC",
+          "name": "Active",
+          "color": "green"
+        },
+        {
+          "id": "|M:T",
+          "name": "Expired",
+          "color": "gray"
+        },
+        {
+          "id": "lXnU",
+          "name": "Terminated",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "name": "Document Name",
+      "type": "title"
+    }
+  ]
+}

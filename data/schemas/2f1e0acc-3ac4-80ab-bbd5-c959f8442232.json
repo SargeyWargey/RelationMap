@@ -1,0 +1,103 @@
+{
+  "databaseId": "2f1e0acc-3ac4-80ab-bbd5-c959f8442232",
+  "databaseName": "Sprints",
+  "fields": [
+    {
+      "id": "%3Funx",
+      "name": "Total Sprint Points",
+      "type": "number"
+    },
+    {
+      "id": "ZzdP",
+      "name": "Completed Points",
+      "type": "formula"
+    },
+    {
+      "id": "%5Egdl",
+      "name": "Remaining Points",
+      "type": "formula"
+    },
+    {
+      "id": "ha~%3D",
+      "name": "Pace",
+      "type": "formula"
+    },
+    {
+      "id": "hmS%3D",
+      "name": "Sprint Pace",
+      "type": "formula"
+    },
+    {
+      "id": "ke%3FM",
+      "name": "Story Points",
+      "type": "rollup"
+    },
+    {
+      "id": "sUI%3D",
+      "name": "Sprint Progress",
+      "type": "formula"
+    },
+    {
+      "id": "title",
+      "name": "Sprint name",
+      "type": "title"
+    },
+    {
+      "id": "notion%3A%2F%2Fsprints%2Fdates_property",
+      "name": "Dates",
+      "type": "date"
+    },
+    {
+      "id": "notion%3A%2F%2Fsprints%2Funique_id_property",
+      "name": "Sprint ID",
+      "type": "unique_id"
+    },
+    {
+      "id": "notion%3A%2F%2Fsprints%2Fsprint_task_relation",
+      "name": "Tasks",
+      "type": "relation"
+    },
+    {
+      "id": "notion%3A%2F%2Fsprints%2Ftotal_tasks_property",
+      "name": "Total tasks",
+      "type": "rollup"
+    },
+    {
+      "id": "notion%3A%2F%2Fsprints%2Fcompleted_tasks_property",
+      "name": "Completed tasks",
+      "type": "rollup"
+    },
+    {
+      "id": "notion%3A%2F%2Fsprints%2Fsprint_status_property_v2",
+      "name": "Sprint status",
+      "type": "status",
+      "options": [
+        {
+          "id": "current",
+          "name": "Current",
+          "color": "blue"
+        },
+        {
+          "id": "next",
+          "name": "Next",
+          "color": "purple"
+        },
+        {
+          "id": "future",
+          "name": "Future",
+          "color": "gray"
+        },
+        {
+          "id": "last",
+          "name": "Last",
+          "color": "yellow"
+        },
+        {
+          "id": "past",
+          "name": "Past",
+          "color": "brown"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,420 @@
+{
+  "databaseId": "2efe0acc-3ac4-800c-80bb-e6799316761b",
+  "databaseName": "Dev-Jira Issues",
+  "fields": [
+    {
+      "id": "ZB%3FI",
+      "name": "Meeting Notes",
+      "type": "relation"
+    },
+    {
+      "id": "ltBQ",
+      "name": "Documentation",
+      "type": "relation"
+    },
+    {
+      "id": "%7CG%3AI",
+      "name": "Projects",
+      "type": "relation"
+    },
+    {
+      "id": "title",
+      "name": "Task name",
+      "type": "title"
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Ftags_property",
+      "name": "Tags",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "Mobile",
+          "name": "Mobile",
+          "color": "purple"
+        },
+        {
+          "id": "Website",
+          "name": "Website",
+          "color": "blue"
+        },
+        {
+          "id": "Improvement",
+          "name": "Improvement",
+          "color": "pink"
+        }
+      ]
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Fassign_property",
+      "name": "Assignee",
+      "type": "people"
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Fstatus_property",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": ">gDe",
+          "name": "To Do",
+          "color": "gray"
+        },
+        {
+          "id": "Kgjb",
+          "name": "In Progress",
+          "color": "blue"
+        },
+        {
+          "id": "jdne",
+          "name": "Done",
+          "color": "green"
+        },
+        {
+          "id": "}|zL",
+          "name": "In Development",
+          "color": "blue"
+        },
+        {
+          "id": "XS?~",
+          "name": "Deployed to production",
+          "color": "blue"
+        },
+        {
+          "id": "}:Vf",
+          "name": "Development Complete",
+          "color": "blue"
+        },
+        {
+          "id": "IL?a",
+          "name": "Blocked",
+          "color": "gray"
+        },
+        {
+          "id": "Ngc>",
+          "name": "Ready to Deploy",
+          "color": "blue"
+        },
+        {
+          "id": "@uGB",
+          "name": "Testing",
+          "color": "blue"
+        }
+      ]
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Fdue_date_property",
+      "name": "Due",
+      "type": "date"
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Fpriority_property",
+      "name": "Priority",
+      "type": "select",
+      "options": [
+        {
+          "id": "64b070b0-6a15-453b-8c0c-876d4bee4b4f",
+          "name": "Medium",
+          "color": "yellow"
+        },
+        {
+          "id": "57694b86-7855-44ad-867e-88ccd2afd2c9",
+          "name": "High",
+          "color": "orange"
+        },
+        {
+          "id": "a1922a6c-3f76-4253-8fcb-b20a2d732d7f",
+          "name": "Low",
+          "color": "green"
+        },
+        {
+          "id": "60bd8760-efd3-493e-b67c-fccc3e70021b",
+          "name": "Lowest",
+          "color": "blue"
+        },
+        {
+          "id": "bb796943-e2ff-47ba-b61f-97784cfcf65e",
+          "name": "Highest",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Fsub_task_relation",
+      "name": "Sub-tasks",
+      "type": "relation"
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Fparent_task_relation",
+      "name": "Parent-task",
+      "type": "relation"
+    },
+    {
+      "id": "01582caa-9872-4536-a29e-4551aed6fb92",
+      "name": "Story point estimate",
+      "type": "number"
+    },
+    {
+      "id": "1d44541a-f2a9-447d-b2eb-7dc8078278ca",
+      "name": "Labels",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "c9c1c9d5-6065-413a-9f99-52d19d10808d",
+          "name": "Critical",
+          "color": "default"
+        },
+        {
+          "id": "1c0698bd-d965-4455-b55d-97c190c06438",
+          "name": "Green",
+          "color": "default"
+        }
+      ]
+    },
+    {
+      "id": "62a94756-c262-47f7-9fc9-985d524a5e59",
+      "name": "Created",
+      "type": "date"
+    },
+    {
+      "id": "6959a5fb-ebd7-4469-8b13-bca9c048fbde",
+      "name": "Project 1",
+      "type": "rich_text"
+    },
+    {
+      "id": "750653f9-0eec-4578-9f44-0c03d5b37d63",
+      "name": "Linked Issues",
+      "type": "relation"
+    },
+    {
+      "id": "793ef5e0-a246-4e54-895a-38431f60de3b",
+      "name": "Jira URL",
+      "type": "url"
+    },
+    {
+      "id": "8bc5ada8-55c3-4251-9020-c0e719b54632",
+      "name": "Sprint",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "b345aa64-164d-4cdc-bbec-e8a4e86e3f48",
+          "name": "HRIS Sprint 1",
+          "color": "default"
+        },
+        {
+          "id": "b70a4e59-df1c-4f69-9fb1-51cf944ea730",
+          "name": "ER Sprint 1",
+          "color": "default"
+        },
+        {
+          "id": "942df040-71d1-4c27-a41d-3a6d77e491d5",
+          "name": "DNA Sprint 1",
+          "color": "default"
+        },
+        {
+          "id": "ba051ac7-8d6f-4cf9-a4ae-c537b1502275",
+          "name": "WEB Sprint 1",
+          "color": "default"
+        },
+        {
+          "id": "0889d09e-d238-4a81-a664-6cf9f3adbc17",
+          "name": "SF Sprint 2",
+          "color": "default"
+        },
+        {
+          "id": "62dccaed-f9e7-4b5c-a9a2-5ebfbf5e5c5c",
+          "name": "SF Sprint 1",
+          "color": "default"
+        },
+        {
+          "id": "9d476002-0b89-4fbd-b0b9-d6b5d0387ea9",
+          "name": "POS Sprint 1",
+          "color": "default"
+        },
+        {
+          "id": "1b4e40a0-8f6a-455d-b91e-48aa9f315eb2",
+          "name": "SF Sprint 3",
+          "color": "default"
+        },
+        {
+          "id": "b96e33ed-2069-405a-a3a2-72a71cb24fb7",
+          "name": "WEB Sprint 2",
+          "color": "default"
+        },
+        {
+          "id": "f7ba11d0-8c2d-4de2-bf01-0a03522e5829",
+          "name": "DNA Sprint 2",
+          "color": "default"
+        },
+        {
+          "id": "9a9116f8-44b4-42d1-a337-ff6ddfa86364",
+          "name": "WEB Sprint 3",
+          "color": "default"
+        },
+        {
+          "id": "39b40f00-80af-467d-9fa8-ff7f7184451b",
+          "name": "DNA Sprint 3",
+          "color": "default"
+        },
+        {
+          "id": "5b89f7e9-c6dc-424d-8053-bb143791df72",
+          "name": "POS Sprint 2",
+          "color": "default"
+        },
+        {
+          "id": "214c19ce-3f81-4ab2-82f5-0f24fbf8a55c",
+          "name": "WEB Sprint 4",
+          "color": "default"
+        },
+        {
+          "id": "74796cce-58b8-4c9b-9acf-9ce548c5f616",
+          "name": "WEB Sprint 5",
+          "color": "default"
+        },
+        {
+          "id": "130594ff-d85f-436a-99ea-cd7b7e51e20f",
+          "name": "DNA Sprint 4",
+          "color": "default"
+        },
+        {
+          "id": "a41a1ab3-bcbb-41d2-9490-adf660b076a9",
+          "name": "SF Sprint 4",
+          "color": "default"
+        },
+        {
+          "id": "f045741d-f1e6-461b-9c5c-88bf7b9428f3",
+          "name": "WEB Sprint 6",
+          "color": "default"
+        },
+        {
+          "id": "a91cbfd6-c20c-4ad8-a17e-d2bd9bf81176",
+          "name": "SF Sprint 5",
+          "color": "default"
+        },
+        {
+          "id": "0349cc69-b100-4e57-9c1f-c40ee87bf0dd",
+          "name": "SF Sprint 6",
+          "color": "default"
+        },
+        {
+          "id": "fbdd03c4-b6cd-4293-a00f-41d598683e72",
+          "name": "DNA Sprint 5",
+          "color": "default"
+        }
+      ]
+    },
+    {
+      "id": "94e0bdd4-a230-4f7d-a3d3-d806fd52b7c3",
+      "name": "Watchers",
+      "type": "people"
+    },
+    {
+      "id": "96e74600-c679-4dfe-808d-bfb1d6c8fee7",
+      "name": "Attachment",
+      "type": "files"
+    },
+    {
+      "id": "9c193f4e-9355-43b3-8cb0-329b990f51ec",
+      "name": "Updated",
+      "type": "date"
+    },
+    {
+      "id": "a97890aa-c9c0-48a5-a689-c7ee5e9355e7",
+      "name": "Start date",
+      "type": "date"
+    },
+    {
+      "id": "a98026e7-75a6-4f7e-aa88-b8a1f959a480",
+      "name": "Team",
+      "type": "select",
+      "options": [
+        {
+          "id": "1ad67426-19fa-4be1-b7cd-442971f5965c",
+          "name": "Marketing",
+          "color": "default"
+        }
+      ]
+    },
+    {
+      "id": "af59cd98-cc4f-416e-9a74-43e39e0ca4a1",
+      "name": "Issue Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "ee04cf37-f210-4299-b481-39fa3158b577",
+          "name": "Task",
+          "color": "default"
+        },
+        {
+          "id": "8f9d600a-d6d9-42f3-aff9-07edf9249aa7",
+          "name": "Story",
+          "color": "default"
+        },
+        {
+          "id": "9790d812-212d-4f43-90ac-2d89c943e725",
+          "name": "Bug",
+          "color": "default"
+        },
+        {
+          "id": "d92d2ec2-96b6-4e37-bda3-8bd90b35019d",
+          "name": "Epic",
+          "color": "default"
+        },
+        {
+          "id": "f7261fac-3e49-4a1a-a024-32b36078353b",
+          "name": "Design",
+          "color": "default"
+        },
+        {
+          "id": "50c4dfc8-6be2-48de-8e3e-2c1888d275cf",
+          "name": "Research",
+          "color": "default"
+        },
+        {
+          "id": "11ac2833-54f0-45de-8100-2d5dfdd5ccb7",
+          "name": "Analysis",
+          "color": "default"
+        },
+        {
+          "id": "7a5caf4b-3ec1-47a1-8f7e-db6ca418968a",
+          "name": "Subtask",
+          "color": "default"
+        },
+        {
+          "id": "0c334209-4ec1-4246-b2e5-8bddd803bc8b",
+          "name": "Spike",
+          "color": "default"
+        }
+      ]
+    },
+    {
+      "id": "cc995fcf-6a8b-4bec-8217-e591b9bf6020",
+      "name": "Reporter",
+      "type": "people"
+    },
+    {
+      "id": "ef551c71-c3ef-4597-9d82-e96e145c4736",
+      "name": "Creator",
+      "type": "people"
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Ftask_blocking_relation",
+      "name": "Is blocking",
+      "type": "relation"
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Ftask_blocked_by_relation",
+      "name": "Blocked by",
+      "type": "relation"
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Ftask_to_project_relation",
+      "name": "Project",
+      "type": "relation"
+    },
+    {
+      "id": "notion%3A%2F%2Ftasks%2Fjira_sync_task_to_connected_issue_relation",
+      "name": "Jira Task",
+      "type": "relation"
+    }
+  ]
+}

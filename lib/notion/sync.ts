@@ -1,10 +1,11 @@
 import fs from "node:fs/promises";
 
-import { CONFIG_FILE, DEFAULT_COLORS, GRAPH_FILE, NODES_DIR } from "@/lib/config";
+import { CONFIG_FILE, DEFAULT_COLORS, GRAPH_FILE, NODES_DIR, SCHEMAS_DIR } from "@/lib/config";
 import { stablePosition } from "@/lib/graph/layout";
 import { notionRequest } from "@/lib/notion/client";
-import { readJsonFile, writeJsonAtomic } from "@/lib/storage";
-import type { AppConfig, GraphData, GraphEdge, GraphNode, NodeDetail } from "@/lib/types";
+import { writeJsonAtomic } from "@/lib/storage";
+import { readJsonFile } from "@/lib/storage";
+import type { AppConfig, DatabaseField, DatabaseSchema, FieldOption, GraphData, GraphEdge, GraphNode, NodeDetail, NodeFieldValues } from "@/lib/types";
 
 type NotionPage = {
   id: string;
@@ -126,6 +127,77 @@ function creatorName(page: NotionPage): string {
   return user.name ?? user.person?.email ?? user.id ?? "Unknown";
 }
 
+function extractSchema(dbId: string, dbName: string, properties: Record<string, any>): DatabaseSchema {
+  const fields: DatabaseField[] = [];
+  for (const [name, prop] of Object.entries(properties)) {
+    const type = prop?.type ?? "unknown";
+    const field: DatabaseField = { id: prop?.id ?? name, name, type };
+    if (type === "select" || type === "multi_select" || type === "status") {
+      const rawOptions: any[] = prop?.[type]?.options ?? prop?.status?.options ?? [];
+      field.options = rawOptions.map((o: any): FieldOption => ({
+        id: o.id ?? o.name,
+        name: o.name ?? "",
+        color: o.color ?? "default",
+      }));
+    }
+    fields.push(field);
+  }
+  return { databaseId: dbId, databaseName: dbName, fields };
+}
+
+function extractFieldValues(page: NotionPage): NodeFieldValues {
+  const values: NodeFieldValues = {};
+  const props = page.properties ?? {};
+
+  for (const [name, prop] of Object.entries(props)) {
+    const type = prop?.type;
+    if (!type || type === "title" || type === "relation" || type === "formula" || type === "rollup") continue;
+
+    switch (type) {
+      case "rich_text":
+        values[name] = (prop.rich_text ?? []).map((r: any) => r.plain_text ?? "").join("").trim() || null;
+        break;
+      case "select":
+        values[name] = prop.select?.name ?? null;
+        break;
+      case "multi_select":
+        values[name] = (prop.multi_select ?? []).map((o: any) => o.name ?? "").filter(Boolean);
+        if ((values[name] as string[]).length === 0) values[name] = null;
+        break;
+      case "status":
+        values[name] = prop.status?.name ?? null;
+        break;
+      case "number":
+        values[name] = prop.number != null ? String(prop.number) : null;
+        break;
+      case "checkbox":
+        values[name] = prop.checkbox ? "Yes" : "No";
+        break;
+      case "date":
+        values[name] = prop.date?.start ?? null;
+        break;
+      case "people":
+        values[name] = (prop.people ?? []).map((p: any) => p.name ?? p.person?.email ?? p.id ?? "").filter(Boolean);
+        if ((values[name] as string[]).length === 0) values[name] = null;
+        break;
+      case "url":
+        values[name] = prop.url ?? null;
+        break;
+      case "email":
+        values[name] = prop.email ?? null;
+        break;
+      case "phone_number":
+        values[name] = prop.phone_number ?? null;
+        break;
+      default:
+        // skip unsupported types
+        break;
+    }
+  }
+
+  return values;
+}
+
 function pageDescription(page: NotionPage): string | undefined {
   const props = page.properties ?? {};
   for (const [key, prop] of Object.entries(props)) {
@@ -204,6 +276,7 @@ export async function runSync(): Promise<GraphData> {
   const nodes: GraphNode[] = [];
   const nodeDetails: NodeDetail[] = [];
   const edges: GraphEdge[] = [];
+  const schemas: DatabaseSchema[] = [];
   let inaccessibleDatabaseCount = 0;
 
   for (const [index, db] of databases.entries()) {
@@ -222,6 +295,10 @@ export async function runSync(): Promise<GraphData> {
 
     const dbName = (dbInfo.title ?? []).map((t) => t.plain_text ?? "").join("") || db.title;
 
+    // Extract and save database schema
+    const schema = extractSchema(db.id, dbName, dbInfo.properties ?? {});
+    schemas.push(schema);
+
     const configuredColor = config.databaseColors[dbName];
     const color = configuredColor ?? DEFAULT_COLORS[index % DEFAULT_COLORS.length];
 
@@ -239,6 +316,8 @@ export async function runSync(): Promise<GraphData> {
 
     for (const page of pages) {
       const position = stablePosition(page.id);
+      const description = pageDescription(page);
+      const fieldValues = extractFieldValues(page);
       const node: GraphNode = {
         id: page.id,
         name: pageName(page),
@@ -250,18 +329,20 @@ export async function runSync(): Promise<GraphData> {
         createdTime: page.created_time ?? new Date(0).toISOString(),
         x: position.x,
         y: position.y,
+        fieldValues,
       };
 
       nodes.push(node);
-      const description = pageDescription(page);
       nodeDetails.push({
         id: node.id,
         name: node.name,
         createdBy: node.createdBy,
         createdTime: node.createdTime,
         databaseName: node.databaseName,
+        databaseId: db.id,
         notionUrl: node.notionUrl,
         ...(description ? { description } : {}),
+        fieldValues,
       });
 
       for (const rel of buildEdges(page)) {
@@ -295,7 +376,7 @@ export async function runSync(): Promise<GraphData> {
     warnings: warnings.length > 0 ? warnings : undefined,
   };
 
-  await writeGraphArtifacts(graph, nodeDetails);
+  await writeGraphArtifacts(graph, nodeDetails, schemas);
   await writeJsonAtomic(CONFIG_FILE, {
     ...config,
     lastSyncAt: graph.generatedAt,
@@ -304,7 +385,7 @@ export async function runSync(): Promise<GraphData> {
   return graph;
 }
 
-async function writeGraphArtifacts(graph: GraphData, details?: NodeDetail[]): Promise<void> {
+async function writeGraphArtifacts(graph: GraphData, details?: NodeDetail[], schemas?: DatabaseSchema[]): Promise<void> {
   await writeJsonAtomic(GRAPH_FILE, graph);
 
   await fs.mkdir(NODES_DIR, { recursive: true });
@@ -314,6 +395,7 @@ async function writeGraphArtifacts(graph: GraphData, details?: NodeDetail[]): Pr
     createdBy: node.createdBy,
     createdTime: node.createdTime,
     databaseName: node.databaseName,
+    databaseId: node.databaseId,
     notionUrl: node.notionUrl,
   } as NodeDetail));
 
@@ -322,4 +404,13 @@ async function writeGraphArtifacts(graph: GraphData, details?: NodeDetail[]): Pr
       writeJsonAtomic(`${NODES_DIR}/${detail.id}.json`, detail),
     ),
   );
+
+  if (schemas && schemas.length > 0) {
+    await fs.mkdir(SCHEMAS_DIR, { recursive: true });
+    await Promise.all(
+      schemas.map((schema) =>
+        writeJsonAtomic(`${SCHEMAS_DIR}/${schema.databaseId}.json`, schema),
+      ),
+    );
+  }
 }

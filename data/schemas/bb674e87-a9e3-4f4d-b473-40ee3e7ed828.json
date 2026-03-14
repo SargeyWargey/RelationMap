@@ -1,0 +1,66 @@
+{
+  "databaseId": "bb674e87-a9e3-4f4d-b473-40ee3e7ed828",
+  "databaseName": "Meeting Notes",
+  "fields": [
+    {
+      "id": "%3FF%5B%7C",
+      "name": "EndTime",
+      "type": "date"
+    },
+    {
+      "id": "A%7DzS",
+      "name": "Projects",
+      "type": "relation"
+    },
+    {
+      "id": "CsiQ",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
+      "id": "N%3Fyo",
+      "name": "Related Application(s)",
+      "type": "rollup"
+    },
+    {
+      "id": "WSR%3D",
+      "name": "Duration (hr)",
+      "type": "number"
+    },
+    {
+      "id": "cqN%3D",
+      "name": "Created by",
+      "type": "created_by"
+    },
+    {
+      "id": "d%7Cmq",
+      "name": "Dev-Jira Issues",
+      "type": "relation"
+    },
+    {
+      "id": "mPUz",
+      "name": "End Meeting",
+      "type": "button"
+    },
+    {
+      "id": "mh%3D%60",
+      "name": "Sprint Backlog",
+      "type": "relation"
+    },
+    {
+      "id": "w%7DnO",
+      "name": "Attendies",
+      "type": "people"
+    },
+    {
+      "id": "%7DvyN",
+      "name": "Hours",
+      "type": "relation"
+    },
+    {
+      "id": "title",
+      "name": "Meeting Title",
+      "type": "title"
+    }
+  ]
+}

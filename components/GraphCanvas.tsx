@@ -35,10 +35,10 @@ type Props = {
   graph: GraphData;
   onSelectNode: (detail: NodeDetail | null) => void;
   selectedNodeId: string | null;
-  selectedDetail?: NodeDetail | null;
   shape?: ShapeLayout;
   deepHighlight?: boolean;
   panelOpen?: boolean;
+  sphereCenterText?: string | null;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -448,7 +448,7 @@ function lerp(a: number, b: number, t: number) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function GraphCanvas({ graph, onSelectNode, selectedNodeId, selectedDetail, shape = "sphere", deepHighlight = false, panelOpen = false }: Props) {
+export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphere", deepHighlight = false, panelOpen = false, sphereCenterText }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef       = useRef<SVGSVGElement>(null);
 
@@ -942,8 +942,8 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, selectedDetai
 
         </g>{/* end sphere content */}
 
-        {/* Center description overlay — shown when selected node has a description */}
-        {selectedDetail?.description && localSelectedId && (() => {
+        {/* Center text overlay — driven by field config */}
+        {sphereCenterText && localSelectedId && (() => {
           const sphereR = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
           const maxW = sphereR * 1.1;
           return (
@@ -982,7 +982,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, selectedDetai
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",
                 }}>
-                  {selectedDetail.description}
+                  {sphereCenterText}
                 </p>
               </div>
             </foreignObject>

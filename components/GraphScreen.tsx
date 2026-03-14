@@ -6,7 +6,7 @@ import { GraphCanvas, type ShapeLayout } from "@/components/GraphCanvas";
 import { DatabaseTogglePanel } from "@/components/DatabaseTogglePanel";
 import { NodeDetailsPanel } from "@/components/NodeDetailsPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
-import type { GraphData, NodeDetail } from "@/lib/types";
+import type { DatabaseFieldConfig, DatabaseSchema, GraphData, NodeDetail } from "@/lib/types";
 
 type Props = {
   initialGraph: GraphData;
@@ -19,6 +19,25 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
   const [selectedDetail, setSelectedDetail] = useState<NodeDetail | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [shape, setShape] = useState<ShapeLayout>("sphere");
+
+  // Schemas + field config
+  const [schemas, setSchemas] = useState<DatabaseSchema[]>([]);
+  const [fieldConfig, setFieldConfig] = useState<Record<string, DatabaseFieldConfig>>({});
+
+  useEffect(() => {
+    fetch("/api/schemas").then((r) => r.json()).then(setSchemas).catch(() => {});
+    fetch("/api/field-config").then((r) => r.json()).then(setFieldConfig).catch(() => {});
+  }, []);
+
+  function handleFieldConfigChange(dbId: string, cfg: DatabaseFieldConfig) {
+    const next = { ...fieldConfig, [dbId]: cfg };
+    setFieldConfig(next);
+    fetch("/api/field-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    }).catch(() => {});
+  }
 
   // Deep highlight mode — shows full connection web with opacity decay
   const [deepHighlight, setDeepHighlight] = useState(false);
@@ -55,16 +74,39 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
     });
   }
 
-  // Filtered graph — only show nodes from enabled databases
+  // Filtered graph — enabled databases + active field filters
   const filteredGraph = useMemo(() => {
     if (enabledDbs.size === 0) return { ...initialGraph, nodes: [], edges: [] };
-    const nodes = initialGraph.nodes.filter((n) => enabledDbs.has(n.databaseId));
+    const nodes = initialGraph.nodes.filter((n) => {
+      if (!enabledDbs.has(n.databaseId)) return false;
+      const cfg = fieldConfig[n.databaseId];
+      if (!cfg) return true;
+      for (const [fieldName, selectedOptions] of Object.entries(cfg.activeFilters)) {
+        if (!selectedOptions || selectedOptions.length === 0) continue;
+        const val = n.fieldValues?.[fieldName];
+        if (val === null || val === undefined || val === "") return false;
+        const nodeValues = Array.isArray(val) ? val : [val];
+        const hasMatch = selectedOptions.some((opt) => nodeValues.includes(opt));
+        if (!hasMatch) return false;
+      }
+      return true;
+    });
     const nodeIds = new Set(nodes.map((n) => n.id));
     const edges = initialGraph.edges.filter(
       (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
     );
     return { ...initialGraph, nodes, edges };
-  }, [initialGraph, enabledDbs]);
+  }, [initialGraph, enabledDbs, fieldConfig]);
+
+  // Compute sphere center text from config + selected node's fieldValues
+  const sphereCenterText = useMemo(() => {
+    if (!selectedDetail) return null;
+    const cfg = fieldConfig[selectedDetail.databaseId];
+    if (!cfg?.sphereField) return selectedDetail.description ?? null;
+    const val = selectedDetail.fieldValues?.[cfg.sphereField];
+    if (!val) return null;
+    return Array.isArray(val) ? val.join(", ") : val;
+  }, [selectedDetail, fieldConfig]);
 
   const handleSelectNode = useCallback((detail: NodeDetail | null) => {
     setSelectedDetail(detail);
@@ -104,7 +146,7 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
         graph={filteredGraph}
         onSelectNode={handleSelectNode}
         selectedNodeId={selectedDetail?.id ?? null}
-        selectedDetail={selectedDetail}
+        sphereCenterText={sphereCenterText}
         shape={shape}
         deepHighlight={deepHighlight}
         panelOpen={panelOpen}
@@ -365,6 +407,9 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
         databaseColors={dbIdToColor}
         enabledDbs={enabledDbs}
         onToggle={toggleDb}
+        schemas={schemas}
+        fieldConfig={fieldConfig}
+        onFieldConfigChange={handleFieldConfigChange}
       />
 
       {/* Sliding details panel */}
@@ -376,6 +421,8 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
         allNodes={initialGraph.nodes}
         allEdges={initialGraph.edges}
         enabledDbs={enabledDbs}
+        schemas={schemas}
+        fieldConfig={fieldConfig}
       />
     </div>
   );

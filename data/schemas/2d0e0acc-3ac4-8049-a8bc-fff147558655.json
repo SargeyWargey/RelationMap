@@ -1,0 +1,93 @@
+{
+  "databaseId": "2d0e0acc-3ac4-8049-a8bc-fff147558655",
+  "databaseName": "Hours",
+  "fields": [
+    {
+      "id": "FuoY",
+      "name": "Projects",
+      "type": "relation"
+    },
+    {
+      "id": "FzY%7C",
+      "name": "Hours",
+      "type": "number"
+    },
+    {
+      "id": "Hc%3E%5E",
+      "name": "R-Project Type ",
+      "type": "rollup"
+    },
+    {
+      "id": "X~rm",
+      "name": "ID",
+      "type": "unique_id"
+    },
+    {
+      "id": "%5B%3DYj",
+      "name": "Notes",
+      "type": "rich_text"
+    },
+    {
+      "id": "c_GA",
+      "name": "Project Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "91fdbdd1-5dcf-4abe-a8f4-aa8efded0518",
+          "name": "Keeping the Lights On",
+          "color": "red"
+        },
+        {
+          "id": "6e18903b-7e94-4881-95ff-7db82aac087b",
+          "name": "Small Project",
+          "color": "blue"
+        },
+        {
+          "id": "94e89e95-3537-41c9-a6e3-a7fec66b9201",
+          "name": "Administrative",
+          "color": "yellow"
+        },
+        {
+          "id": "1d3ee2bb-2aa2-47c0-b557-c8a4e4472857",
+          "name": "Vacation / OOO",
+          "color": "purple"
+        },
+        {
+          "id": "f23a5a0c-c5c9-4acd-b85f-77b06a0aff61",
+          "name": "Large Project",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "cpDT",
+      "name": "Related Department",
+      "type": "rollup"
+    },
+    {
+      "id": "hpDo",
+      "name": "Worker",
+      "type": "people"
+    },
+    {
+      "id": "j%3Cg%3E",
+      "name": "Meeting Notes",
+      "type": "relation"
+    },
+    {
+      "id": "z%5D%7Bx",
+      "name": "Related Applications",
+      "type": "rollup"
+    },
+    {
+      "id": "%7DV%3Db",
+      "name": "Date",
+      "type": "date"
+    },
+    {
+      "id": "title",
+      "name": "Task",
+      "type": "title"
+    }
+  ]
+}

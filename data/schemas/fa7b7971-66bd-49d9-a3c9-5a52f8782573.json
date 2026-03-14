@@ -1,0 +1,41 @@
+{
+  "databaseId": "fa7b7971-66bd-49d9-a3c9-5a52f8782573",
+  "databaseName": "Vendors",
+  "fields": [
+    {
+      "id": "BPE~",
+      "name": "Annual Cost",
+      "type": "rollup"
+    },
+    {
+      "id": "CoPy",
+      "name": "Days to Renewal",
+      "type": "rollup"
+    },
+    {
+      "id": "Rp%3Fk",
+      "name": "Applications",
+      "type": "relation"
+    },
+    {
+      "id": "SI%3E%5E",
+      "name": "Annual Cost Total",
+      "type": "formula"
+    },
+    {
+      "id": "%5DLIL",
+      "name": "Total Liscenses",
+      "type": "rollup"
+    },
+    {
+      "id": "_xsJ",
+      "name": "Cost Per Cycle",
+      "type": "rollup"
+    },
+    {
+      "id": "title",
+      "name": "Vendor",
+      "type": "title"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "databaseId": "a6bade2c-b8f3-4ade-80c7-515b09f0d6c8",
+  "databaseName": "Glossary",
+  "fields": [
+    {
+      "id": "O%5EjG",
+      "name": "Related Applications",
+      "type": "relation"
+    },
+    {
+      "id": "bb%40%7D",
+      "name": "Abbreviation",
+      "type": "rich_text"
+    },
+    {
+      "id": "cunT",
+      "name": "Description",
+      "type": "rich_text"
+    },
+    {
+      "id": "klEP",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
+      "id": "rOJr",
+      "name": "Related Projects",
+      "type": "relation"
+    },
+    {
+      "id": "title",
+      "name": "Full Name",
+      "type": "title"
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+{
+  "databaseId": "ef5f2646-6868-48f4-8ea3-2c67ad5a5532",
+  "databaseName": "Open Questions",
+  "fields": [
+    {
+      "id": "AqBe",
+      "name": "Tags",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "XScz",
+          "name": "Departmentalization",
+          "color": "blue"
+        },
+        {
+          "id": "{CJS",
+          "name": "Career Site & Apply Flow",
+          "color": "orange"
+        },
+        {
+          "id": "iPG\\",
+          "name": "Hiring Workflow & Permissions",
+          "color": "purple"
+        },
+        {
+          "id": "rYtM",
+          "name": "Franchise Onboarding",
+          "color": "green"
+        },
+        {
+          "id": "b`Zo",
+          "name": "Integration & Environment",
+          "color": "red"
+        },
+        {
+          "id": "eRnM",
+          "name": "Data Migration & SMS",
+          "color": "yellow"
+        }
+      ]
+    },
+    {
+      "id": "F%3Ab%3D",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "kZYN",
+          "name": "Inbox",
+          "color": "gray"
+        },
+        {
+          "id": "xO[O",
+          "name": "Open",
+          "color": "purple"
+        },
+        {
+          "id": "\\=\\R",
+          "name": "Meeting Scheduled",
+          "color": "yellow"
+        },
+        {
+          "id": "Ip>I",
+          "name": "Pending",
+          "color": "blue"
+        },
+        {
+          "id": "R>x_",
+          "name": "Answered",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "IVVz",
+      "name": "Answer",
+      "type": "rich_text"
+    },
+    {
+      "id": "NteC",
+      "name": "Priority",
+      "type": "select",
+      "options": [
+        {
+          "id": "2b8e3985-67c5-4970-9b97-79948dc4e3fe",
+          "name": "Critical",
+          "color": "purple"
+        },
+        {
+          "id": "o}j{",
+          "name": "High",
+          "color": "red"
+        },
+        {
+          "id": "c^T{",
+          "name": "Medium",
+          "color": "yellow"
+        },
+        {
+          "id": "ShVg",
+          "name": "Low",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "Q~cu",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
+      "id": "TH%3BP",
+      "name": "Business Team",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "2ff5d05b-7ff5-4eec-98fa-3cb011eaecce",
+          "name": "Accounting",
+          "color": "green"
+        },
+        {
+          "id": "05ec8518-da37-4d8e-8ad2-712b8aff1cce",
+          "name": "Finance",
+          "color": "red"
+        },
+        {
+          "id": "a41db8c1-8cbb-4117-82ea-c11fe9873b2c",
+          "name": "Supply Chain",
+          "color": "pink"
+        },
+        {
+          "id": "eb10e520-e0f3-4501-89e0-bcefaeeaeb9d",
+          "name": "Operations",
+          "color": "yellow"
+        },
+        {
+          "id": "30b911a0-f609-41fa-8ff4-2440a422e568",
+          "name": "FSQA",
+          "color": "brown"
+        },
+        {
+          "id": "563e6884-4b4f-4268-b0b0-529e70bf6607",
+          "name": "IT",
+          "color": "purple"
+        },
+        {
+          "id": "d8cb1b03-4f3b-4534-81e4-6c1c763b2392",
+          "name": "Human Resources",
+          "color": "default"
+        },
+        {
+          "id": "fcf57847-514f-4d25-b7fc-ad199c81a473",
+          "name": "WestRock",
+          "color": "gray"
+        },
+        {
+          "id": "060212cc-3d6b-4804-9aeb-c7815be64200",
+          "name": "Walmart",
+          "color": "blue"
+        },
+        {
+          "id": "13ade476-8dd4-4429-8409-e34315b599f0",
+          "name": "iTrade",
+          "color": "orange"
+        },
+        {
+          "id": "0e17fb59-ec12-4a4b-92c5-e1899afa1690",
+          "name": "Phenom",
+          "color": "yellow"
+        }
+      ]
+    },
+    {
+      "id": "%5C%7Br_",
+      "name": "ID",
+      "type": "unique_id"
+    },
+    {
+      "id": "cx%3Ez",
+      "name": "Created by",
+      "type": "created_by"
+    },
+    {
+      "id": "hgW%7D",
+      "name": "Project",
+      "type": "relation"
+    },
+    {
+      "id": "qz%3Cj",
+      "name": "Stories",
+      "type": "relation"
+    },
+    {
+      "id": "rppT",
+      "name": "Team",
+      "type": "relation"
+    },
+    {
+      "id": "%7CE%40S",
+      "name": "Last edited time",
+      "type": "last_edited_time"
+    },
+    {
+      "id": "title",
+      "name": "Question",
+      "type": "title"
+    }
+  ]
+}

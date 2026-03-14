@@ -1,0 +1,116 @@
+{
+  "databaseId": "2efe0acc-3ac4-806f-b72b-fc01a41cd360",
+  "databaseName": "Dev-Jira Projects",
+  "fields": [
+    {
+      "id": "title",
+      "name": "Project name",
+      "type": "title"
+    },
+    {
+      "id": "notion%3A%2F%2Fprojects%2Fpeople_property",
+      "name": "Owner",
+      "type": "people"
+    },
+    {
+      "id": "notion%3A%2F%2Fprojects%2Fstatus_property",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "planned",
+          "name": "Planning",
+          "color": "blue"
+        },
+        {
+          "id": "in-progress",
+          "name": "In progress",
+          "color": "yellow"
+        },
+        {
+          "id": "paused",
+          "name": "Paused",
+          "color": "purple"
+        },
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "default"
+        },
+        {
+          "id": "done",
+          "name": "Done",
+          "color": "green"
+        },
+        {
+          "id": "canceled",
+          "name": "Cancelled",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "notion%3A%2F%2Fprojects%2Fcompletion_rollup",
+      "name": "Completion",
+      "type": "rollup"
+    },
+    {
+      "id": "notion%3A%2F%2Fprojects%2Fpriority_property",
+      "name": "Priority",
+      "type": "select",
+      "options": [
+        {
+          "id": "priority_low",
+          "name": "Low",
+          "color": "green"
+        },
+        {
+          "id": "priority_medium",
+          "name": "Medium",
+          "color": "yellow"
+        },
+        {
+          "id": "priority_high",
+          "name": "High",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "05c292f8-5463-48de-aad5-1b5c7b9aa373",
+      "name": "Project Category",
+      "type": "select",
+      "options": []
+    },
+    {
+      "id": "8e7a7575-5a4c-40ec-b045-537b2d60f846",
+      "name": "Assignee Type",
+      "type": "rich_text"
+    },
+    {
+      "id": "e06b808f-2f7d-439b-9255-fa346a6ef4f2",
+      "name": "Key",
+      "type": "rich_text"
+    },
+    {
+      "id": "notion%3A%2F%2Fprojects%2Fcollaborators_property",
+      "name": "Collaborators",
+      "type": "people"
+    },
+    {
+      "id": "notion%3A%2F%2Fprojects%2Fproject_dates_property",
+      "name": "Dates",
+      "type": "date"
+    },
+    {
+      "id": "notion%3A%2F%2Fprojects%2Fproject_to_task_relation",
+      "name": "Tasks",
+      "type": "relation"
+    },
+    {
+      "id": "notion%3A%2F%2Fprojects%2Fjira_sync_project_to_connected_board_relation",
+      "name": "Jira Project",
+      "type": "relation"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { GraphEdge, GraphNode, NodeDetail } from "@/lib/types";
+import type { DatabaseFieldConfig, DatabaseSchema, GraphEdge, GraphNode, NodeDetail } from "@/lib/types";
 
 type Props = {
   detail: NodeDetail | null;
@@ -9,12 +9,14 @@ type Props = {
   allNodes?: GraphNode[];
   allEdges?: GraphEdge[];
   enabledDbs?: Set<string>;
+  schemas?: DatabaseSchema[];
+  fieldConfig?: Record<string, DatabaseFieldConfig>;
 };
 
 const MIN_WIDTH = 260;
 const MAX_WIDTH = 600;
 
-export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes = [], allEdges = [], enabledDbs }: Props) {
+export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes = [], allEdges = [], enabledDbs, schemas = [], fieldConfig = {} }: Props) {
   const [expandedDb, setExpandedDb] = useState<string | null>(null);
   const [width, setWidth] = useState(320);
   const dragging = useRef(false);
@@ -272,6 +274,56 @@ export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes
               </div>
             )}
 
+            {/* Dynamic fieldValues section */}
+            {detail.fieldValues && (() => {
+              const dbCfg = fieldConfig[detail.databaseId];
+              const schema = schemas.find((s) => s.databaseId === detail.databaseId);
+              // Build ordered field list from schema, falling back to Object.keys
+              const fieldOrder = schema
+                ? schema.fields.map((f) => f.name).filter((n) => n !== "Name" && n !== "title")
+                : Object.keys(detail.fieldValues);
+              const visibleFields = fieldOrder.filter((name) => {
+                // Skip fields already shown as hardcoded (description)
+                if (name.toLowerCase() === "description") return false;
+                // Check panelVisible — default true if no config
+                if (dbCfg && name in dbCfg.panelVisible) return dbCfg.panelVisible[name];
+                return true;
+              });
+              if (visibleFields.length === 0) return null;
+              return (
+                <div style={{ marginBottom: 16 }}>
+                  {visibleFields.map((name) => {
+                    const raw = detail.fieldValues![name];
+                    if (raw === null || raw === undefined || raw === "") return null;
+                    const displayValue = Array.isArray(raw) ? raw.join(", ") : raw;
+                    return (
+                      <div key={name} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid var(--border-subtle)" }}>
+                        <div style={{
+                          fontFamily: "'DM Mono', monospace",
+                          fontSize: 10,
+                          fontWeight: 500,
+                          color: "var(--text-faint)",
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          marginBottom: 3,
+                        }}>
+                          {name}
+                        </div>
+                        <div style={{
+                          fontFamily: "'Geist', sans-serif",
+                          fontSize: 13,
+                          color: "var(--text-primary)",
+                          lineHeight: 1.5,
+                        }}>
+                          {displayValue}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
             {/* Connections section */}
             <div style={{ marginTop: 4 }}>
               <div style={{
@@ -386,6 +438,7 @@ export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes
                                   createdBy: node.createdBy,
                                   createdTime: node.createdTime,
                                   databaseName: node.databaseName,
+                                  databaseId: node.databaseId,
                                   notionUrl: node.notionUrl,
                                 })}
                                 style={{

@@ -9,6 +9,7 @@ export type GraphNode = {
   createdTime: string;
   x: number;
   y: number;
+  fieldValues?: NodeFieldValues;
 };
 
 export type GraphEdge = {
@@ -25,14 +26,54 @@ export type GraphData = {
   warnings?: string[];
 };
 
+export type NodeFieldValues = Record<
+  string, // property name
+  string | string[] | null // rendered value(s) — null if missing
+>;
+
 export type NodeDetail = {
   id: string;
   name: string;
   createdBy: string;
   createdTime: string;
   databaseName: string;
+  databaseId: string;
   notionUrl: string;
   description?: string;
+  fieldValues?: NodeFieldValues;
+};
+
+export type FieldOption = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+export type NotionFieldType =
+  | "title" | "rich_text" | "select" | "multi_select"
+  | "status" | "number" | "date" | "checkbox"
+  | "people" | "email" | "phone_number" | "url"
+  | "relation" | "formula" | "rollup" | "files"
+  | "created_time" | "created_by" | "last_edited_time" | "last_edited_by"
+  | string;
+
+export type DatabaseField = {
+  id: string;
+  name: string;
+  type: NotionFieldType;
+  options?: FieldOption[];
+};
+
+export type DatabaseSchema = {
+  databaseId: string;
+  databaseName: string;
+  fields: DatabaseField[];
+};
+
+export type DatabaseFieldConfig = {
+  panelVisible: Record<string, boolean>;
+  sphereField: string | null;
+  activeFilters: Record<string, string[]>;
 };
 
 export type AppConfig = {
@@ -40,4 +81,5 @@ export type AppConfig = {
   lastSyncAt?: string;
   notionToken?: string;
   rootPages?: string[];
+  fieldConfig?: Record<string, DatabaseFieldConfig>;
 };

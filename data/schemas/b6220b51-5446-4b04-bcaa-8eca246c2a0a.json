@@ -1,0 +1,125 @@
+{
+  "databaseId": "b6220b51-5446-4b04-bcaa-8eca246c2a0a",
+  "databaseName": "Tasks",
+  "fields": [
+    {
+      "id": "%3APFC",
+      "name": "Completed Date",
+      "type": "date"
+    },
+    {
+      "id": "%3FD%60b",
+      "name": "Owner",
+      "type": "people"
+    },
+    {
+      "id": "AeNP",
+      "name": "Project",
+      "type": "relation"
+    },
+    {
+      "id": "ClrE",
+      "name": "ID",
+      "type": "unique_id"
+    },
+    {
+      "id": "Y%3Ecu",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "gBxS",
+          "name": "Inbox",
+          "color": "gray"
+        },
+        {
+          "id": ";]EK",
+          "name": "To do",
+          "color": "purple"
+        },
+        {
+          "id": "gdS?",
+          "name": "Blocked",
+          "color": "red"
+        },
+        {
+          "id": "OPav",
+          "name": "In progress",
+          "color": "blue"
+        },
+        {
+          "id": "CeNl",
+          "name": "Done",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "ZjZR",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
+      "id": "eiBg",
+      "name": "Due",
+      "type": "date"
+    },
+    {
+      "id": "g%7CyB",
+      "name": "Sub-task",
+      "type": "relation"
+    },
+    {
+      "id": "rtfW",
+      "name": "Created by",
+      "type": "created_by"
+    },
+    {
+      "id": "t%7Cql",
+      "name": "Parent task",
+      "type": "relation"
+    },
+    {
+      "id": "u%5Cl%3E",
+      "name": "Priority",
+      "type": "select",
+      "options": [
+        {
+          "id": "_GtV",
+          "name": "Low",
+          "color": "green"
+        },
+        {
+          "id": "InJI",
+          "name": "Medium",
+          "color": "yellow"
+        },
+        {
+          "id": "h]Pd",
+          "name": "High",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "yfka",
+      "name": "Stories",
+      "type": "relation"
+    },
+    {
+      "id": "title",
+      "name": "Task",
+      "type": "title"
+    },
+    {
+      "id": "3f379822-1fb2-4ae1-8092-05736c1eb4ba",
+      "name": "Files",
+      "type": "files"
+    },
+    {
+      "id": "b365898e-f507-4d01-be7d-e4a86da559ba",
+      "name": "Last edited time",
+      "type": "date"
+    }
+  ]
+}

@@ -1,0 +1,606 @@
+{
+  "databaseId": "2e2e0acc-3ac4-80a3-b75d-d3610b2c6973",
+  "databaseName": "Stands",
+  "fields": [
+    {
+      "id": "%3C%5BLT",
+      "name": "BUILDING DROPPED (Actual)",
+      "type": "date"
+    },
+    {
+      "id": "%3ECaH",
+      "name": "Permit Issued (Actual)",
+      "type": "date"
+    },
+    {
+      "id": "AVW%3F",
+      "name": "Corporate Development PM",
+      "type": "rich_text"
+    },
+    {
+      "id": "D%7DwM",
+      "name": "Longitude",
+      "type": "number"
+    },
+    {
+      "id": "Ji%3CW",
+      "name": "Map-Location",
+      "type": "place"
+    },
+    {
+      "id": "JlB%7B",
+      "name": "Name",
+      "type": "rich_text"
+    },
+    {
+      "id": "KHHI",
+      "name": "Address",
+      "type": "rich_text"
+    },
+    {
+      "id": "Len%7D",
+      "name": "DMA",
+      "type": "rich_text"
+    },
+    {
+      "id": "M~Ep",
+      "name": "Zip",
+      "type": "number"
+    },
+    {
+      "id": "SX_v",
+      "name": "Touchpoint SB Number",
+      "type": "rich_text"
+    },
+    {
+      "id": "Um%7C%5D",
+      "name": "Agreement ID",
+      "type": "rich_text"
+    },
+    {
+      "id": "Ux%7Du",
+      "name": "City",
+      "type": "rich_text"
+    },
+    {
+      "id": "ZTNX",
+      "name": "Pricing Generation",
+      "type": "number"
+    },
+    {
+      "id": "ZqaI",
+      "name": "Building Provider",
+      "type": "select",
+      "options": [
+        {
+          "id": "jfL^",
+          "name": "CTAR",
+          "color": "purple"
+        },
+        {
+          "id": "w;Dn",
+          "name": "N/A",
+          "color": "brown"
+        },
+        {
+          "id": "[lUw",
+          "name": "CMC / ADC",
+          "color": "brown"
+        },
+        {
+          "id": "GWga",
+          "name": "National Modular",
+          "color": "yellow"
+        },
+        {
+          "id": "=jOc",
+          "name": "Frey Moss",
+          "color": "orange"
+        },
+        {
+          "id": "_wP_",
+          "name": "Valiant",
+          "color": "blue"
+        },
+        {
+          "id": "tVuU",
+          "name": "Stick Build",
+          "color": "pink"
+        },
+        {
+          "id": "^Pyz",
+          "name": "Building Conversion",
+          "color": "gray"
+        },
+        {
+          "id": "vzXf",
+          "name": "Arning Co.",
+          "color": "green"
+        },
+        {
+          "id": "lIhN",
+          "name": "Frey Moss, National Modular",
+          "color": "default"
+        },
+        {
+          "id": "GVjT",
+          "name": "National Modular, CMC / ADC",
+          "color": "red"
+        },
+        {
+          "id": "t<{C",
+          "name": "National Modular, Valiant",
+          "color": "blue"
+        },
+        {
+          "id": "DVt[",
+          "name": "CMC / ADC, National Modular",
+          "color": "purple"
+        },
+        {
+          "id": ";m=E",
+          "name": "Atlas Modular - Plex",
+          "color": "blue"
+        },
+        {
+          "id": ":D[I",
+          "name": "Moduall",
+          "color": "gray"
+        },
+        {
+          "id": "cOLt",
+          "name": "Moduall, National Modular",
+          "color": "blue"
+        },
+        {
+          "id": "}gOr",
+          "name": "Mod Logic",
+          "color": "default"
+        },
+        {
+          "id": ":~w:",
+          "name": "National Modular, Stick Build",
+          "color": "gray"
+        },
+        {
+          "id": "YuNQ",
+          "name": "National Modular, Frey Moss",
+          "color": "brown"
+        },
+        {
+          "id": "{MZR",
+          "name": "Russo Modular",
+          "color": "orange"
+        },
+        {
+          "id": "IfeK",
+          "name": "Mod Logic, Moduall, Whitley Manufacturing, Frey Moss, CTAR, National Modular, CMC / ADC",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "id": "%5B%3DsY",
+      "name": "C of O ISSUED (Actual)",
+      "type": "date"
+    },
+    {
+      "id": "%5BTDs",
+      "name": "State",
+      "type": "select",
+      "options": [
+        {
+          "id": "DMX]",
+          "name": "CA",
+          "color": "default"
+        },
+        {
+          "id": "L^rq",
+          "name": "SC",
+          "color": "orange"
+        },
+        {
+          "id": "zDtK",
+          "name": "MI",
+          "color": "brown"
+        },
+        {
+          "id": "{lx]",
+          "name": "KS",
+          "color": "gray"
+        },
+        {
+          "id": "[vGm",
+          "name": "MO",
+          "color": "red"
+        },
+        {
+          "id": "wQ@n",
+          "name": "CO",
+          "color": "blue"
+        },
+        {
+          "id": "FqOS",
+          "name": "OK",
+          "color": "pink"
+        },
+        {
+          "id": "{M]_",
+          "name": "IN",
+          "color": "yellow"
+        },
+        {
+          "id": "dzI?",
+          "name": "GA",
+          "color": "purple"
+        },
+        {
+          "id": "DgX]",
+          "name": "AZ",
+          "color": "green"
+        },
+        {
+          "id": "iU`P",
+          "name": "ME",
+          "color": "gray"
+        },
+        {
+          "id": "q=Z>",
+          "name": "CT",
+          "color": "green"
+        },
+        {
+          "id": "Bwsp",
+          "name": "TX",
+          "color": "green"
+        },
+        {
+          "id": "WZbt",
+          "name": "NE",
+          "color": "default"
+        },
+        {
+          "id": "`Xrr",
+          "name": "MN",
+          "color": "default"
+        },
+        {
+          "id": "d@tx",
+          "name": "NM",
+          "color": "brown"
+        },
+        {
+          "id": "iWZ|",
+          "name": "ND",
+          "color": "purple"
+        },
+        {
+          "id": "sIlt",
+          "name": "VA",
+          "color": "gray"
+        },
+        {
+          "id": "hhso",
+          "name": "OH",
+          "color": "default"
+        },
+        {
+          "id": "H@Z@",
+          "name": "NC",
+          "color": "gray"
+        },
+        {
+          "id": "gh?g",
+          "name": "NJ",
+          "color": "gray"
+        },
+        {
+          "id": "W>c~",
+          "name": "IL",
+          "color": "brown"
+        },
+        {
+          "id": "gz;{",
+          "name": "WA",
+          "color": "orange"
+        },
+        {
+          "id": "vii\\",
+          "name": "IA",
+          "color": "brown"
+        },
+        {
+          "id": "ewL;",
+          "name": "TN",
+          "color": "default"
+        },
+        {
+          "id": "h`Xy",
+          "name": "FL",
+          "color": "gray"
+        },
+        {
+          "id": "Y;p~",
+          "name": "AR",
+          "color": "purple"
+        },
+        {
+          "id": "BF|c",
+          "name": "NY",
+          "color": "red"
+        },
+        {
+          "id": "tmgv",
+          "name": "KY",
+          "color": "yellow"
+        },
+        {
+          "id": "mdz\\",
+          "name": "MD",
+          "color": "orange"
+        },
+        {
+          "id": "@M[u",
+          "name": "MT",
+          "color": "default"
+        },
+        {
+          "id": "k;;G",
+          "name": "PA",
+          "color": "brown"
+        },
+        {
+          "id": "tR_z",
+          "name": "LA",
+          "color": "pink"
+        },
+        {
+          "id": "iphO",
+          "name": "UT",
+          "color": "default"
+        },
+        {
+          "id": "H<GB",
+          "name": "AL",
+          "color": "green"
+        },
+        {
+          "id": "S~p`",
+          "name": "NH",
+          "color": "gray"
+        },
+        {
+          "id": "ZSRW",
+          "name": "MA",
+          "color": "gray"
+        },
+        {
+          "id": "\\nUb",
+          "name": "RI",
+          "color": "yellow"
+        },
+        {
+          "id": "U~qn",
+          "name": "ID",
+          "color": "gray"
+        },
+        {
+          "id": "b:{W",
+          "name": "WI",
+          "color": "brown"
+        },
+        {
+          "id": "T@b\\",
+          "name": "WY",
+          "color": "green"
+        },
+        {
+          "id": "fiDs",
+          "name": "MS",
+          "color": "yellow"
+        },
+        {
+          "id": "pP?Y",
+          "name": "DE",
+          "color": "default"
+        },
+        {
+          "id": "Zo]T",
+          "name": "SD",
+          "color": "purple"
+        },
+        {
+          "id": "ec]t",
+          "name": "WV",
+          "color": "red"
+        },
+        {
+          "id": "ZV|?",
+          "name": "DC",
+          "color": "purple"
+        },
+        {
+          "id": "i>mI",
+          "name": "VT",
+          "color": "orange"
+        },
+        {
+          "id": "TkQW",
+          "name": "NV",
+          "color": "brown"
+        },
+        {
+          "id": "fpl\\",
+          "name": "AK",
+          "color": "yellow"
+        },
+        {
+          "id": "DNSw",
+          "name": "HI",
+          "color": "yellow"
+        },
+        {
+          "id": "SUKY",
+          "name": "OR",
+          "color": "brown"
+        }
+      ]
+    },
+    {
+      "id": "%5CcnX",
+      "name": "Franchisee Code",
+      "type": "number"
+    },
+    {
+      "id": "%5DMOI",
+      "name": "Protected Territory Radius",
+      "type": "number"
+    },
+    {
+      "id": "%60irB",
+      "name": "Tenant Allowance",
+      "type": "number"
+    },
+    {
+      "id": "bwNy",
+      "name": "Stand Open (Actual)",
+      "type": "date"
+    },
+    {
+      "id": "gxmD",
+      "name": "Permits Submitted (Actual)",
+      "type": "date"
+    },
+    {
+      "id": "h%5D%3D%60",
+      "name": "Pricing Zone",
+      "type": "rich_text"
+    },
+    {
+      "id": "iGL%5C",
+      "name": "Project Stage",
+      "type": "select",
+      "options": [
+        {
+          "id": "uxgE",
+          "name": "8-OPEN",
+          "color": "purple"
+        },
+        {
+          "id": "<OYl",
+          "name": "7-BUILDING DROP",
+          "color": "orange"
+        },
+        {
+          "id": "W`?\\",
+          "name": "6-CONSTRUCTION",
+          "color": "yellow"
+        },
+        {
+          "id": "HAjx",
+          "name": "5-PERMIT IN HAND",
+          "color": "brown"
+        },
+        {
+          "id": "inO=",
+          "name": "4-SUBMITTED PERMIT",
+          "color": "default"
+        },
+        {
+          "id": "zPq_",
+          "name": "3-DESIGN",
+          "color": "blue"
+        },
+        {
+          "id": "hZah",
+          "name": "2-LEASE/PSA SIGNED",
+          "color": "red"
+        },
+        {
+          "id": "tJdU",
+          "name": "1-LOI SIGNED / LEASE NEGOTIATION",
+          "color": "green"
+        },
+        {
+          "id": "cL=u",
+          "name": "0-FUTURE",
+          "color": "pink"
+        }
+      ]
+    },
+    {
+      "id": "j%5Bgn",
+      "name": "CONSTRUCTION KICKOFF (Actual)",
+      "type": "date"
+    },
+    {
+      "id": "ktr_",
+      "name": "Franchisee Entity",
+      "type": "rich_text"
+    },
+    {
+      "id": "pW%7CO",
+      "name": "Lease Signed % Complete",
+      "type": "select",
+      "options": [
+        {
+          "id": ";\\m`",
+          "name": "0% Complete",
+          "color": "default"
+        },
+        {
+          "id": "dIOr",
+          "name": "100% Complete",
+          "color": "blue"
+        },
+        {
+          "id": "cb<p",
+          "name": "N/A",
+          "color": "pink"
+        }
+      ]
+    },
+    {
+      "id": "um%3AM",
+      "name": "LOI ACCEPTED % Complete",
+      "type": "select",
+      "options": [
+        {
+          "id": "~IEs",
+          "name": "0% Complete",
+          "color": "gray"
+        },
+        {
+          "id": "@Y}c",
+          "name": "100% Complete",
+          "color": "green"
+        },
+        {
+          "id": "=VaB",
+          "name": "N/A",
+          "color": "brown"
+        }
+      ]
+    },
+    {
+      "id": "yj%3Aj",
+      "name": "Franchise Coach",
+      "type": "rich_text"
+    },
+    {
+      "id": "%7BsuM",
+      "name": "Stand Open (Projected)",
+      "type": "date"
+    },
+    {
+      "id": "~R%5BW",
+      "name": "Latitude",
+      "type": "number"
+    },
+    {
+      "id": "title",
+      "name": "Project Number",
+      "type": "title"
+    }
+  ]
+}

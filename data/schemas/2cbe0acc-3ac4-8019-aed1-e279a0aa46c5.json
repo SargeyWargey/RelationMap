@@ -1,0 +1,651 @@
+{
+  "databaseId": "2cbe0acc-3ac4-8019-aed1-e279a0aa46c5",
+  "databaseName": "Applications",
+  "fields": [
+    {
+      "id": "%3A%5D%7B%7C",
+      "name": "Last Update",
+      "type": "date"
+    },
+    {
+      "id": "%3FlK%3C",
+      "name": "Documentation",
+      "type": "relation"
+    },
+    {
+      "id": "B%5Cl~",
+      "name": "Contract Start Date",
+      "type": "date"
+    },
+    {
+      "id": "D%5Du%5E",
+      "name": "Projects",
+      "type": "relation"
+    },
+    {
+      "id": "EB%7Bw",
+      "name": "R-Total Adjusted Hours",
+      "type": "rollup"
+    },
+    {
+      "id": "JNxw",
+      "name": "Billing Cycle",
+      "type": "select",
+      "options": [
+        {
+          "id": "@h}d",
+          "name": "Annually",
+          "color": "purple"
+        },
+        {
+          "id": "qL\\D",
+          "name": "Monthly",
+          "color": "red"
+        },
+        {
+          "id": "h][N",
+          "name": "Yearly",
+          "color": "blue"
+        },
+        {
+          "id": "I@Pz",
+          "name": "One-time",
+          "color": "yellow"
+        },
+        {
+          "id": "W\\Mq",
+          "name": "Quarterly",
+          "color": "default"
+        }
+      ]
+    },
+    {
+      "id": "P%3Al%3B",
+      "name": "App",
+      "type": "relation"
+    },
+    {
+      "id": "P%3D_x",
+      "name": "SSO Integrated",
+      "type": "select",
+      "options": [
+        {
+          "id": ";pzQ",
+          "name": "TRUE",
+          "color": "green"
+        },
+        {
+          "id": "WLmY",
+          "name": "FALSE",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "RSfD",
+      "name": "Days to Renewal",
+      "type": "formula"
+    },
+    {
+      "id": "ULiC",
+      "name": "Vendors",
+      "type": "relation"
+    },
+    {
+      "id": "Vn%5B%3E",
+      "name": "Cost Per License (if one)",
+      "type": "rich_text"
+    },
+    {
+      "id": "VyRM",
+      "name": "Total Licenses",
+      "type": "number"
+    },
+    {
+      "id": "WKbN",
+      "name": "Up for Renewal Date",
+      "type": "date"
+    },
+    {
+      "id": "YdaG",
+      "name": "Vendor",
+      "type": "select",
+      "options": [
+        {
+          "id": "RgjF",
+          "name": "Jamf",
+          "color": "gray"
+        },
+        {
+          "id": "QVOs",
+          "name": "BeyondTrust Corporation",
+          "color": "green"
+        },
+        {
+          "id": ":BUj",
+          "name": "Trimble",
+          "color": "purple"
+        },
+        {
+          "id": "A`y=",
+          "name": "Microsoft",
+          "color": "blue"
+        },
+        {
+          "id": "GGwi",
+          "name": "DynamicMedia",
+          "color": "orange"
+        },
+        {
+          "id": "Qmgu",
+          "name": "Keeper",
+          "color": "green"
+        },
+        {
+          "id": "=HxL",
+          "name": "Slack",
+          "color": "green"
+        },
+        {
+          "id": "Y`M^",
+          "name": "Insight",
+          "color": "yellow"
+        },
+        {
+          "id": "nd]K",
+          "name": "Cengage",
+          "color": "gray"
+        },
+        {
+          "id": "uIhD",
+          "name": "Netmetschek Group",
+          "color": "red"
+        },
+        {
+          "id": "VNSj",
+          "name": "Datylon BV",
+          "color": "yellow"
+        },
+        {
+          "id": "P:fL",
+          "name": "Construct Connect",
+          "color": "blue"
+        },
+        {
+          "id": "MyIF",
+          "name": "Read.ai",
+          "color": "purple"
+        },
+        {
+          "id": "tqlu",
+          "name": "Alavara",
+          "color": "brown"
+        },
+        {
+          "id": "n=QZ",
+          "name": "SurveyMonkey",
+          "color": "purple"
+        },
+        {
+          "id": "@f`>",
+          "name": "Zendesk",
+          "color": "brown"
+        },
+        {
+          "id": "_|F@",
+          "name": "Later",
+          "color": "yellow"
+        },
+        {
+          "id": "LLgl",
+          "name": "Autodesk",
+          "color": "orange"
+        },
+        {
+          "id": "N|Cy",
+          "name": "Tetrad",
+          "color": "red"
+        },
+        {
+          "id": "[EOs",
+          "name": "Workiva",
+          "color": "pink"
+        },
+        {
+          "id": "rrUr",
+          "name": "Postman, Inc",
+          "color": "orange"
+        },
+        {
+          "id": "{WUL",
+          "name": "Salesforce, INC",
+          "color": "red"
+        },
+        {
+          "id": "e]{:",
+          "name": "Technomoic",
+          "color": "yellow"
+        },
+        {
+          "id": "kk~>",
+          "name": "Smartsheet",
+          "color": "gray"
+        },
+        {
+          "id": "mM;t",
+          "name": "Mosyle",
+          "color": "default"
+        },
+        {
+          "id": "^\\lb",
+          "name": "Limble",
+          "color": "purple"
+        },
+        {
+          "id": "XHHd",
+          "name": "Cleverbridge",
+          "color": "blue"
+        },
+        {
+          "id": "?n=Y",
+          "name": "Branch Metrics, Inc.",
+          "color": "brown"
+        },
+        {
+          "id": "U>y@",
+          "name": "Rebis LLC dba Property Works",
+          "color": "purple"
+        },
+        {
+          "id": "l@UZ",
+          "name": "Apple, INC",
+          "color": "yellow"
+        },
+        {
+          "id": "qK]T",
+          "name": "Adobe, INC",
+          "color": "default"
+        },
+        {
+          "id": "YVtl",
+          "name": "Adobe",
+          "color": "purple"
+        },
+        {
+          "id": "@Or?",
+          "name": "Asana",
+          "color": "pink"
+        },
+        {
+          "id": "b{zx",
+          "name": "Artlist Ltd",
+          "color": "pink"
+        },
+        {
+          "id": "UvCx",
+          "name": "Freshworks, Inc",
+          "color": "pink"
+        },
+        {
+          "id": "m`RD",
+          "name": "CoStar Group",
+          "color": "purple"
+        },
+        {
+          "id": "~Lbj",
+          "name": "Linktree",
+          "color": "purple"
+        },
+        {
+          "id": "Bwjt",
+          "name": "Docker",
+          "color": "purple"
+        },
+        {
+          "id": "RPYX",
+          "name": "Articulate Global, LLC",
+          "color": "default"
+        },
+        {
+          "id": "\\PMy",
+          "name": "Yext, Inc",
+          "color": "brown"
+        },
+        {
+          "id": "v|fN",
+          "name": "Verkada",
+          "color": "green"
+        },
+        {
+          "id": "bsQ;",
+          "name": "Datassential",
+          "color": "green"
+        },
+        {
+          "id": "YxK>",
+          "name": "Informatica",
+          "color": "gray"
+        },
+        {
+          "id": ":Z?t",
+          "name": "Buyers Edge Platform, LLC",
+          "color": "red"
+        },
+        {
+          "id": "MM};",
+          "name": "InsideTrack",
+          "color": "gray"
+        },
+        {
+          "id": "IWNA",
+          "name": "Creative Realities, INC",
+          "color": "yellow"
+        },
+        {
+          "id": ">xe]",
+          "name": "Okta",
+          "color": "orange"
+        },
+        {
+          "id": "`G^m",
+          "name": "Hootsuite Inc.",
+          "color": "purple"
+        },
+        {
+          "id": "EpC~",
+          "name": "Oracle",
+          "color": "purple"
+        },
+        {
+          "id": "aSq]",
+          "name": "Paytronix Systems, Inc",
+          "color": "purple"
+        },
+        {
+          "id": "W|ee",
+          "name": "Nextiva",
+          "color": "gray"
+        },
+        {
+          "id": "G>SG",
+          "name": "Docebo NA, Inc",
+          "color": "brown"
+        },
+        {
+          "id": "@Zi^",
+          "name": "Wirespeed",
+          "color": "default"
+        },
+        {
+          "id": "tYh_",
+          "name": "Gratuity Solutions",
+          "color": "red"
+        },
+        {
+          "id": "V:{_",
+          "name": "Phenom People, Inc",
+          "color": "brown"
+        },
+        {
+          "id": "zZpg",
+          "name": "Placer.ai",
+          "color": "yellow"
+        },
+        {
+          "id": "k_[{",
+          "name": "CrunchTime Information Systems, Inc",
+          "color": "pink"
+        },
+        {
+          "id": "eoba",
+          "name": "Qualtrics, LLC",
+          "color": "default"
+        },
+        {
+          "id": "d<kB",
+          "name": "Workday, Inc.",
+          "color": "purple"
+        },
+        {
+          "id": "nw_W",
+          "name": "Global Payments",
+          "color": "yellow"
+        },
+        {
+          "id": ";Iiu",
+          "name": "Sitefolio",
+          "color": "orange"
+        },
+        {
+          "id": "JDGX",
+          "name": "Figma",
+          "color": "purple"
+        },
+        {
+          "id": "^CqW",
+          "name": "Github, Inc",
+          "color": "default"
+        },
+        {
+          "id": "qblf",
+          "name": "SocialPilot Technologies Inc",
+          "color": "blue"
+        },
+        {
+          "id": "Ks^x",
+          "name": "SADA",
+          "color": "brown"
+        },
+        {
+          "id": ";]\\>",
+          "name": "GCP",
+          "color": "pink"
+        },
+        {
+          "id": "sypu",
+          "name": "Spotify",
+          "color": "blue"
+        },
+        {
+          "id": "y]R}",
+          "name": "Regrid",
+          "color": "purple"
+        },
+        {
+          "id": "TYJ[",
+          "name": "OpenAI",
+          "color": "green"
+        },
+        {
+          "id": "dk}Y",
+          "name": "Moment Zero, INC",
+          "color": "orange"
+        },
+        {
+          "id": "ysod",
+          "name": "Jetbrains",
+          "color": "red"
+        },
+        {
+          "id": "pzYb",
+          "name": "Lucid",
+          "color": "green"
+        },
+        {
+          "id": "Gxsu",
+          "name": "JazzHR",
+          "color": "green"
+        },
+        {
+          "id": "E\\D[",
+          "name": "CookieYes",
+          "color": "orange"
+        },
+        {
+          "id": ">jsx",
+          "name": "Macabacus Inc.",
+          "color": "pink"
+        },
+        {
+          "id": "NXI?",
+          "name": "Functional Software INC",
+          "color": "green"
+        },
+        {
+          "id": "<aha",
+          "name": "BCI",
+          "color": "blue"
+        },
+        {
+          "id": "NrVq",
+          "name": "Everon",
+          "color": "pink"
+        },
+        {
+          "id": "_t:|",
+          "name": "SAP",
+          "color": "default"
+        },
+        {
+          "id": "GA}o",
+          "name": "Apple",
+          "color": "orange"
+        },
+        {
+          "id": "dwcV",
+          "name": "GoDaddy Operating Company, LLC",
+          "color": "default"
+        },
+        {
+          "id": "CXdW",
+          "name": "Meta",
+          "color": "pink"
+        },
+        {
+          "id": "Vawt",
+          "name": "Net2Phone",
+          "color": "orange"
+        },
+        {
+          "id": "iCAM",
+          "name": "Stampli",
+          "color": "pink"
+        },
+        {
+          "id": "VWQ[",
+          "name": "Studiobinder",
+          "color": "blue"
+        },
+        {
+          "id": "u\\pJ",
+          "name": "Twilio, Inc",
+          "color": "red"
+        },
+        {
+          "id": "vxvZ",
+          "name": "Verizon",
+          "color": "yellow"
+        }
+      ]
+    },
+    {
+      "id": "%5DEHx",
+      "name": "Cost (per Cycle)",
+      "type": "number"
+    },
+    {
+      "id": "%5EO%60S",
+      "name": "IT Status",
+      "type": "select",
+      "options": [
+        {
+          "id": ":]Er",
+          "name": "Managed",
+          "color": "green"
+        },
+        {
+          "id": "h\\nz",
+          "name": "Unmanaged",
+          "color": "purple"
+        }
+      ]
+    },
+    {
+      "id": "aqsk",
+      "name": "Annual Cost",
+      "type": "number"
+    },
+    {
+      "id": "hNVL",
+      "name": "POC(s)",
+      "type": "rich_text"
+    },
+    {
+      "id": "lAKr",
+      "name": "Department",
+      "type": "relation"
+    },
+    {
+      "id": "oDvV",
+      "name": "Admin(s)",
+      "type": "rich_text"
+    },
+    {
+      "id": "oUku",
+      "name": "Licenses Assigned",
+      "type": "number"
+    },
+    {
+      "id": "o%5E%60W",
+      "name": "Annual IT Support & App Cost ",
+      "type": "formula"
+    },
+    {
+      "id": "sOqm",
+      "name": "Total Adjusted Hours",
+      "type": "formula"
+    },
+    {
+      "id": "yZbZ",
+      "name": "Total IT Hour Cost (125hr)",
+      "type": "formula"
+    },
+    {
+      "id": "~oJ%40",
+      "name": "Notes",
+      "type": "rich_text"
+    },
+    {
+      "id": "~ps%7B",
+      "name": "Contract Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "VyOh",
+          "name": "Enterprise",
+          "color": "yellow"
+        },
+        {
+          "id": "r>r;",
+          "name": "Subscription",
+          "color": "green"
+        },
+        {
+          "id": "hnoB",
+          "name": "One-Time",
+          "color": "purple"
+        },
+        {
+          "id": "QyWz",
+          "name": "Open-Source",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "name": "Application",
+      "type": "title"
+    }
+  ]
+}
