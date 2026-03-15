@@ -7,6 +7,7 @@ import { CityCanvas } from "@/components/CityCanvas";
 import { DatabaseTogglePanel } from "@/components/DatabaseTogglePanel";
 import { NodeDetailsPanel } from "@/components/NodeDetailsPanel";
 import { useTheme } from "@/components/ThemeProvider";
+import { useLastSyncLabel } from "@/lib/useLastSyncLabel";
 import type { DatabaseFieldConfig, DatabaseSchema, GraphData, NodeDetail } from "@/lib/types";
 
 type Props = {
@@ -26,10 +27,39 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
   const [selectedDetail, setSelectedDetail] = useState<NodeDetail | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [firstPerson, setFirstPerson] = useState(false);
+  const [flyover, setFlyover] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showLabelsFP, setShowLabelsFP] = useState(true);
   const [showLabelsOverhead, setShowLabelsOverhead] = useState(false);
   const [showClickLabels, setShowClickLabels] = useState(true);
+  const [flyoverLabelMode, setFlyoverLabelMode] = useState<'none' | 'overhead' | 'center'>(() => {
+    if (typeof window !== 'undefined') {
+      const v = localStorage.getItem('city_flyover_label_mode');
+      if (v === 'overhead' || v === 'center') return v;
+    }
+    return 'none';
+  });
+  const [flyoverSpeedMult, setFlyoverSpeedMult] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const v = parseFloat(localStorage.getItem('city_flyover_speed') ?? '');
+      if (!isNaN(v)) return v;
+    }
+    return 1.0;
+  });
+  const [flyoverArcHeightMult, setFlyoverArcHeightMult] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const v = parseFloat(localStorage.getItem('city_flyover_arc') ?? '');
+      if (!isNaN(v)) return v;
+    }
+    return 1.0;
+  });
+  const [flyoverCameraHeightOffset, setFlyoverCameraHeightOffset] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const v = parseFloat(localStorage.getItem('city_flyover_cam_height') ?? '');
+      if (!isNaN(v)) return v;
+    }
+    return 1.5;
+  });
 
   // Schemas + field config
   const [schemas, setSchemas] = useState<DatabaseSchema[]>([]);
@@ -39,6 +69,11 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
     fetch("/api/schemas").then((r) => r.json()).then(setSchemas).catch(() => {});
     fetch("/api/field-config").then((r) => r.json()).then(setFieldConfig).catch(() => {});
   }, []);
+
+  useEffect(() => { localStorage.setItem('city_flyover_label_mode', flyoverLabelMode); }, [flyoverLabelMode]);
+  useEffect(() => { localStorage.setItem('city_flyover_speed', String(flyoverSpeedMult)); }, [flyoverSpeedMult]);
+  useEffect(() => { localStorage.setItem('city_flyover_arc', String(flyoverArcHeightMult)); }, [flyoverArcHeightMult]);
+  useEffect(() => { localStorage.setItem('city_flyover_cam_height', String(flyoverCameraHeightOffset)); }, [flyoverCameraHeightOffset]);
 
   function handleFieldConfigChange(dbId: string, cfg: DatabaseFieldConfig) {
     const next = { ...fieldConfig, [dbId]: cfg };
@@ -164,11 +199,7 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleClose]);
 
-  const syncLabel = lastSyncAt
-    ? new Date(lastSyncAt).toLocaleString("en-US", {
-        month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-      })
-    : "Never";
+  const syncLabel = useLastSyncLabel(lastSyncAt);
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}>
@@ -185,6 +216,12 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
           showLabelsFP={showLabelsFP}
           showLabelsOverhead={showLabelsOverhead}
           showClickLabels={showClickLabels}
+          flyover={flyover}
+          flyoverLabelMode={flyoverLabelMode}
+          flyoverSpeedMult={flyoverSpeedMult}
+          flyoverArcHeightMult={flyoverArcHeightMult}
+          flyoverCameraHeightOffset={flyoverCameraHeightOffset}
+          onExitFlyover={() => setFlyover(false)}
         />
       </div>
 
@@ -218,7 +255,7 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
               gap: 8,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/CityIcon.png" alt="City" style={{ width: 24, height: 24, objectFit: "contain" }} />
+              <img src="/PimaryIcon.png" alt="City" style={{ width: 24, height: 24, objectFit: "contain" }} />
               Project City
             </span>
             <span style={{
@@ -292,7 +329,7 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
                 position: "absolute",
                 top: 36,
                 right: 0,
-                width: 210,
+                width: 230,
                 background: "var(--panel-bg)",
                 backdropFilter: "blur(20px) saturate(1.4)",
                 border: "1px solid var(--border-default)",
@@ -401,38 +438,97 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
 
               {/* Click-to-label toggle */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 11,
-                  color: "var(--text-muted)",
-                }}>Show on click</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Show on click</span>
                 <button
                   type="button"
                   onClick={() => setShowClickLabels((v) => !v)}
                   style={{
-                    width: 32,
-                    height: 17,
-                    borderRadius: 9,
-                    border: "none",
+                    width: 32, height: 17, borderRadius: 9, border: "none",
                     background: showClickLabels ? "var(--text-faint)" : "var(--border-default)",
-                    cursor: "pointer",
-                    position: "relative",
-                    transition: "background 0.15s",
-                    flexShrink: 0,
-                    padding: 0,
+                    cursor: "pointer", position: "relative", transition: "background 0.15s", flexShrink: 0, padding: 0,
                   }}
                 >
                   <div style={{
-                    position: "absolute",
-                    top: 2,
-                    left: showClickLabels ? 17 : 3,
-                    width: 13,
-                    height: 13,
-                    borderRadius: "50%",
+                    position: "absolute", top: 2, left: showClickLabels ? 17 : 3,
+                    width: 13, height: 13, borderRadius: "50%",
                     background: showClickLabels ? "var(--text-primary)" : "var(--text-faint)",
                     transition: "left 0.15s, background 0.15s",
                   }} />
                 </button>
+              </div>
+
+              <span style={{
+                fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--text-faint)",
+                fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2,
+              }}>Flyover Labels</span>
+
+              {/* Flyover label mode — three-way selector */}
+              <div style={{ display: "flex", gap: 4 }}>
+                {(['none', 'overhead', 'center'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setFlyoverLabelMode(mode)}
+                    style={{
+                      flex: 1,
+                      fontFamily: "'DM Mono', monospace",
+                      fontSize: 10,
+                      padding: "3px 0",
+                      borderRadius: 5,
+                      border: `1px solid ${flyoverLabelMode === mode ? "var(--text-faint)" : "var(--border-default)"}`,
+                      background: flyoverLabelMode === mode ? "var(--bg-overlay)" : "transparent",
+                      color: flyoverLabelMode === mode ? "var(--text-primary)" : "var(--text-faint)",
+                      cursor: "pointer",
+                      transition: "background 0.15s, color 0.15s, border-color 0.15s",
+                      letterSpacing: "0.03em",
+                    }}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+
+              <span style={{
+                fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--text-faint)",
+                fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2,
+              }}>Flyover Speed</span>
+
+              {/* Flight speed */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Camera speed</span>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-faint)" }}>{flyoverSpeedMult.toFixed(2)}×</span>
+                </div>
+                <input type="range" min="0.25" max="3.0" step="0.05" value={flyoverSpeedMult}
+                  onChange={(e) => setFlyoverSpeedMult(parseFloat(e.target.value))}
+                  style={{ width: "100%", accentColor: "var(--text-faint)" }}
+                />
+              </div>
+
+              {/* Orbit radius */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Orbit radius</span>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-faint)" }}>{flyoverArcHeightMult.toFixed(2)}×</span>
+                </div>
+                <input type="range" min="0.25" max="2.5" step="0.05" value={flyoverArcHeightMult}
+                  onChange={(e) => setFlyoverArcHeightMult(parseFloat(e.target.value))}
+                  style={{ width: "100%", accentColor: "var(--text-faint)" }}
+                />
+              </div>
+
+              {/* Camera height */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Camera height</span>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-faint)" }}>
+                    {flyoverCameraHeightOffset >= 0 ? "+" : ""}{flyoverCameraHeightOffset.toFixed(2)}×
+                  </span>
+                </div>
+                <input type="range" min="-0.8" max="3.0" step="0.05" value={flyoverCameraHeightOffset}
+                  onChange={(e) => setFlyoverCameraHeightOffset(parseFloat(e.target.value))}
+                  style={{ width: "100%", accentColor: "var(--text-faint)" }}
+                />
               </div>
             </div>
           )}
@@ -527,7 +623,7 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
         {/* Street View toggle */}
         <button
           type="button"
-          onClick={() => setFirstPerson((v) => !v)}
+          onClick={() => { setFirstPerson((v) => !v); setFlyover(false); }}
           title={firstPerson ? "Exit street view" : "Enter street view"}
           style={{
             fontFamily: "'DM Mono', monospace",
@@ -546,28 +642,64 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
             letterSpacing: "0.03em",
           }}
         >
-          {/* Toggle pill */}
           <div style={{
-            width: 28,
-            height: 14,
-            borderRadius: 7,
+            width: 28, height: 14, borderRadius: 7,
             background: firstPerson ? "var(--text-faint)" : "var(--border-default)",
-            position: "relative",
-            transition: "background 0.2s",
-            flexShrink: 0,
+            position: "relative", transition: "background 0.2s", flexShrink: 0,
           }}>
             <div style={{
-              position: "absolute",
-              top: 2,
+              position: "absolute", top: 2,
               left: firstPerson ? 16 : 2,
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
+              width: 10, height: 10, borderRadius: "50%",
               background: firstPerson ? "var(--text-primary)" : "var(--text-faint)",
               transition: "left 0.2s, background 0.2s",
             }} />
           </div>
           street view
+        </button>
+
+        {/* Flyover toggle */}
+        <button
+          type="button"
+          onClick={() => {
+            if (!selectedDetail && !flyover) return; // no-op if nothing selected
+            setFlyover((v) => !v);
+            setFirstPerson(false);
+          }}
+          title={flyover ? "Exit flyover" : selectedDetail ? "Start flyover from selected node" : "Select a node to begin flyover"}
+          style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 11,
+            color: flyover ? "var(--text-primary)" : "var(--text-muted)",
+            background: flyover ? "var(--bg-overlay)" : "var(--panel-bg)",
+            backdropFilter: "blur(12px)",
+            border: `1px solid ${flyover ? "var(--text-faint)" : "var(--border-default)"}`,
+            borderRadius: 8,
+            padding: "5px 10px",
+            cursor: selectedDetail || flyover ? "pointer" : "default",
+            boxShadow: "var(--shadow-sm)",
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            letterSpacing: "0.03em",
+            opacity: !selectedDetail && !flyover ? 0.5 : 1,
+            transition: "opacity 0.15s, background 0.2s, color 0.2s, border-color 0.2s",
+          }}
+        >
+          <div style={{
+            width: 28, height: 14, borderRadius: 7,
+            background: flyover ? "var(--text-faint)" : "var(--border-default)",
+            position: "relative", transition: "background 0.2s", flexShrink: 0,
+          }}>
+            <div style={{
+              position: "absolute", top: 2,
+              left: flyover ? 16 : 2,
+              width: 10, height: 10, borderRadius: "50%",
+              background: flyover ? "var(--text-primary)" : "var(--text-faint)",
+              transition: "left 0.2s, background 0.2s",
+            }} />
+          </div>
+          flyover
         </button>
 
         {/* Controls hint — changes based on mode */}
@@ -584,7 +716,9 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
         }}>
           {(firstPerson
             ? [["W A S D", "move"], ["mouse", "look"], ["shift", "sprint"]]
-            : [["drag", "orbit"], ["right-drag", "pan"], ["scroll", "zoom"], ["click", "select"]]
+            : flyover
+              ? [["esc", "exit flyover"], ["click", "select & restart"]]
+              : [["drag", "orbit"], ["right-drag", "pan"], ["scroll", "zoom"], ["click", "select"]]
           ).map(([key, label]) => (
             <span key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{
@@ -643,13 +777,13 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
         }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/CityIcon.png"
+            src="/PimaryIcon.png"
             alt="City"
             style={{
               width: "60%",
               height: "60%",
               objectFit: "contain",
-              opacity: 0.7,
+              opacity: 0.25,
             }}
           />
         </div>

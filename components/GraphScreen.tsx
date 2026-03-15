@@ -8,6 +8,7 @@ import { DatabaseTogglePanel } from "@/components/DatabaseTogglePanel";
 import { NodeDetailsPanel } from "@/components/NodeDetailsPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { useTheme } from "@/components/ThemeProvider";
+import { useLastSyncLabel } from "@/lib/useLastSyncLabel";
 import type { DatabaseFieldConfig, DatabaseSchema, GraphData, NodeDetail } from "@/lib/types";
 
 type Props = {
@@ -136,9 +137,7 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleClose]);
 
-  const syncLabel = lastSyncAt ? new Date(lastSyncAt).toLocaleString("en-US", {
-    month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
-  }) : "Never";
+  const syncLabel = useLastSyncLabel(lastSyncAt);
 
   // Build id→name and id→color lookups from the graph nodes
   const dbIdToName = useMemo(() => {
@@ -206,7 +205,7 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
               gap: 8,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/SphereIcon.png" alt="Graph" style={{ width: 17, height: 17, objectFit: "contain" }} />
+              <img src="/GraphIcon2.png" alt="Graph" style={{ width: 17, height: 17, objectFit: "contain" }} />
               Project Graph
             </span>
             <span style={{

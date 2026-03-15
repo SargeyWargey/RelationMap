@@ -49,6 +49,7 @@ const MAX_ZOOM = 5.0;
 const NODE_RADIUS = 7;
 const NODE_RADIUS_SELECTED = 10;
 const SPHERE_FILL_RATIO = 0.40;
+const EMPTY_ICON_SCALE = 0.60; // matches ProjectCityScreen empty-state image sizing
 const FOV_BASE = 2.5;
 const DRAG_SENSITIVITY = 0.006;
 const DEPTH_MIN_OPACITY = 0.18;
@@ -820,17 +821,20 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
 
         {/* Empty state — no database selected */}
         {showBean && (() => {
-          const r = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
-          const imgSize = r * 2 * 0.9 * 0.5;
+          const iconWidth = size.w * EMPTY_ICON_SCALE;
+          const iconHeight = size.h * EMPTY_ICON_SCALE;
+          const offsetX = (size.w - iconWidth) / 2;
+          const offsetY = (size.h - iconHeight) / 2;
           return (
             <g style={{ pointerEvents: "none", transition: "opacity 2s ease", opacity: beanOpacity }}>
               <image
-                href="/SphereIcon.png"
-                x={size.w / 2 - imgSize / 2}
-                y={size.h / 2 - imgSize / 2}
-                width={imgSize}
-                height={imgSize}
+                href="/GraphIcon2.png"
+                x={offsetX}
+                y={offsetY}
+                width={iconWidth}
+                height={iconHeight}
                 preserveAspectRatio="xMidYMid meet"
+                style={{ opacity: 0.25 }}
               />
             </g>
           );

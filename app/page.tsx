@@ -119,7 +119,7 @@ export default function HomePage() {
         className="animate-fade-up"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/CityIcon.png" alt="Logo" style={{ width: 120, height: 120, objectFit: "contain" }} />
+        <img src="/PimaryIcon.png" alt="Logo" style={{ width: 120, height: 120, objectFit: "contain" }} />
         <span style={{
           fontFamily: "'Lora', Georgia, serif",
           fontSize: 28,
@@ -155,14 +155,14 @@ export default function HomePage() {
           title="Project Graph"
           subtitle="notion graph"
           description="Explore relationships between your Notion data as an interactive 3D graph."
-          icon="/SphereIcon.png"
+          icon="/GraphIcon2.png"
         />
         <ModeTile
           href="/project-city"
           title="Project City"
           subtitle="navigate your data"
           description="A new way to visualize and navigate your projects. Coming soon."
-          icon="/CityIcon.png"
+          icon="/PimaryIcon.png"
         />
       </div>
 
