@@ -206,7 +206,7 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
               gap: 8,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/hog.png" alt="Bean" style={{ width: 17, height: 17, objectFit: "contain" }} />
+              <img src="/SphereIcon.png" alt="Graph" style={{ width: 17, height: 17, objectFit: "contain" }} />
               Project Graph
             </span>
             <span style={{

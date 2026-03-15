@@ -119,7 +119,7 @@ export default function HomePage() {
         className="animate-fade-up"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/hog.png" alt="Logo" style={{ width: 120, height: 120, objectFit: "contain" }} />
+        <img src="/CityIcon.png" alt="Logo" style={{ width: 120, height: 120, objectFit: "contain" }} />
         <span style={{
           fontFamily: "'Lora', Georgia, serif",
           fontSize: 28,
@@ -155,12 +155,14 @@ export default function HomePage() {
           title="Project Graph"
           subtitle="notion graph"
           description="Explore relationships between your Notion data as an interactive 3D graph."
+          icon="/SphereIcon.png"
         />
         <ModeTile
           href="/project-city"
           title="Project City"
           subtitle="navigate your data"
           description="A new way to visualize and navigate your projects. Coming soon."
+          icon="/CityIcon.png"
         />
       </div>
 
@@ -183,11 +185,13 @@ function ModeTile({
   title,
   subtitle,
   description,
+  icon,
 }: {
   href: string;
   title: string;
   subtitle: string;
   description: string;
+  icon?: string;
 }) {
   return (
     <Link href={href} style={{ textDecoration: "none" }}>
@@ -226,7 +230,14 @@ function ModeTile({
             color: "var(--text-primary)",
             letterSpacing: "-0.01em",
             lineHeight: 1.3,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
           }}>
+            {icon && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={icon} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} />
+            )}
             {title}
           </span>
           <span style={{

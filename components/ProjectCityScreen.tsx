@@ -17,6 +17,12 @@ type Props = {
 export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
   const { darkMode, toggleDarkMode } = useTheme();
 
+  // Icon / canvas fade state
+  const [showIcon, setShowIcon] = useState(true);
+  const [iconOpacity, setIconOpacity] = useState(1);
+  const [canvasOpacity, setCanvasOpacity] = useState(0);
+  const wasEmptyRef = useRef(true);
+
   const [selectedDetail, setSelectedDetail] = useState<NodeDetail | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [firstPerson, setFirstPerson] = useState(false);
@@ -100,6 +106,27 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
     return map;
   }, [initialGraph.nodes]);
 
+  // Fade icon out / canvas in when databases are toggled
+  useEffect(() => {
+    const isEmpty = enabledDbs.size === 0;
+    if (wasEmptyRef.current && !isEmpty) {
+      // empty → has nodes
+      wasEmptyRef.current = false;
+      setCanvasOpacity(1);
+      setIconOpacity(0);
+      const timer = setTimeout(() => setShowIcon(false), 2000);
+      return () => clearTimeout(timer);
+    }
+    if (!wasEmptyRef.current && isEmpty) {
+      // has nodes → empty
+      wasEmptyRef.current = true;
+      setCanvasOpacity(0);
+      setIconOpacity(0);
+      setShowIcon(true);
+      requestAnimationFrame(() => setIconOpacity(1));
+    }
+  }, [enabledDbs.size]);
+
   const handleSelectNode = useCallback((detail: NodeDetail | null) => {
     setSelectedDetail(detail);
   }, []);
@@ -147,17 +174,19 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}>
 
       {/* Full-screen 3D city */}
-      <CityCanvas
-        graph={filteredGraph}
-        onSelectNode={handleSelectNode}
-        selectedNodeId={selectedDetail?.id ?? null}
-        darkMode={darkMode}
-        firstPerson={firstPerson}
-        onExitFirstPerson={() => setFirstPerson(false)}
-        showLabelsFP={showLabelsFP}
-        showLabelsOverhead={showLabelsOverhead}
-        showClickLabels={showClickLabels}
-      />
+      <div style={{ position: "absolute", inset: 0, opacity: canvasOpacity, transition: "opacity 2s ease" }}>
+        <CityCanvas
+          graph={filteredGraph}
+          onSelectNode={handleSelectNode}
+          selectedNodeId={selectedDetail?.id ?? null}
+          darkMode={darkMode}
+          firstPerson={firstPerson}
+          onExitFirstPerson={() => setFirstPerson(false)}
+          showLabelsFP={showLabelsFP}
+          showLabelsOverhead={showLabelsOverhead}
+          showClickLabels={showClickLabels}
+        />
+      </div>
 
       {/* Top-left wordmark */}
       <div
@@ -189,7 +218,7 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
               gap: 8,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/hog.png" alt="Bean" style={{ width: 24, height: 24, objectFit: "contain" }} />
+              <img src="/CityIcon.png" alt="City" style={{ width: 24, height: 24, objectFit: "contain" }} />
               Project City
             </span>
             <span style={{
@@ -596,6 +625,33 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
             <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(255,255,255,0.5)", transform: "translateY(-50%)" }} />
             <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(255,255,255,0.5)", transform: "translateX(-50%)" }} />
           </div>
+        </div>
+      )}
+
+      {/* Empty state — city icon fades in/out when databases are toggled */}
+      {showIcon && (
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
+          zIndex: 5,
+          opacity: iconOpacity,
+          transition: "opacity 2s ease",
+        }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/CityIcon.png"
+            alt="City"
+            style={{
+              width: "60%",
+              height: "60%",
+              objectFit: "contain",
+              opacity: 0.7,
+            }}
+          />
         </div>
       )}
 
