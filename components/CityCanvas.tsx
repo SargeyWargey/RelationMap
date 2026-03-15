@@ -47,6 +47,12 @@ type SceneState = {
   // Label settings
   showLabelsFP: boolean;
   showLabelsOverhead: boolean;
+  showClickLabels: boolean;
+  // Overhead click-label overlay
+  labelOverlaySvg: SVGSVGElement;
+  selectedNodeIdForLabels: string | null;
+  connectedNodeIdsForLabels: Set<string>;
+  projVec: THREE.Vector3;
 };
 
 type Props = {
@@ -58,6 +64,7 @@ type Props = {
   onExitFirstPerson?: () => void;
   showLabelsFP?: boolean;
   showLabelsOverhead?: boolean;
+  showClickLabels?: boolean;
 };
 
 // ─── Street helpers ───────────────────────────────────────────────────────────
@@ -270,12 +277,133 @@ function makeLabelSprite(text: string, buildingWidth: number, darkMode: boolean)
   return sprite;
 }
 
+// ─── Overhead click-label overlay ────────────────────────────────────────────
+
+function escSvg(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function updateOverheadLabels(
+  buildingMap: Map<string, BuildingEntry>,
+  svg: SVGSVGElement,
+  selectedId: string,
+  connectedIds: Set<string>,
+  darkMode: boolean,
+  camera: THREE.PerspectiveCamera,
+  W: number,
+  H: number,
+  vec: THREE.Vector3,
+): void {
+  // Layout constants
+  const DIAG_X    = 26;   // horizontal offset of angled segment (toward label)
+  const DIAG_Y    = 54;   // default vertical rise of angled segment
+  const HORIZ     = 62;   // horizontal segment length
+  const LABEL_H   = 22;   // approximate label height for overlap detection
+  const LABEL_PAD = 7;    // minimum vertical gap between labels
+
+  // Colour scheme
+  const textFill = darkMode ? "rgba(255,255,255,0.96)" : "rgba(14,14,20,0.96)";
+  const pillBg   = darkMode ? "rgba(10,10,22,0.84)"   : "rgba(255,255,255,0.90)";
+  const padX = 8, padY = 4;
+  const fontBase = "'DM Mono',monospace";
+
+  // Collect items
+  interface Item {
+    id: string; name: string; isMain: boolean;
+    sx: number; sy: number; color: string;
+    facingRight: boolean;
+    ex: number; ey: number; // elbow position (ey may be adjusted)
+  }
+
+  const items: Item[] = [];
+
+  const project = (id: string, isMain: boolean) => {
+    const e = buildingMap.get(id);
+    if (!e) return;
+    vec.set(e.node.cx, e.node.height, e.node.cz);
+    vec.project(camera);
+    if (vec.z > 1) return; // behind camera
+    const sx = (vec.x + 1) / 2 * W;
+    const sy = (-vec.y + 1) / 2 * H;
+    // Cull items far off-screen
+    if (sx < -300 || sx > W + 300 || sy < -300 || sy > H + 300) return;
+    const facingRight = sx < W / 2;
+    items.push({
+      id, name: e.node.name, isMain, sx, sy,
+      color: e.node.color, facingRight,
+      ex: sx + (facingRight ? DIAG_X : -DIAG_X),
+      ey: sy - DIAG_Y,
+    });
+  };
+
+  project(selectedId, true);
+  for (const id of connectedIds) project(id, false);
+
+  if (items.length === 0) { svg.innerHTML = ""; return; }
+
+  // Anti-overlap: process in order of ascending ey (topmost label first).
+  // When two labels' pill rects would collide, push the lower one further up.
+  items.sort((a, b) => a.ey - b.ey);
+
+  const placed: Item[] = [];
+  for (const item of items) {
+    let ey = item.ey;
+    const approxTW = Math.max(44, item.name.length * (item.isMain ? 7.6 : 7.1));
+    const lx1 = item.facingRight ? item.ex + HORIZ : item.ex - HORIZ - approxTW;
+    const lx2 = lx1 + approxTW;
+
+    for (const p of placed) {
+      const pTW = Math.max(44, p.name.length * (p.isMain ? 7.6 : 7.1));
+      const plx1 = p.facingRight ? p.ex + HORIZ : p.ex - HORIZ - pTW;
+      const plx2 = plx1 + pTW;
+      const xOverlap = lx2 + 4 > plx1 && lx1 - 4 < plx2;
+      if (xOverlap && Math.abs(ey - p.ey) < LABEL_H + LABEL_PAD) {
+        ey = p.ey - LABEL_H - LABEL_PAD;
+      }
+    }
+    item.ey = Math.max(16, ey); // don't go off the top of the viewport
+    placed.push(item);
+  }
+
+  // Build SVG markup
+  let html = "";
+  for (const item of items) {
+    const { sx, sy, ex, ey, facingRight, name, isMain, color } = item;
+    const fs  = isMain ? 12 : 11;
+    const fw  = isMain ? "600" : "400";
+    const sw  = isMain ? "1.7" : "1.3";
+    const so  = isMain ? "0.88" : "0.68";
+
+    const horizEnd  = facingRight ? ex + HORIZ : ex - HORIZ;
+    const approxTW  = Math.max(44, name.length * (isMain ? 7.6 : 7.1));
+    const pillW     = approxTW + padX * 2;
+    const pillH     = fs + padY * 2;
+    const rectX     = facingRight ? horizEnd : horizEnd - pillW;
+    const rectY     = ey - pillH / 2;
+    const textX     = facingRight ? horizEnd + padX : horizEnd - padX;
+    const anchor    = facingRight ? "start" : "end";
+
+    // Dot at building top
+    html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="2.5" fill="${color}" opacity="0.92"/>`;
+    // Angled segment
+    html += `<line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${sw}" opacity="${so}"/>`;
+    // Horizontal segment
+    html += `<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${horizEnd.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${sw}" opacity="${so}"/>`;
+    // Pill background
+    html += `<rect x="${rectX.toFixed(1)}" y="${rectY.toFixed(1)}" width="${pillW.toFixed(1)}" height="${pillH.toFixed(1)}" rx="3" ry="3" fill="${pillBg}" opacity="0.93"/>`;
+    // Label text
+    html += `<text x="${textX.toFixed(1)}" y="${ey.toFixed(1)}" font-family="${fontBase}" font-size="${fs}" font-weight="${fw}" fill="${textFill}" text-anchor="${anchor}" dominant-baseline="middle">${escSvg(name)}</text>`;
+  }
+
+  svg.innerHTML = html;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function CityCanvas({
   graph, onSelectNode, selectedNodeId,
   darkMode = false, firstPerson = false, onExitFirstPerson,
-  showLabelsFP = true, showLabelsOverhead = false,
+  showLabelsFP = true, showLabelsOverhead = false, showClickLabels = true,
 }: Props) {
   const mountRef    = useRef<HTMLDivElement>(null);
   const stateRef    = useRef<SceneState | null>(null);
@@ -297,6 +425,11 @@ export function CityCanvas({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(darkMode ? 0x1a1a1a : 0xf7f3ed);
     mount.appendChild(renderer.domElement);
+
+    // SVG overlay for overhead click-labels
+    const labelSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement;
+    labelSvg.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;";
+    mount.appendChild(labelSvg);
 
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 1000);
@@ -520,6 +653,21 @@ export function CityCanvas({
       }
 
       renderer.render(scene, camera);
+
+      // Update overhead label overlay every frame (camera may be moving)
+      if (s && !s.fpActive) {
+        if (s.selectedNodeIdForLabels && s.showClickLabels) {
+          updateOverheadLabels(
+            s.buildingMap, s.labelOverlaySvg,
+            s.selectedNodeIdForLabels, s.connectedNodeIdsForLabels,
+            s.darkMode, camera,
+            mount.clientWidth, mount.clientHeight,
+            s.projVec,
+          );
+        } else if (s.labelOverlaySvg.innerHTML !== "") {
+          s.labelOverlaySvg.innerHTML = "";
+        }
+      }
     }
     animate();
 
@@ -531,7 +679,11 @@ export function CityCanvas({
       overheadPos:    new THREE.Vector3(),
       overheadTarget: new THREE.Vector3(),
       animFrameId,
-      showLabelsFP, showLabelsOverhead,
+      showLabelsFP, showLabelsOverhead, showClickLabels,
+      labelOverlaySvg: labelSvg,
+      selectedNodeIdForLabels: null,
+      connectedNodeIdsForLabels: new Set(),
+      projVec: new THREE.Vector3(),
     };
 
     return () => {
@@ -562,6 +714,7 @@ export function CityCanvas({
       groundGeo.dispose(); groundMat.dispose();
       renderer.dispose();
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
+      if (mount.contains(labelSvg)) mount.removeChild(labelSvg);
       stateRef.current = null;
     };
   }, [graph, darkMode]);
@@ -614,7 +767,8 @@ export function CityCanvas({
     if (!s) return;
     s.showLabelsFP = showLabelsFP;
     s.showLabelsOverhead = showLabelsOverhead;
-  }, [showLabelsFP, showLabelsOverhead]);
+    s.showClickLabels = showClickLabels;
+  }, [showLabelsFP, showLabelsOverhead, showClickLabels]);
 
   // ── Selection: highlight/dim + ground-level connection lines ────────────
   useEffect(() => {
@@ -631,6 +785,8 @@ export function CityCanvas({
     s.connectionLines = [];
 
     if (!selectedNodeId) {
+      s.selectedNodeIdForLabels = null;
+      s.connectedNodeIdsForLabels = new Set();
       for (const { face, edges } of buildingMap.values()) {
         (face.material as THREE.MeshBasicMaterial).opacity = 0.12;
         const em = edges.material as THREE.LineBasicMaterial;
@@ -644,6 +800,10 @@ export function CityCanvas({
       if (edge.source === selectedNodeId) connectedIds.add(edge.target);
       else if (edge.target === selectedNodeId) connectedIds.add(edge.source);
     }
+
+    // Sync label state so the render loop can draw the overlay
+    s.selectedNodeIdForLabels = selectedNodeId;
+    s.connectedNodeIdsForLabels = connectedIds;
 
     for (const [id, { face, edges }] of buildingMap) {
       const fm = face.material  as THREE.MeshBasicMaterial;
@@ -674,5 +834,5 @@ export function CityCanvas({
     }
   }, [selectedNodeId]);
 
-  return <div ref={mountRef} style={{ width: "100%", height: "100%" }} />;
+  return <div ref={mountRef} style={{ width: "100%", height: "100%", position: "relative" }} />;
 }

@@ -23,6 +23,7 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showLabelsFP, setShowLabelsFP] = useState(true);
   const [showLabelsOverhead, setShowLabelsOverhead] = useState(false);
+  const [showClickLabels, setShowClickLabels] = useState(true);
 
   // Schemas + field config
   const [schemas, setSchemas] = useState<DatabaseSchema[]>([]);
@@ -155,6 +156,7 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
         onExitFirstPerson={() => setFirstPerson(false)}
         showLabelsFP={showLabelsFP}
         showLabelsOverhead={showLabelsOverhead}
+        showClickLabels={showClickLabels}
       />
 
       {/* Top-left wordmark */}
@@ -351,6 +353,54 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
                     height: 13,
                     borderRadius: "50%",
                     background: showLabelsOverhead ? "var(--text-primary)" : "var(--text-faint)",
+                    transition: "left 0.15s, background 0.15s",
+                  }} />
+                </button>
+              </div>
+
+              <span style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 10,
+                color: "var(--text-faint)",
+                fontWeight: 400,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginTop: 2,
+              }}>
+                Click Labels
+              </span>
+
+              {/* Click-to-label toggle */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 11,
+                  color: "var(--text-muted)",
+                }}>Show on click</span>
+                <button
+                  type="button"
+                  onClick={() => setShowClickLabels((v) => !v)}
+                  style={{
+                    width: 32,
+                    height: 17,
+                    borderRadius: 9,
+                    border: "none",
+                    background: showClickLabels ? "var(--text-faint)" : "var(--border-default)",
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "background 0.15s",
+                    flexShrink: 0,
+                    padding: 0,
+                  }}
+                >
+                  <div style={{
+                    position: "absolute",
+                    top: 2,
+                    left: showClickLabels ? 17 : 3,
+                    width: 13,
+                    height: 13,
+                    borderRadius: "50%",
+                    background: showClickLabels ? "var(--text-primary)" : "var(--text-faint)",
                     transition: "left 0.15s, background 0.15s",
                   }} />
                 </button>
