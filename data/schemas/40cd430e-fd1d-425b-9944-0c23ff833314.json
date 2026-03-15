@@ -1,0 +1,85 @@
+{
+  "databaseId": "40cd430e-fd1d-425b-9944-0c23ff833314",
+  "databaseName": "Research",
+  "fields": [
+    {
+      "id": "%40%3EpS",
+      "name": "Summary",
+      "type": "rich_text"
+    },
+    {
+      "id": "Pt%5Ca",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "qlkZ",
+          "name": "To Research",
+          "color": "gray"
+        },
+        {
+          "id": "A=kt",
+          "name": "Researching",
+          "color": "blue"
+        },
+        {
+          "id": "Zzba",
+          "name": "Complete",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "gp%3Dt",
+      "name": "Relevance",
+      "type": "rich_text"
+    },
+    {
+      "id": "w%3BAU",
+      "name": "Category",
+      "type": "select",
+      "options": [
+        {
+          "id": "qEQd",
+          "name": "Physics",
+          "color": "brown"
+        },
+        {
+          "id": "`Zek",
+          "name": "Astronomy",
+          "color": "red"
+        },
+        {
+          "id": "{ZYX",
+          "name": "Biology",
+          "color": "gray"
+        },
+        {
+          "id": "AC~c",
+          "name": "Technology",
+          "color": "purple"
+        },
+        {
+          "id": "qSa<",
+          "name": "Engineering",
+          "color": "yellow"
+        },
+        {
+          "id": "J<el",
+          "name": "Psychology",
+          "color": "default"
+        },
+        {
+          "id": "Lm?j",
+          "name": "History",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "name": "Topic",
+      "type": "title"
+    }
+  ]
+}

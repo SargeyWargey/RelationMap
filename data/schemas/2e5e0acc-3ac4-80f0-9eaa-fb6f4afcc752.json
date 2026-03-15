@@ -1,0 +1,127 @@
+{
+  "databaseId": "2e5e0acc-3ac4-80f0-9eaa-fb6f4afcc752",
+  "databaseName": "Events",
+  "fields": [
+    {
+      "id": "%3EgTQ",
+      "name": "Chapter Outlines",
+      "type": "relation"
+    },
+    {
+      "id": "C~RB",
+      "name": "Outline",
+      "type": "relation"
+    },
+    {
+      "id": "F_H%7B",
+      "name": "Characters",
+      "type": "relation"
+    },
+    {
+      "id": "Lkp%7D",
+      "name": "Book",
+      "type": "relation"
+    },
+    {
+      "id": "PGBH",
+      "name": "Event Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "k>P^",
+          "name": "Backstory",
+          "color": "blue"
+        },
+        {
+          "id": "U{g?",
+          "name": "Inciting Incident",
+          "color": "purple"
+        },
+        {
+          "id": "SFmI",
+          "name": "Plot Point",
+          "color": "pink"
+        },
+        {
+          "id": ":qEk",
+          "name": "Climax",
+          "color": "green"
+        },
+        {
+          "id": "@@j|",
+          "name": "Resolution",
+          "color": "yellow"
+        }
+      ]
+    },
+    {
+      "id": "W%3Ba%5E",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "bb33ed32-1378-4687-92a2-f2626b2afeb3",
+          "name": "Not started",
+          "color": "default"
+        },
+        {
+          "id": "c18ee95f-e795-4a79-bb73-a44b130f2284",
+          "name": "Draft",
+          "color": "blue"
+        },
+        {
+          "id": "eb23a697-b4ab-4bd6-952d-d7d4f03b7d08",
+          "name": "Finalized",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "%60I%7Cy",
+      "name": "Summary",
+      "type": "rich_text"
+    },
+    {
+      "id": "gA%40u",
+      "name": "Things",
+      "type": "relation"
+    },
+    {
+      "id": "pC%5EX",
+      "name": "Place",
+      "type": "relation"
+    },
+    {
+      "id": "tRF%3B",
+      "name": "Timeline Order",
+      "type": "number"
+    },
+    {
+      "id": "xftQ",
+      "name": "Narrative Importance",
+      "type": "select",
+      "options": [
+        {
+          "id": "k>P^",
+          "name": "Critical",
+          "color": "purple"
+        },
+        {
+          "id": "U{g?",
+          "name": "Major",
+          "color": "pink"
+        },
+        {
+          "id": "SFmI",
+          "name": "Minor",
+          "color": "orange"
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "name": "Event",
+      "type": "title"
+    }
+  ]
+}

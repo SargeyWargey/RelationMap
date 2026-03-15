@@ -1,0 +1,105 @@
+{
+  "databaseId": "2e5e0acc-3ac4-801d-8dd0-c76ba4a18fd9",
+  "databaseName": "Place",
+  "fields": [
+    {
+      "id": "%3D~uJ",
+      "name": "Chapter Outlines",
+      "type": "relation"
+    },
+    {
+      "id": "%3E%7DKI",
+      "name": "Summary",
+      "type": "rich_text"
+    },
+    {
+      "id": "%40zTG",
+      "name": "Place is in/on",
+      "type": "relation"
+    },
+    {
+      "id": "k%3FzE",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "e3db1573-08bb-4adb-bd9f-dba2d8f0de94",
+          "name": "Not started",
+          "color": "default"
+        },
+        {
+          "id": "ace46231-cc06-49d5-b7de-1dbe30d44c5f",
+          "name": "Draft",
+          "color": "blue"
+        },
+        {
+          "id": "9a06f770-fe44-46d7-96a4-71c9be82433d",
+          "name": "Finalized",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "p%3FRn",
+      "name": "Events",
+      "type": "relation"
+    },
+    {
+      "id": "p%5E%3AO",
+      "name": "Book",
+      "type": "relation"
+    },
+    {
+      "id": "%7CbeO",
+      "name": "Scene",
+      "type": "relation"
+    },
+    {
+      "id": "%7Df%3Fy",
+      "name": "Place Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "DHO\\",
+          "name": "City",
+          "color": "green"
+        },
+        {
+          "id": "@e>n",
+          "name": "Building",
+          "color": "blue"
+        },
+        {
+          "id": "KgMo",
+          "name": "Room",
+          "color": "red"
+        },
+        {
+          "id": "\\\\?H",
+          "name": "Region",
+          "color": "brown"
+        },
+        {
+          "id": "mfEQ",
+          "name": "Country",
+          "color": "gray"
+        },
+        {
+          "id": "M_CK",
+          "name": "World",
+          "color": "orange"
+        },
+        {
+          "id": "H\\al",
+          "name": "Celestial Body",
+          "color": "yellow"
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "name": "Place",
+      "type": "title"
+    }
+  ]
+}

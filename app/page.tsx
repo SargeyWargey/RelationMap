@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useTheme } from "@/components/ThemeProvider";
+import { WorkspaceConfigModal } from "@/components/WorkspaceConfigModal";
 
 export default function HomePage() {
   const { darkMode, toggleDarkMode } = useTheme();
+  const [configOpen, setConfigOpen] = useState(false);
 
   return (
     <main
@@ -19,8 +22,58 @@ export default function HomePage() {
         justifyContent: "center",
       }}
     >
-      {/* Dark mode toggle — top right */}
-      <div style={{ position: "absolute", top: 20, right: 24, zIndex: 20 }}>
+      {/* Top-right controls */}
+      <div
+        style={{
+          position: "absolute",
+          top: 20,
+          right: 24,
+          zIndex: 20,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        {/* Configure workspaces button */}
+        <button
+          type="button"
+          onClick={() => setConfigOpen(true)}
+          title="Configure workspaces"
+          style={{
+            height: 28,
+            padding: "0 12px",
+            borderRadius: 8,
+            border: "1px solid var(--border-default)",
+            background: "var(--panel-bg)",
+            backdropFilter: "blur(12px)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 12,
+            fontFamily: "'Geist', sans-serif",
+            fontWeight: 500,
+            color: "var(--text-muted)",
+            transition: "background 0.15s, color 0.15s, border-color 0.15s",
+            boxShadow: "var(--shadow-sm)",
+            whiteSpace: "nowrap",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
+            (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
+            (e.currentTarget as HTMLElement).style.borderColor = "var(--accent-warm)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "var(--panel-bg)";
+            (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
+            (e.currentTarget as HTMLElement).style.borderColor = "var(--border-default)";
+          }}
+        >
+          <span style={{ fontSize: 13 }}>⚙</span>
+          Configure
+        </button>
+
+        {/* Dark mode toggle */}
         <button
           type="button"
           onClick={toggleDarkMode}
@@ -60,13 +113,13 @@ export default function HomePage() {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 10,
+          gap: 16,
           marginBottom: 56,
         }}
         className="animate-fade-up"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/hog.png" alt="Logo" style={{ width: 40, height: 40, objectFit: "contain" }} />
+        <img src="/hog.png" alt="Logo" style={{ width: 120, height: 120, objectFit: "contain" }} />
         <span style={{
           fontFamily: "'Lora', Georgia, serif",
           fontSize: 28,
@@ -118,6 +171,9 @@ export default function HomePage() {
           }
         }
       `}</style>
+
+      {/* Workspace config modal */}
+      {configOpen && <WorkspaceConfigModal onClose={() => setConfigOpen(false)} />}
     </main>
   );
 }

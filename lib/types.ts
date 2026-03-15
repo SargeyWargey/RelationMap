@@ -76,10 +76,21 @@ export type DatabaseFieldConfig = {
   activeFilters: Record<string, string[]>;
 };
 
+export type NotionWorkspace = {
+  id: string;
+  name: string;
+  notionToken: string;
+  rootPages: string[];
+};
+
 export type AppConfig = {
   databaseColors: Record<string, string>;
   lastSyncAt?: string;
+  // Legacy single-workspace fields (kept for sync compat — mirrors active workspace)
   notionToken?: string;
   rootPages?: string[];
+  // Multi-workspace support
+  workspaces?: NotionWorkspace[];
+  activeWorkspaceId?: string;
   fieldConfig?: Record<string, DatabaseFieldConfig>;
 };

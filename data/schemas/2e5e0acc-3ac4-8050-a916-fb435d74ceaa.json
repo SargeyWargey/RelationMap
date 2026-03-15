@@ -1,0 +1,110 @@
+{
+  "databaseId": "2e5e0acc-3ac4-8050-a916-fb435d74ceaa",
+  "databaseName": "Scene",
+  "fields": [
+    {
+      "id": "%3EGCl",
+      "name": "Events",
+      "type": "relation"
+    },
+    {
+      "id": "Nz%7Be",
+      "name": "Outline",
+      "type": "relation"
+    },
+    {
+      "id": "W%3Ba%5E",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "bb33ed32-1378-4687-92a2-f2626b2afeb3",
+          "name": "Not started",
+          "color": "default"
+        },
+        {
+          "id": "c18ee95f-e795-4a79-bb73-a44b130f2284",
+          "name": "Draft",
+          "color": "blue"
+        },
+        {
+          "id": "eb23a697-b4ab-4bd6-952d-d7d4f03b7d08",
+          "name": "Finalized",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "XfVJ",
+      "name": "Book",
+      "type": "relation"
+    },
+    {
+      "id": "Zb%5Ee",
+      "name": "POV Character (1st Person)",
+      "type": "relation"
+    },
+    {
+      "id": "%5EGNH",
+      "name": "POV Character (3rd Person Limited)",
+      "type": "relation"
+    },
+    {
+      "id": "%5EmYy",
+      "name": "Scene Purpose",
+      "type": "select",
+      "options": [
+        {
+          "id": "aVDE",
+          "name": "Setup",
+          "color": "default"
+        },
+        {
+          "id": "iVyS",
+          "name": "Conflict",
+          "color": "yellow"
+        },
+        {
+          "id": "?byN",
+          "name": "Resolution",
+          "color": "gray"
+        },
+        {
+          "id": "Me>V",
+          "name": "Transition",
+          "color": "brown"
+        },
+        {
+          "id": "g`Y:",
+          "name": "Reveal",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "%5E%7BP_",
+      "name": "Place",
+      "type": "relation"
+    },
+    {
+      "id": "gA%40u",
+      "name": "Things",
+      "type": "relation"
+    },
+    {
+      "id": "lAmw",
+      "name": "Characters",
+      "type": "relation"
+    },
+    {
+      "id": "mtN_",
+      "name": "Scene Order",
+      "type": "number"
+    },
+    {
+      "id": "title",
+      "name": "Scene",
+      "type": "title"
+    }
+  ]
+}

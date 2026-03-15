@@ -1,0 +1,88 @@
+{
+  "databaseId": "94c1d740-2a2e-4eb8-b2e4-3c0bd081991a",
+  "databaseName": "Chapter Outlines",
+  "fields": [
+    {
+      "id": "GkZW",
+      "name": "Things",
+      "type": "relation"
+    },
+    {
+      "id": "J%3FZ%7C",
+      "name": "Setting",
+      "type": "rich_text"
+    },
+    {
+      "id": "QMTf",
+      "name": "Summary",
+      "type": "rich_text"
+    },
+    {
+      "id": "S%7C%3ES",
+      "name": "POV Character",
+      "type": "rich_text"
+    },
+    {
+      "id": "Ugiv",
+      "name": "Target Words",
+      "type": "number"
+    },
+    {
+      "id": "WQWz",
+      "name": "Chapter",
+      "type": "relation"
+    },
+    {
+      "id": "Wx%5D%5B",
+      "name": "Events",
+      "type": "relation"
+    },
+    {
+      "id": "%5EEna",
+      "name": "Characters",
+      "type": "relation"
+    },
+    {
+      "id": "eVKm",
+      "name": "Places",
+      "type": "relation"
+    },
+    {
+      "id": "fMLP",
+      "name": "Beat",
+      "type": "relation"
+    },
+    {
+      "id": "zTsc",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "jErp",
+          "name": "Not started",
+          "color": "gray"
+        },
+        {
+          "id": ";q_F",
+          "name": "Draft",
+          "color": "blue"
+        },
+        {
+          "id": "]M_{",
+          "name": "Ready to Write",
+          "color": "yellow"
+        },
+        {
+          "id": ">JpK",
+          "name": "Transferred",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "name": "Outline Name",
+      "type": "title"
+    }
+  ]
+}

@@ -14,41 +14,25 @@ type Props = {
   onCenterTextOpacityChange: (v: number) => void;
 };
 
-type NotionSettings = {
-  notionToken: string;
-  rootPages: string[];
-};
-
 const SHAPES: Array<{ id: ShapeLayout; label: string; description: string }> = [
   { id: "sphere", label: "Sphere", description: "Nodes distributed across a 3D sphere surface using Fibonacci spacing." },
   { id: "seven", label: "Seven", description: "Nodes arranged along the outline of a large 3D numeral seven." },
   { id: "horse", label: "Horse", description: "Nodes follow the skeletal silhouette of a horse." },
 ];
 
-export function SettingsPanel({ shape, onShapeChange, deepHighlight, onDeepHighlightChange, showCenterText, onShowCenterTextChange, centerTextOpacity, onCenterTextOpacityChange }: Props) {
+export function SettingsPanel({
+  shape,
+  onShapeChange,
+  deepHighlight,
+  onDeepHighlightChange,
+  showCenterText,
+  onShowCenterTextChange,
+  centerTextOpacity,
+  onCenterTextOpacityChange,
+}: Props) {
   const [open, setOpen] = useState(false);
 
-  // Notion settings state
-  const [notionToken, setNotionToken] = useState("");
-  const [rootPages, setRootPages] = useState<string[]>([""]);
-  const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
-  const [syncing, setSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<string | null>(null);
-
   const panelRef = useRef<HTMLDivElement>(null);
-
-  // Load saved settings when panel opens
-  useEffect(() => {
-    if (!open) return;
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((data: NotionSettings) => {
-        setNotionToken(data.notionToken ?? "");
-        setRootPages(data.rootPages && data.rootPages.length > 0 ? data.rootPages : [""]);
-      })
-      .catch(() => {});
-  }, [open]);
 
   // Close on outside click
   useEffect(() => {
@@ -61,56 +45,6 @@ export function SettingsPanel({ shape, onShapeChange, deepHighlight, onDeepHighl
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
-
-  async function handleSave() {
-    setSaving(true);
-    setSaveStatus("idle");
-    try {
-      const res = await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notionToken, rootPages: rootPages.filter((p) => p.trim()) }),
-      });
-      setSaveStatus(res.ok ? "saved" : "error");
-    } catch {
-      setSaveStatus("error");
-    } finally {
-      setSaving(false);
-      setTimeout(() => setSaveStatus("idle"), 2500);
-    }
-  }
-
-  async function handleSync() {
-    setSyncing(true);
-    setSyncStatus(null);
-    try {
-      const res = await fetch("/api/sync", { method: "POST" });
-      const data = await res.json();
-      if (data.ok) {
-        setSyncStatus(`Synced — ${data.nodeCount} nodes, ${data.edgeCount} edges`);
-        // Reload page to pick up new graph data
-        setTimeout(() => window.location.reload(), 800);
-      } else {
-        setSyncStatus(`Error: ${data.error ?? "unknown"}`);
-      }
-    } catch {
-      setSyncStatus("Sync failed.");
-    } finally {
-      setSyncing(false);
-    }
-  }
-
-  function addRootPage() {
-    setRootPages((p) => [...p, ""]);
-  }
-
-  function removeRootPage(i: number) {
-    setRootPages((p) => p.filter((_, idx) => idx !== i));
-  }
-
-  function updateRootPage(i: number, value: string) {
-    setRootPages((p) => p.map((v, idx) => (idx === i ? value : v)));
-  }
 
   return (
     <>
@@ -235,92 +169,6 @@ export function SettingsPanel({ shape, onShapeChange, deepHighlight, onDeepHighl
               </div>
             </Section>
 
-            <Divider />
-
-            {/* ── Notion section ── */}
-            <Section label="Notion">
-              <label style={labelStyle}>API Token</label>
-              <input
-                type="password"
-                value={notionToken}
-                onChange={(e) => setNotionToken(e.target.value)}
-                placeholder="secret_..."
-                style={inputStyle}
-              />
-
-              <label style={{ ...labelStyle, marginTop: 12 }}>Root Pages</label>
-              <p style={hintStyle}>
-                Paste Notion page URLs or IDs. Databases nested under each page will be synced.
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {rootPages.map((page, i) => (
-                  <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <input
-                      type="text"
-                      value={page}
-                      onChange={(e) => updateRootPage(i, e.target.value)}
-                      placeholder="https://notion.so/… or page ID"
-                      style={{ ...inputStyle, flex: 1, marginBottom: 0 }}
-                    />
-                    {rootPages.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeRootPage(i)}
-                        style={removeBtnStyle}
-                        title="Remove"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={addRootPage}
-                style={addBtnStyle}
-              >
-                + Add page
-              </button>
-
-              {/* Save + Sync buttons */}
-              <div style={{ display: "flex", gap: 8, marginTop: 14, alignItems: "center" }}>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={saving}
-                  style={{
-                    ...primaryBtnStyle,
-                    opacity: saving ? 0.6 : 1,
-                  }}
-                >
-                  {saving ? "Saving…" : "Save"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSync}
-                  disabled={syncing}
-                  style={{
-                    ...secondaryBtnStyle,
-                    opacity: syncing ? 0.6 : 1,
-                  }}
-                >
-                  {syncing ? "Syncing…" : "Sync Now"}
-                </button>
-              </div>
-
-              {saveStatus === "saved" && (
-                <p style={{ ...statusStyle, color: "var(--accent-sage)" }}>Saved.</p>
-              )}
-              {saveStatus === "error" && (
-                <p style={{ ...statusStyle, color: "var(--accent-warm)" }}>Failed to save.</p>
-              )}
-              {syncStatus && (
-                <p style={{ ...statusStyle, color: syncStatus.startsWith("Error") ? "var(--accent-warm)" : "var(--accent-sage)" }}>
-                  {syncStatus}
-                </p>
-              )}
-            </Section>
 
           </div>
         </div>
@@ -407,12 +255,7 @@ function ToggleRow({
         position: "relative",
       }}>
         {radio && checked && (
-          <div style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: "#fff",
-          }} />
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />
         )}
         {!radio && checked && (
           <span style={{ color: "#fff", fontSize: 10, lineHeight: 1, fontWeight: 700 }}>✓</span>
@@ -443,98 +286,3 @@ function ToggleRow({
     </button>
   );
 }
-
-// ── Shared styles ─────────────────────────────────────────────────────────────
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontFamily: "'Geist', sans-serif",
-  fontSize: 11,
-  fontWeight: 500,
-  color: "var(--text-secondary)",
-  marginBottom: 5,
-};
-
-const hintStyle: React.CSSProperties = {
-  margin: "0 0 8px",
-  fontFamily: "'Geist', sans-serif",
-  fontSize: 11,
-  color: "var(--text-faint)",
-  lineHeight: 1.45,
-};
-
-const inputStyle: React.CSSProperties = {
-  display: "block",
-  width: "100%",
-  boxSizing: "border-box",
-  padding: "6px 10px",
-  fontFamily: "'DM Mono', monospace",
-  fontSize: 11,
-  color: "var(--text-primary)",
-  background: "var(--bg-raised)",
-  border: "1px solid var(--border-default)",
-  borderRadius: 7,
-  outline: "none",
-  marginBottom: 0,
-};
-
-const removeBtnStyle: React.CSSProperties = {
-  flexShrink: 0,
-  width: 22,
-  height: 22,
-  borderRadius: 6,
-  border: "1px solid var(--border-default)",
-  background: "transparent",
-  color: "var(--text-muted)",
-  fontSize: 16,
-  lineHeight: "1",
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 0,
-};
-
-const addBtnStyle: React.CSSProperties = {
-  marginTop: 8,
-  padding: "5px 10px",
-  fontFamily: "'Geist', sans-serif",
-  fontSize: 11,
-  fontWeight: 500,
-  color: "var(--text-secondary)",
-  background: "transparent",
-  border: "1px dashed var(--border-default)",
-  borderRadius: 7,
-  cursor: "pointer",
-  width: "100%",
-};
-
-const primaryBtnStyle: React.CSSProperties = {
-  padding: "6px 14px",
-  fontFamily: "'Geist', sans-serif",
-  fontSize: 12,
-  fontWeight: 500,
-  color: "#fff",
-  background: "var(--accent-warm)",
-  border: "none",
-  borderRadius: 7,
-  cursor: "pointer",
-};
-
-const secondaryBtnStyle: React.CSSProperties = {
-  padding: "6px 14px",
-  fontFamily: "'Geist', sans-serif",
-  fontSize: 12,
-  fontWeight: 500,
-  color: "var(--text-primary)",
-  background: "var(--bg-overlay)",
-  border: "1px solid var(--border-default)",
-  borderRadius: 7,
-  cursor: "pointer",
-};
-
-const statusStyle: React.CSSProperties = {
-  margin: "8px 0 0",
-  fontFamily: "'DM Mono', monospace",
-  fontSize: 11,
-};

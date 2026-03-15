@@ -18,7 +18,6 @@ export default async function GraphPage() {
         initialGraph={graph}
         databaseColors={config.databaseColors}
         lastSyncAt={config.lastSyncAt}
-        warnings={graph.warnings}
       />
     </main>
   );

@@ -1,0 +1,130 @@
+{
+  "databaseId": "2e5e0acc-3ac4-800a-a7d3-eb2e1bed3902",
+  "databaseName": "Book",
+  "fields": [
+    {
+      "id": "%3AqSE",
+      "name": "Actual Words",
+      "type": "rich_text"
+    },
+    {
+      "id": "%3C%5BLu",
+      "name": "Target Words",
+      "type": "number"
+    },
+    {
+      "id": "%3EnIa",
+      "name": "Events",
+      "type": "relation"
+    },
+    {
+      "id": "BxVq",
+      "name": "Scene",
+      "type": "relation"
+    },
+    {
+      "id": "W%3Ba%5E",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "bb33ed32-1378-4687-92a2-f2626b2afeb3",
+          "name": "Not started",
+          "color": "default"
+        },
+        {
+          "id": "c18ee95f-e795-4a79-bb73-a44b130f2284",
+          "name": "Draft",
+          "color": "blue"
+        },
+        {
+          "id": "eb23a697-b4ab-4bd6-952d-d7d4f03b7d08",
+          "name": "Finalized",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "Y%5EJf",
+      "name": "Outline",
+      "type": "relation"
+    },
+    {
+      "id": "%5BbdP",
+      "name": "Words",
+      "type": "number"
+    },
+    {
+      "id": "_vt%7D",
+      "name": "Places",
+      "type": "relation"
+    },
+    {
+      "id": "i%7C%5Cp",
+      "name": "Chapter #",
+      "type": "number"
+    },
+    {
+      "id": "n%3Fl%3C",
+      "name": "Part/Act",
+      "type": "select",
+      "options": [
+        {
+          "id": "QlSC",
+          "name": "Act I",
+          "color": "default"
+        },
+        {
+          "id": "mar[",
+          "name": "Act II",
+          "color": "blue"
+        },
+        {
+          "id": "{ig]",
+          "name": "Act III",
+          "color": "purple"
+        },
+        {
+          "id": "J<aL",
+          "name": "Act IV",
+          "color": "green"
+        },
+        {
+          "id": "<mLT",
+          "name": "Act V",
+          "color": "orange"
+        },
+        {
+          "id": "_sdF",
+          "name": "Prologue",
+          "color": "red"
+        },
+        {
+          "id": "Fsgc",
+          "name": "Epilogue",
+          "color": "pink"
+        }
+      ]
+    },
+    {
+      "id": "nRFz",
+      "name": "Things",
+      "type": "relation"
+    },
+    {
+      "id": "tObu",
+      "name": "Characters",
+      "type": "relation"
+    },
+    {
+      "id": "%7B%3Atu",
+      "name": "Summary",
+      "type": "rich_text"
+    },
+    {
+      "id": "title",
+      "name": "Chapter Name",
+      "type": "title"
+    }
+  ]
+}

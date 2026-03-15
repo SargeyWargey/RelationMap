@@ -1,0 +1,120 @@
+{
+  "databaseId": "97dc01c2-8425-4e04-ac5f-45cce76879f3",
+  "databaseName": "Outline",
+  "fields": [
+    {
+      "id": "%3A%3Dxb",
+      "name": "Characters",
+      "type": "rollup"
+    },
+    {
+      "id": "%3C%3Bd%3A",
+      "name": "Beat Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "O?{b",
+          "name": "Act",
+          "color": "purple"
+        },
+        {
+          "id": "hIpb",
+          "name": "Inciting Incident",
+          "color": "default"
+        },
+        {
+          "id": "mOr;",
+          "name": "Plot Point",
+          "color": "green"
+        },
+        {
+          "id": "slqx",
+          "name": "Midpoint",
+          "color": "blue"
+        },
+        {
+          "id": "x;IU",
+          "name": "Climax",
+          "color": "brown"
+        },
+        {
+          "id": "Avxa",
+          "name": "Resolution",
+          "color": "yellow"
+        },
+        {
+          "id": "a;X`",
+          "name": "Pinch Point",
+          "color": "gray"
+        },
+        {
+          "id": "CBY]",
+          "name": "Setup",
+          "color": "orange"
+        },
+        {
+          "id": "Oeo`",
+          "name": "Payoff",
+          "color": "pink"
+        }
+      ]
+    },
+    {
+      "id": "%3E%3D%7D%3E",
+      "name": "Places",
+      "type": "rollup"
+    },
+    {
+      "id": "J%5EKA",
+      "name": "Events",
+      "type": "relation"
+    },
+    {
+      "id": "QD%3Cz",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "YzIk",
+          "name": "Not started",
+          "color": "gray"
+        },
+        {
+          "id": "=>cw",
+          "name": "Draft",
+          "color": "blue"
+        },
+        {
+          "id": "BG=^",
+          "name": "Finalized",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "YpxV",
+      "name": "Beat Order",
+      "type": "number"
+    },
+    {
+      "id": "%5EpVD",
+      "name": "Chapter",
+      "type": "relation"
+    },
+    {
+      "id": "xucO",
+      "name": "Summary",
+      "type": "rich_text"
+    },
+    {
+      "id": "%7C%5BEb",
+      "name": "Things",
+      "type": "rollup"
+    },
+    {
+      "id": "title",
+      "name": "Beat Name",
+      "type": "title"
+    }
+  ]
+}

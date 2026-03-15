@@ -14,10 +14,9 @@ type Props = {
   initialGraph: GraphData;
   databaseColors: Record<string, string>;
   lastSyncAt?: string;
-  warnings?: string[];
 };
 
-export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
+export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
   const [selectedDetail, setSelectedDetail] = useState<NodeDetail | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [shape, setShape] = useState<ShapeLayout>("sphere");
@@ -50,9 +49,6 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
 
   // Dark mode — managed by ThemeProvider
   const { darkMode, toggleDarkMode } = useTheme();
-
-  // Warnings are dismissible
-  const [warningsDismissed, setWarningsDismissed] = useState(false);
 
   // Database toggles — all off by default for fast load
   const allDatabaseIds = useMemo(
@@ -210,7 +206,7 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
               gap: 8,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/hog.png" alt="Bean" style={{ width: 24, height: 24, objectFit: "contain" }} />
+              <img src="/hog.png" alt="Bean" style={{ width: 17, height: 17, objectFit: "contain" }} />
               Project Ground Control
             </span>
             <span style={{
@@ -379,66 +375,6 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
         </div>
       </div>
 
-      {/* Warnings toast — dismissible */}
-      {warnings && warnings.length > 0 && !warningsDismissed && (
-        <div
-          style={{
-            position: "absolute",
-            top: 20,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 30,
-            background: "rgba(196, 146, 58, 0.12)",
-            border: "1px solid rgba(196, 146, 58, 0.4)",
-            borderRadius: 10,
-            padding: "8px 12px 8px 16px",
-            backdropFilter: "blur(12px)",
-            maxWidth: 480,
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 10,
-          }}
-          className="animate-fade-up"
-        >
-          <div style={{ flex: 1 }}>
-            {warnings.map((w) => (
-              <p key={w} style={{
-                margin: 0,
-                fontFamily: "'Geist', sans-serif",
-                fontSize: 12,
-                color: "var(--accent-gold)",
-              }}>{w}</p>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => setWarningsDismissed(true)}
-            style={{
-              flexShrink: 0,
-              width: 20,
-              height: 20,
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: "rgba(196, 146, 58, 0.7)",
-              fontSize: 14,
-              lineHeight: "1",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 4,
-              padding: 0,
-              marginTop: 1,
-              transition: "color 0.15s",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--accent-gold)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(196, 146, 58, 0.7)"; }}
-            aria-label="Dismiss warnings"
-          >
-            ×
-          </button>
-        </div>
-      )}
 
       {/* Database toggle panel */}
       <DatabaseTogglePanel

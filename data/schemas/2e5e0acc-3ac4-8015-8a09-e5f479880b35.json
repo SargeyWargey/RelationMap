@@ -1,0 +1,90 @@
+{
+  "databaseId": "2e5e0acc-3ac4-8015-8a09-e5f479880b35",
+  "databaseName": "Characters",
+  "fields": [
+    {
+      "id": "%3CiVZ",
+      "name": "Scene",
+      "type": "relation"
+    },
+    {
+      "id": "%3EGCl",
+      "name": "Events",
+      "type": "relation"
+    },
+    {
+      "id": "CP%7Bl",
+      "name": "Role",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": ":AIH",
+          "name": "Protagonist",
+          "color": "green"
+        },
+        {
+          "id": "NbSj",
+          "name": "Antagonist",
+          "color": "red"
+        },
+        {
+          "id": "pRF\\",
+          "name": "Supporting",
+          "color": "blue"
+        },
+        {
+          "id": "iTXH",
+          "name": "Minor",
+          "color": "yellow"
+        }
+      ]
+    },
+    {
+      "id": "W%3Ba%5E",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "bb33ed32-1378-4687-92a2-f2626b2afeb3",
+          "name": "Not started",
+          "color": "default"
+        },
+        {
+          "id": "c18ee95f-e795-4a79-bb73-a44b130f2284",
+          "name": "Draft",
+          "color": "blue"
+        },
+        {
+          "id": "eb23a697-b4ab-4bd6-952d-d7d4f03b7d08",
+          "name": "Finalized",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "WVkx",
+      "name": "Summary",
+      "type": "rich_text"
+    },
+    {
+      "id": "csGU",
+      "name": "Chapter Outlines",
+      "type": "relation"
+    },
+    {
+      "id": "gA%40u",
+      "name": "Things",
+      "type": "relation"
+    },
+    {
+      "id": "s%5DWZ",
+      "name": "Book",
+      "type": "relation"
+    },
+    {
+      "id": "title",
+      "name": "Character",
+      "type": "title"
+    }
+  ]
+}
