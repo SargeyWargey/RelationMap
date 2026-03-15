@@ -14,6 +14,8 @@ type Props = {
   schemas?: DatabaseSchema[];
   fieldConfig?: Record<string, DatabaseFieldConfig>;
   onFieldConfigChange?: (dbId: string, cfg: DatabaseFieldConfig) => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 };
 
 export function DatabaseTogglePanel({
@@ -25,13 +27,21 @@ export function DatabaseTogglePanel({
   schemas = [],
   fieldConfig = {},
   onFieldConfigChange,
+  collapsed = false,
+  onToggleCollapsed,
 }: Props) {
-  // Default position: bottom-left, above the floating stats bar
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
+  const hasDragged = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const [openSubPanelDbId, setOpenSubPanelDbId] = useState<string | null>(null);
+  const prevExpandedPos = useRef<{ x: number; y: number } | null>(null);
+  const posRef = useRef(pos);
+  const collapsedRef = useRef(collapsed);
+
+  // Keep posRef current so the collapsed effect can read latest pos
+  useEffect(() => { posRef.current = pos; }, [pos]);
 
   // Initialize position once we know window size
   useEffect(() => {
@@ -54,38 +64,120 @@ export function DatabaseTogglePanel({
     });
   }, [allDatabaseIds.length]);
 
+  // Animate to/from collapsed position when collapsed prop changes
+  useEffect(() => {
+    const wasCollapsed = collapsedRef.current;
+    collapsedRef.current = collapsed;
+    if (wasCollapsed === collapsed) return;
+
+    if (collapsed) {
+      // Save current expanded position before moving
+      if (posRef.current !== null) {
+        prevExpandedPos.current = { ...posRef.current };
+      }
+      // Move to bottom-left above the stats bar
+      // Stats bar: bottom=20, height≈34px. Add 8px gap. Pill height≈34px.
+      const collapsedY = window.innerHeight - 20 - 34 - 8 - 34;
+      setPos({ x: 24, y: Math.max(4, collapsedY) });
+    } else {
+      // Restore previous expanded position
+      if (prevExpandedPos.current) {
+        setPos(prevExpandedPos.current);
+      }
+    }
+  }, [collapsed]);
+
   const onMouseDown = useCallback((e: React.MouseEvent) => {
-    // Only drag on header
+    if (collapsed) return;
     if ((e.target as HTMLElement).closest("button")) return;
     e.preventDefault();
+    hasDragged.current = false;
     setDragging(true);
     dragOffset.current = {
       x: e.clientX - (pos?.x ?? 0),
       y: e.clientY - (pos?.y ?? 0),
     };
-  }, [pos]);
+  }, [pos, collapsed]);
 
   useEffect(() => {
     if (!dragging) return;
     const onMove = (e: MouseEvent) => {
+      hasDragged.current = true;
       setPos({
         x: Math.max(0, Math.min(window.innerWidth - 200, e.clientX - dragOffset.current.x)),
         y: Math.max(0, Math.min(window.innerHeight - 80, e.clientY - dragOffset.current.y)),
       });
     };
-    const onUp = () => setDragging(false);
+    const onUp = () => {
+      setDragging(false);
+      // If no drag movement happened, treat as a click → collapse
+      if (!hasDragged.current) {
+        onToggleCollapsed?.();
+      }
+    };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [dragging]);
+  }, [dragging, onToggleCollapsed]);
 
   if (allDatabaseIds.length === 0 || pos === null) return null;
 
   const enabledCount = allDatabaseIds.filter((id) => enabledDbs.has(id)).length;
   const schemaMap = Object.fromEntries(schemas.map((s) => [s.databaseId, s]));
+
+  // Collapsed pill — same visual style as the bottom stats bar
+  if (collapsed) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          left: pos.x,
+          top: pos.y,
+          zIndex: 20,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          background: "var(--panel-bg)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid var(--border-default)",
+          borderRadius: 10,
+          padding: "6px 14px",
+          boxShadow: "var(--shadow-sm)",
+          cursor: "pointer",
+          userSelect: "none",
+          transition: "left 0.3s cubic-bezier(0.32, 0, 0.15, 1), top 0.3s cubic-bezier(0.32, 0, 0.15, 1)",
+        }}
+        onClick={onToggleCollapsed}
+        title="Expand databases panel"
+      >
+        <span style={{
+          fontFamily: "'DM Mono', monospace",
+          fontSize: 11,
+          color: "var(--text-muted)",
+          fontWeight: 400,
+        }}>
+          databases
+        </span>
+        <span style={{
+          width: 1,
+          height: 12,
+          background: "var(--border-default)",
+          display: "inline-block",
+        }} />
+        <span style={{
+          fontFamily: "'DM Mono', monospace",
+          fontSize: 11,
+          color: enabledCount > 0 ? "var(--accent-gold)" : "var(--text-faint)",
+          fontWeight: 300,
+        }}>
+          {enabledCount}/{allDatabaseIds.length}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -104,10 +196,11 @@ export function DatabaseTogglePanel({
           boxShadow: "var(--shadow-md)",
           overflow: "hidden",
           userSelect: "none",
+          transition: "left 0.3s cubic-bezier(0.32, 0, 0.15, 1), top 0.3s cubic-bezier(0.32, 0, 0.15, 1)",
         }}
         className="animate-fade-up"
       >
-        {/* Header — drag handle */}
+        {/* Header — drag handle + click to collapse */}
         <div
           onMouseDown={onMouseDown}
           style={{
@@ -116,8 +209,9 @@ export function DatabaseTogglePanel({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            cursor: dragging ? "grabbing" : "grab",
+            cursor: dragging ? "grabbing" : "pointer",
           }}
+          title="Drag to move · click to collapse"
         >
           <span
             className={enabledCount === 0 ? "animate-text-flash" : undefined}

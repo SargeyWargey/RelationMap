@@ -825,7 +825,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
           return (
             <g style={{ pointerEvents: "none", transition: "opacity 2s ease", opacity: beanOpacity }}>
               <image
-                href="/bean.png"
+                href="/hog.png"
                 x={size.w / 2 - imgSize / 2}
                 y={size.h / 2 - imgSize / 2}
                 width={imgSize}

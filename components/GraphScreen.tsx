@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import Link from "next/link";
 
 import { GraphCanvas, type ShapeLayout } from "@/components/GraphCanvas";
 import { DatabaseTogglePanel } from "@/components/DatabaseTogglePanel";
 import { NodeDetailsPanel } from "@/components/NodeDetailsPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
+import { useTheme } from "@/components/ThemeProvider";
 import type { DatabaseFieldConfig, DatabaseSchema, GraphData, NodeDetail } from "@/lib/types";
 
 type Props = {
@@ -46,19 +48,8 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
   const [showCenterText, setShowCenterText] = useState(true);
   const [centerTextOpacity, setCenterTextOpacity] = useState(0.25);
 
-  // Dark mode — persisted in localStorage
-  const [darkMode, setDarkMode] = useState<boolean>(false);
-
-  useEffect(() => {
-    // Hydrate from localStorage after mount to avoid SSR mismatch
-    const stored = localStorage.getItem("theme");
-    if (stored === "dark") setDarkMode(true);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
-    localStorage.setItem("theme", darkMode ? "dark" : "light");
-  }, [darkMode]);
+  // Dark mode — managed by ThemeProvider
+  const { darkMode, toggleDarkMode } = useTheme();
 
   // Warnings are dismissible
   const [warningsDismissed, setWarningsDismissed] = useState(false);
@@ -121,6 +112,34 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
     setTimeout(() => setSelectedDetail(null), 350);
   }, []);
 
+  // Database panel collapsed state
+  const [dbPanelCollapsed, setDbPanelCollapsed] = useState(false);
+
+  // Refs for stale-closure-free keyboard shortcuts
+  const panelOpenRef = useRef(panelOpen);
+  const selectedDetailRef = useRef(selectedDetail);
+  useEffect(() => { panelOpenRef.current = panelOpen; }, [panelOpen]);
+  useEffect(() => { selectedDetailRef.current = selectedDetail; }, [selectedDetail]);
+
+  // Global keyboard shortcuts: Q = toggle database panel, E = toggle details panel
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if (e.key.toLowerCase() === "q") {
+        setDbPanelCollapsed((v) => !v);
+      } else if (e.key.toLowerCase() === "e") {
+        if (panelOpenRef.current) {
+          handleClose();
+        } else if (selectedDetailRef.current) {
+          setPanelOpen(true);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [handleClose]);
+
   const syncLabel = lastSyncAt ? new Date(lastSyncAt).toLocaleString(undefined, {
     month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
   }) : "Never";
@@ -156,7 +175,7 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
         panelOpen={panelOpen}
       />
 
-      {/* Floating top-left wordmark */}
+      {/* Floating top-left wordmark — click to return home */}
       <div
         style={{
           position: "absolute",
@@ -166,38 +185,44 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
         }}
         className="animate-fade-up"
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: 2,
-            pointerEvents: "none",
-          }}
-        >
-          <span style={{
-            fontFamily: "'Lora', Georgia, serif",
-            fontSize: 20,
-            fontWeight: 600,
-            color: "var(--text-primary)",
-            letterSpacing: "-0.01em",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/bean.png" alt="Bean" style={{ width: 24, height: 24, objectFit: "contain" }} />
-            Project Ground Control
-          </span>
-          <span style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 11,
-            color: "var(--text-faint)",
-            fontWeight: 300,
-          }}>
-            notion graph
-          </span>
-        </div>
+        <Link href="/" style={{ textDecoration: "none" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 2,
+              cursor: "pointer",
+              opacity: 1,
+              transition: "opacity 0.15s",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.7"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+          >
+            <span style={{
+              fontFamily: "'Lora', Georgia, serif",
+              fontSize: 20,
+              fontWeight: 600,
+              color: "var(--text-primary)",
+              letterSpacing: "-0.01em",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/hog.png" alt="Bean" style={{ width: 24, height: 24, objectFit: "contain" }} />
+              Project Ground Control
+            </span>
+            <span style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 11,
+              color: "var(--text-faint)",
+              fontWeight: 300,
+            }}>
+              notion graph
+            </span>
+          </div>
+        </Link>
       </div>
 
       <div
@@ -216,7 +241,7 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
         {/* Dark mode toggle */}
         <button
           type="button"
-          onClick={() => setDarkMode((d) => !d)}
+          onClick={toggleDarkMode}
           title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           style={{
             width: 28,
@@ -415,7 +440,7 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
         </div>
       )}
 
-      {/* Database toggle panel — right side */}
+      {/* Database toggle panel */}
       <DatabaseTogglePanel
         allDatabaseIds={allDatabaseIds}
         dbIdToName={dbIdToName}
@@ -425,6 +450,8 @@ export function GraphScreen({ initialGraph, lastSyncAt, warnings }: Props) {
         schemas={schemas}
         fieldConfig={fieldConfig}
         onFieldConfigChange={handleFieldConfigChange}
+        collapsed={dbPanelCollapsed}
+        onToggleCollapsed={() => setDbPanelCollapsed((v) => !v)}
       />
 
       {/* Sliding details panel */}
