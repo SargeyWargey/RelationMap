@@ -152,7 +152,7 @@ export default function HomePage() {
       >
         <ModeTile
           href="/graph"
-          title="Project Ground Control"
+          title="Project Graph"
           subtitle="notion graph"
           description="Explore relationships between your Notion data as an interactive 3D graph."
         />

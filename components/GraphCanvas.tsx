@@ -821,7 +821,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
         {/* Empty state — no database selected */}
         {showBean && (() => {
           const r = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
-          const imgSize = r * 2 * 0.9;
+          const imgSize = r * 2 * 0.9 * 0.5;
           return (
             <g style={{ pointerEvents: "none", transition: "opacity 2s ease", opacity: beanOpacity }}>
               <image

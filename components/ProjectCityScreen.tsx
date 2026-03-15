@@ -101,7 +101,6 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
 
   const handleSelectNode = useCallback((detail: NodeDetail | null) => {
     setSelectedDetail(detail);
-    if (detail) setPanelOpen(true);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -138,7 +137,7 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
   }, [handleClose]);
 
   const syncLabel = lastSyncAt
-    ? new Date(lastSyncAt).toLocaleString(undefined, {
+    ? new Date(lastSyncAt).toLocaleString("en-US", {
         month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
       })
     : "Never";
@@ -565,40 +564,60 @@ export function ProjectCityScreen({ initialGraph, lastSyncAt }: Props) {
       />
 
       {/* Side pull-tab — always visible at right edge, opens/closes the details panel */}
-      {selectedDetail && (
-        <button
-          type="button"
-          onClick={() => panelOpen ? handleClose() : setPanelOpen(true)}
-          title={panelOpen ? "Close details" : "Open details"}
-          style={{
-            position: "absolute",
-            right: panelOpen ? 320 : 0,
-            top: "50%",
-            transform: "translateY(-50%)",
-            zIndex: 45,
-            width: 22,
-            height: 52,
-            background: "var(--panel-bg)",
-            backdropFilter: "blur(20px) saturate(1.4)",
-            border: "1px solid var(--panel-border)",
-            borderRight: "none",
-            borderRadius: "8px 0 0 8px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 12,
-            color: "var(--text-muted)",
-            boxShadow: "var(--shadow-sm)",
-            transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1), color 0.15s",
-            padding: 0,
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}
+      <button
+        type="button"
+        onClick={() => setPanelOpen((v) => !v)}
+        title={panelOpen ? "Collapse panel" : "Expand panel"}
+        style={{
+          position: "absolute",
+          top: "50%",
+          right: panelOpen ? 320 : 0,
+          transform: "translateY(-50%)",
+          zIndex: 50,
+          width: 20,
+          height: 56,
+          background: "var(--panel-bg)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid var(--panel-border)",
+          borderRight: "none",
+          borderRadius: "6px 0 0 6px",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "var(--shadow-panel)",
+          transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1), background 0.15s",
+          padding: 0,
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "var(--panel-bg)";
+        }}
+      >
+        <svg
+          width="10"
+          height="16"
+          viewBox="0 0 10 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ flexShrink: 0 }}
         >
-          {panelOpen ? "›" : "‹"}
-        </button>
-      )}
+          <polyline
+            points={panelOpen ? "3,2 8,8 3,14" : "7,2 2,8 7,14"}
+            stroke={
+              !panelOpen && selectedDetail !== null
+                ? "#f97316"
+                : "var(--text-muted)"
+            }
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ transition: "stroke 0.2s" }}
+          />
+        </svg>
+      </button>
 
       {/* Node details panel */}
       <NodeDetailsPanel

@@ -295,7 +295,7 @@ export function CityCanvas({
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(W, H);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(darkMode ? 0x080810 : 0xf0ede8);
+    renderer.setClearColor(darkMode ? 0x1a1a1a : 0xf7f3ed);
     mount.appendChild(renderer.domElement);
 
     const scene  = new THREE.Scene();
@@ -317,13 +317,13 @@ export function CityCanvas({
     scene.add(dir);
 
     const groundGeo = new THREE.PlaneGeometry(600, 600);
-    const groundMat = new THREE.MeshBasicMaterial({ color: darkMode ? 0x0a0a12 : 0xe8e4dc, side: THREE.DoubleSide });
+    const groundMat = new THREE.MeshBasicMaterial({ color: darkMode ? 0x1a1a1a : 0xf7f3ed, side: THREE.DoubleSide });
     const ground    = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.name = "ground";
     scene.add(ground);
 
-    const gridColor = darkMode ? 0x181828 : 0xcecac0;
+    const gridColor = darkMode ? 0x222222 : 0xe8e2d8;
     scene.add(new THREE.GridHelper(600, 300, gridColor, gridColor));
 
     // Buildings

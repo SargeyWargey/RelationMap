@@ -136,7 +136,7 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleClose]);
 
-  const syncLabel = lastSyncAt ? new Date(lastSyncAt).toLocaleString(undefined, {
+  const syncLabel = lastSyncAt ? new Date(lastSyncAt).toLocaleString("en-US", {
     month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
   }) : "Never";
 
@@ -207,7 +207,7 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/hog.png" alt="Bean" style={{ width: 17, height: 17, objectFit: "contain" }} />
-              Project Ground Control
+              Project Graph
             </span>
             <span style={{
               fontFamily: "'DM Mono', monospace",
