@@ -4,10 +4,290 @@ import { useState } from "react";
 import Link from "next/link";
 import { useTheme } from "@/components/ThemeProvider";
 import { WorkspaceConfigModal } from "@/components/WorkspaceConfigModal";
+import { ParallaxMountainBg } from "@/components/ParallaxMountainBg";
 
+// ---------------------------------------------------------------------------
+// Geometry helpers – flat-top hexagon
+// A flat-top hex of "radius" r (center to vertex) has:
+//   width  = 2r
+//   height = r * sqrt(3)
+// Points (cx, cy) are the 6 vertices starting from the right vertex and
+// going clockwise.
+// ---------------------------------------------------------------------------
+function hexPoints(cx: number, cy: number, r: number): string {
+  const s3 = Math.sqrt(3);
+  return [
+    [cx + r,       cy          ],
+    [cx + r / 2,   cy + (r * s3) / 2],
+    [cx - r / 2,   cy + (r * s3) / 2],
+    [cx - r,       cy          ],
+    [cx - r / 2,   cy - (r * s3) / 2],
+    [cx + r / 2,   cy - (r * s3) / 2],
+  ]
+    .map(([x, y]) => `${x},${y}`)
+    .join(" ");
+}
+
+// ---------------------------------------------------------------------------
+// HexTile – SVG-backed hexagon container
+// ---------------------------------------------------------------------------
+interface HexTileProps {
+  r: number;          // hex radius (center-to-vertex)
+  children: React.ReactNode;
+  href?: string;
+  className?: string;
+  glowRing?: boolean; // permanently orange border + orange glow
+}
+
+function HexTile({ r, children, href, className, glowRing }: HexTileProps) {
+  const [hovered, setHovered] = useState(false);
+  const s3 = Math.sqrt(3);
+  const W = 2 * r;
+  const H = r * s3;
+  const cx = W / 2;
+  const cy = H / 2;
+  const strokeWidth = glowRing ? 2 : 1.5;
+
+  const tile = (
+    <div
+      className={className}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "relative",
+        width: W,
+        height: H,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "transform 0.22s cubic-bezier(0.34,1.56,0.64,1), filter 0.22s ease",
+        transform: hovered && !glowRing ? "scale(1.03)" : "scale(1)",
+        filter: glowRing
+          ? "drop-shadow(0 4px 16px rgba(0,0,0,0.28)) drop-shadow(0 1px 4px rgba(0,0,0,0.16))"
+          : hovered
+            ? "drop-shadow(0 0 11px rgba(224,122,53,0.33)) drop-shadow(0 0 4px rgba(224,122,53,0.21)) drop-shadow(0 4px 12px rgba(0,0,0,0.18))"
+            : "drop-shadow(0 2px 8px rgba(0,0,0,0.10)) drop-shadow(0 1px 2px rgba(0,0,0,0.07))",
+        cursor: href ? "pointer" : "default",
+        flexShrink: 0,
+      }}
+    >
+      {/* SVG background shape */}
+      <svg
+        width={W}
+        height={H}
+        style={{ position: "absolute", inset: 0, display: "block", overflow: "visible" }}
+        aria-hidden="true"
+      >
+        <defs>
+          <filter id={`hex-glow-${r}`} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <polygon
+          points={hexPoints(cx, cy, r - strokeWidth / 2)}
+          fill="var(--bg-surface)"
+          stroke={glowRing || (hovered && !glowRing) ? "var(--accent-warm)" : "var(--border-default)"}
+          strokeWidth={strokeWidth}
+          style={{ transition: "stroke 0.2s ease" }}
+        />
+      </svg>
+
+      {/* Clipping mask so content stays inside the hex */}
+      <svg
+        width={W}
+        height={H}
+        style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+        aria-hidden="true"
+      >
+        <defs>
+          <clipPath id={`hex-clip-${r}-${cx}-${cy}`}>
+            <polygon points={hexPoints(cx, cy, r - strokeWidth)} />
+          </clipPath>
+        </defs>
+      </svg>
+
+      {/* Content */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          width: r * 1.1,
+          textAlign: "center",
+          padding: "0 8px",
+          gap: 0,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} style={{ textDecoration: "none", display: "block", flexShrink: 0 }}>
+        {tile}
+      </Link>
+    );
+  }
+  return tile;
+}
+
+// ---------------------------------------------------------------------------
+// Mode definitions
+// ---------------------------------------------------------------------------
+const MODES = [
+  {
+    href: "/graph",
+    icon: "/GraphIcon2.png",
+    title: "Project Graph",
+    subtitle: "notion graph",
+    description: "Explore relationships between your Notion data as an interactive 3D graph.",
+  },
+  {
+    href: "/project-city",
+    icon: "/CityLightMode.png",
+    title: "Project City",
+    subtitle: "navigate your data",
+    description: "Stroll through your projects like city blocks — every database a neighborhood, every record a building.",
+  },
+  {
+    href: "/project-mountain",
+    icon: "/mountain.png",
+    title: "Project Mountain",
+    subtitle: "explore your terrain",
+    description: "See your Notion data as mountain ranges — each database a ridge, each record a peak.",
+  },
+  {
+    href: "/project-user",
+    icon: "/UserIcon.png",
+    title: "Project User",
+    subtitle: "explore your people",
+    description: "See your Notion data through the lens of people — each person a timeline, each record a moment.",
+  },
+];
+
+
+// ---------------------------------------------------------------------------
+// ModeHexContent – content inside a mode hexagon
+// ---------------------------------------------------------------------------
+function ModeHexContent({
+  icon,
+  title,
+  subtitle,
+  description,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  description: string;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: "100%" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={icon}
+        alt=""
+        style={{ width: 36, height: 36, objectFit: "contain", marginBottom: 2 }}
+      />
+      <span
+        style={{
+          fontFamily: "'Lora', Georgia, serif",
+          fontSize: 15,
+          fontWeight: 600,
+          color: "var(--text-primary)",
+          letterSpacing: "-0.01em",
+          lineHeight: 1.25,
+        }}
+      >
+        {title}
+      </span>
+      <span
+        style={{
+          fontFamily: "'DM Mono', monospace",
+          fontSize: 9,
+          color: "var(--accent-warm)",
+          fontWeight: 400,
+          letterSpacing: "0.07em",
+          textTransform: "uppercase",
+        }}
+      >
+        {subtitle}
+      </span>
+      <p
+        style={{
+          margin: "4px 0 0",
+          fontFamily: "'Geist', sans-serif",
+          fontSize: 11,
+          color: "var(--text-muted)",
+          fontWeight: 300,
+          lineHeight: 1.55,
+          textAlign: "center",
+        }}
+      >
+        {description}
+      </p>
+      <div
+        style={{
+          marginTop: 6,
+          display: "flex",
+          alignItems: "center",
+          gap: 3,
+          color: "var(--accent-warm)",
+          fontFamily: "'Geist', sans-serif",
+          fontSize: 11,
+          fontWeight: 500,
+        }}
+      >
+        <span>Open</span>
+        <span style={{ fontSize: 12, lineHeight: 1 }}>→</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// HomePage
+// ---------------------------------------------------------------------------
 export default function HomePage() {
   const { darkMode, toggleDarkMode } = useTheme();
   const [configOpen, setConfigOpen] = useState(false);
+
+  // All hexagons the same radius
+  const r = 140;
+  const s3 = Math.sqrt(3);
+  const W = 2 * r;       // hex width  = 280px
+  const H = r * s3;      // hex height ≈ 242px
+
+  // Gap between hex edges
+  const gap = 20;
+
+  const vStep   = H + 2 * gap;      // vertical center-to-center
+  const hOffset = W + gap - 50;     // horizontal center-to-center offset
+
+  // 5-hex layout: logo top-center, Graph bottom-center, City left-mid,
+  // Mountain right-mid, User below bottom-center
+  const canvasW = 2 * hOffset + W + 40;
+  const canvasH = 2 * vStep + H + 40;
+  const cx = canvasW / 2;
+  const topCY    = H / 2 + 20;
+  const bottomCY = topCY + vStep;
+  const sideCY   = (topCY + bottomCY) / 2;
+
+  const hexCenters: [number, number][] = [
+    [cx,           topCY              ],  // logo       (top center)
+    [cx,           topCY + vStep      ],  // mode 0  — Graph    (bottom center)
+    [cx - hOffset, sideCY             ],  // mode 1  — City     (left mid)
+    [cx + hOffset, sideCY             ],  // mode 2  — Mountain (right mid)
+    [cx,           topCY + 2 * vStep  ],  // mode 3  — User     (below bottom center)
+  ];
 
   return (
     <main
@@ -20,8 +300,12 @@ export default function HomePage() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
+        background: "var(--bg-surface)",
       }}
     >
+      {/* Subtle mountain silhouette background */}
+      <ParallaxMountainBg />
+
       {/* Top-right controls */}
       <div
         style={{
@@ -107,174 +391,96 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* Logo + umbrella brand */}
+      {/* Honeycomb cluster */}
       <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 16,
-          marginBottom: 56,
-        }}
         className="animate-fade-up"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/PimaryIcon.png" alt="Logo" style={{ width: 120, height: 120, objectFit: "contain" }} />
-        <span style={{
-          fontFamily: "'Lora', Georgia, serif",
-          fontSize: 28,
-          fontWeight: 600,
-          color: "var(--text-primary)",
-          letterSpacing: "-0.02em",
-        }}>
-          Data Visualizer
-        </span>
-        <span style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: 12,
-          color: "var(--text-faint)",
-          fontWeight: 300,
-          letterSpacing: "0.02em",
-        }}>
-          choose a mode to get started
-        </span>
-      </div>
-
-      {/* Mode tiles */}
-      <div
         style={{
-          display: "flex",
-          flexDirection: "row",
-          gap: 20,
-          alignItems: "stretch",
+          position: "relative",
+          width: canvasW,
+          height: canvasH,
+          flexShrink: 0,
         }}
-        className="animate-fade-up home-tiles"
       >
-        <ModeTile
-          href="/graph"
-          title="Project Graph"
-          subtitle="notion graph"
-          description="Explore relationships between your Notion data as an interactive 3D graph."
-          icon="/GraphIcon2.png"
-        />
-        <ModeTile
-          href="/project-city"
-          title="Project City"
-          subtitle="navigate your data"
-          description="A new way to visualize and navigate your projects. Coming soon."
-          icon="/PimaryIcon.png"
-        />
-      </div>
+        {/* ---- Logo hexagon (top center) ---- */}
+        <div
+          style={{
+            position: "absolute",
+            left: hexCenters[0][0] - W / 2,
+            top: hexCenters[0][1] - H / 2,
+          }}
+        >
+          <HexTile r={r} glowRing>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 10,
+                width: r * 1.05,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/PimaryIcon.png"
+                alt="Data Visualizer Logo"
+                style={{ width: 80, height: 80, objectFit: "contain" }}
+              />
+              <span
+                style={{
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: 20,
+                  fontWeight: 600,
+                  color: "var(--text-primary)",
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.2,
+                  textAlign: "center",
+                }}
+              >
+                Data Visualizer
+              </span>
+              <span
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 10,
+                  color: "var(--text-faint)",
+                  fontWeight: 300,
+                  letterSpacing: "0.03em",
+                  textAlign: "center",
+                }}
+              >
+                choose a mode to get started
+              </span>
+            </div>
+          </HexTile>
+        </div>
 
-      <style>{`
-        @media (max-width: 640px) {
-          .home-tiles {
-            flex-direction: column !important;
-          }
-        }
-      `}</style>
+        {/* ---- Mode hexagons (2×2 grid below logo) ---- */}
+        {MODES.map((mode, i) => {
+          const [mx, my] = hexCenters[i + 1];
+          return (
+            <div
+              key={mode.href}
+              style={{
+                position: "absolute",
+                left: mx - W / 2,
+                top: my - H / 2,
+              }}
+            >
+              <HexTile r={r} href={mode.href}>
+                <ModeHexContent
+                  icon={mode.icon}
+                  title={mode.title}
+                  subtitle={mode.subtitle}
+                  description={mode.description}
+                />
+              </HexTile>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Workspace config modal */}
       {configOpen && <WorkspaceConfigModal onClose={() => setConfigOpen(false)} />}
     </main>
-  );
-}
-
-function ModeTile({
-  href,
-  title,
-  subtitle,
-  description,
-  icon,
-}: {
-  href: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  icon?: string;
-}) {
-  return (
-    <Link href={href} style={{ textDecoration: "none" }}>
-      <div
-        style={{
-          width: 260,
-          padding: "32px 28px",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border-default)",
-          borderRadius: 16,
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-          cursor: "pointer",
-          boxShadow: "var(--shadow-sm)",
-          transition: "box-shadow 0.2s, border-color 0.2s, transform 0.2s",
-        }}
-        onMouseEnter={(e) => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.boxShadow = "var(--shadow-md)";
-          el.style.borderColor = "var(--accent-warm)";
-          el.style.transform = "translateY(-2px)";
-        }}
-        onMouseLeave={(e) => {
-          const el = e.currentTarget as HTMLElement;
-          el.style.boxShadow = "var(--shadow-sm)";
-          el.style.borderColor = "var(--border-default)";
-          el.style.transform = "translateY(0)";
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span style={{
-            fontFamily: "'Lora', Georgia, serif",
-            fontSize: 18,
-            fontWeight: 600,
-            color: "var(--text-primary)",
-            letterSpacing: "-0.01em",
-            lineHeight: 1.3,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}>
-            {icon && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={icon} alt="" style={{ width: 22, height: 22, objectFit: "contain", flexShrink: 0 }} />
-            )}
-            {title}
-          </span>
-          <span style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 10,
-            color: "var(--accent-warm)",
-            fontWeight: 400,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-          }}>
-            {subtitle}
-          </span>
-        </div>
-        <p style={{
-          margin: 0,
-          fontFamily: "'Geist', sans-serif",
-          fontSize: 13,
-          color: "var(--text-muted)",
-          fontWeight: 300,
-          lineHeight: 1.6,
-        }}>
-          {description}
-        </p>
-        <div style={{
-          marginTop: 4,
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          color: "var(--accent-warm)",
-          fontFamily: "'Geist', sans-serif",
-          fontSize: 12,
-          fontWeight: 500,
-        }}>
-          <span>Open</span>
-          <span style={{ fontSize: 14, lineHeight: 1 }}>→</span>
-        </div>
-      </div>
-    </Link>
   );
 }

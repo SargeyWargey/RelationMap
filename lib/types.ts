@@ -74,6 +74,8 @@ export type DatabaseFieldConfig = {
   panelVisible: Record<string, boolean>;
   sphereField: string | null;
   activeFilters: Record<string, string[]>;
+  databaseColor?: string;
+  nameField?: string | null;  // Project User: field used to extract person names
 };
 
 export type NotionWorkspace = {

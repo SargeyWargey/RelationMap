@@ -16,6 +16,10 @@ type Props = {
   onFieldConfigChange?: (dbId: string, cfg: DatabaseFieldConfig) => void;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
+  /** Increment to trigger two orange glow pulses on the panel */
+  flashTrigger?: number;
+  /** If provided, only show these database IDs in the panel */
+  filterDbIds?: Set<string>;
 };
 
 export function DatabaseTogglePanel({
@@ -29,7 +33,11 @@ export function DatabaseTogglePanel({
   onFieldConfigChange,
   collapsed = false,
   onToggleCollapsed,
+  flashTrigger = 0,
+  filterDbIds,
 }: Props) {
+  // flashStep: 0=off, odd=glow-on, even(>0)=glow-off — two pulses
+  const [flashStep, setFlashStep] = useState(0);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -42,6 +50,16 @@ export function DatabaseTogglePanel({
 
   // Keep posRef current so the collapsed effect can read latest pos
   useEffect(() => { posRef.current = pos; }, [pos]);
+
+  // Flash two orange glow pulses when flashTrigger increments
+  useEffect(() => {
+    if (flashTrigger === 0) return;
+    setFlashStep(1);
+    const steps = [
+      setTimeout(() => setFlashStep(0), 1500),
+    ];
+    return () => steps.forEach(clearTimeout);
+  }, [flashTrigger]);
 
   // Initialize position once we know window size
   useEffect(() => {
@@ -123,10 +141,25 @@ export function DatabaseTogglePanel({
     };
   }, [dragging, onToggleCollapsed]);
 
-  if (allDatabaseIds.length === 0 || pos === null) return null;
+  const visibleIds = filterDbIds
+    ? allDatabaseIds.filter((id) => filterDbIds.has(id))
+    : allDatabaseIds;
 
-  const enabledCount = allDatabaseIds.filter((id) => enabledDbs.has(id)).length;
+  if (visibleIds.length === 0 || pos === null) return null;
+
+  const enabledCount = visibleIds.filter((id) => enabledDbs.has(id)).length;
   const schemaMap = Object.fromEntries(schemas.map((s) => [s.databaseId, s]));
+
+  const glowOn = flashStep === 1;
+  const glowStyle = {
+    outline: glowOn ? "1px solid rgba(224,122,53,0.45)" : "1px solid transparent",
+    filter: glowOn
+      ? "drop-shadow(0 0 10px rgba(224,122,53,0.28)) drop-shadow(0 0 4px rgba(224,122,53,0.18))"
+      : "none",
+    transition: glowOn
+      ? "outline 0.3s ease, filter 0.3s ease"
+      : "outline 1.2s ease, filter 1.2s ease",
+  };
 
   // Collapsed pill — same visual style as the bottom stats bar
   if (collapsed) {
@@ -149,6 +182,7 @@ export function DatabaseTogglePanel({
           cursor: "pointer",
           userSelect: "none",
           transition: "left 0.3s cubic-bezier(0.32, 0, 0.15, 1), top 0.3s cubic-bezier(0.32, 0, 0.15, 1)",
+          ...glowStyle,
         }}
         onClick={onToggleCollapsed}
         title="Expand databases panel"
@@ -173,7 +207,7 @@ export function DatabaseTogglePanel({
           color: enabledCount > 0 ? "var(--accent-gold)" : "var(--text-faint)",
           fontWeight: 300,
         }}>
-          {enabledCount}/{allDatabaseIds.length}
+          {enabledCount}/{visibleIds.length}
         </span>
       </div>
     );
@@ -197,6 +231,7 @@ export function DatabaseTogglePanel({
           overflow: "hidden",
           userSelect: "none",
           transition: "left 0.3s cubic-bezier(0.32, 0, 0.15, 1), top 0.3s cubic-bezier(0.32, 0, 0.15, 1)",
+          ...glowStyle,
         }}
         className="animate-fade-up"
       >
@@ -232,13 +267,13 @@ export function DatabaseTogglePanel({
             color: enabledCount > 0 ? "var(--accent-gold)" : "var(--text-faint)",
             fontWeight: 400,
           }}>
-            {enabledCount}/{allDatabaseIds.length}
+            {enabledCount}/{visibleIds.length}
           </span>
         </div>
 
         {/* Database rows */}
         <div style={{ padding: "5px 0" }}>
-          {allDatabaseIds.map((id) => {
+          {visibleIds.map((id) => {
             const enabled = enabledDbs.has(id);
             const name = dbIdToName[id] ?? id;
             const color = databaseColors[id] ?? "#888";
@@ -368,6 +403,7 @@ export function DatabaseTogglePanel({
         <FieldConfigPanel
           schema={schemaMap[openSubPanelDbId]}
           config={fieldConfig[openSubPanelDbId] ?? null}
+          defaultColor={databaseColors[openSubPanelDbId] ?? "#888888"}
           anchorLeft={pos.x + 196}
           anchorTop={pos.y}
           onClose={() => setOpenSubPanelDbId(null)}

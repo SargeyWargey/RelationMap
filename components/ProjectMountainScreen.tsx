@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 
-import { CityCanvas } from "@/components/CityCanvas";
+import { MountainCanvas } from "@/components/MountainCanvas";
 import { ParallaxMountainBg } from "@/components/ParallaxMountainBg";
 import { DatabaseTogglePanel } from "@/components/DatabaseTogglePanel";
 import { NodeDetailsPanel } from "@/components/NodeDetailsPanel";
@@ -45,7 +45,7 @@ function FitViewIcon() {
   );
 }
 
-export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: Props) {
+export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt }: Props) {
   const { darkMode, toggleDarkMode } = useTheme();
 
   // Icon / canvas fade state
@@ -63,39 +63,40 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
   const [showLabelsFP, setShowLabelsFP] = useState(true);
   const [showLabelsOverhead, setShowLabelsOverhead] = useState(false);
   const [showClickLabels, setShowClickLabels] = useState(true);
+  const [showRangeLabels, setShowRangeLabels] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const v = localStorage.getItem('mountain_range_labels');
+      if (v === 'false') return false;
+    }
+    return true;
+  });
   const [flyoverLabelMode, setFlyoverLabelMode] = useState<'none' | 'overhead' | 'center'>(() => {
     if (typeof window !== 'undefined') {
-      const v = localStorage.getItem('city_flyover_label_mode');
+      const v = localStorage.getItem('mountain_flyover_label_mode');
       if (v === 'overhead' || v === 'center') return v;
     }
     return 'none';
   });
   const [flyoverSpeedMult, setFlyoverSpeedMult] = useState(() => {
     if (typeof window !== 'undefined') {
-      const v = parseFloat(localStorage.getItem('city_flyover_speed') ?? '');
+      const v = parseFloat(localStorage.getItem('mountain_flyover_speed') ?? '');
       if (!isNaN(v)) return v;
     }
     return 1.0;
   });
   const [flyoverArcHeightMult, setFlyoverArcHeightMult] = useState(() => {
     if (typeof window !== 'undefined') {
-      const v = parseFloat(localStorage.getItem('city_flyover_arc') ?? '');
+      const v = parseFloat(localStorage.getItem('mountain_flyover_arc') ?? '');
       if (!isNaN(v)) return v;
     }
     return 1.0;
   });
   const [flyoverCameraHeightOffset, setFlyoverCameraHeightOffset] = useState(() => {
     if (typeof window !== 'undefined') {
-      const v = parseFloat(localStorage.getItem('city_flyover_cam_height') ?? '');
+      const v = parseFloat(localStorage.getItem('mountain_flyover_cam_height') ?? '');
       if (!isNaN(v)) return v;
     }
     return 1.5;
-  });
-  const [jumpEnabled, setJumpEnabled] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('city_jump_enabled') !== 'false';
-    }
-    return true;
   });
 
   // Schemas + field config
@@ -107,11 +108,11 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
     fetch("/api/field-config").then((r) => r.json()).then(setFieldConfig).catch(() => {});
   }, []);
 
-  useEffect(() => { localStorage.setItem('city_flyover_label_mode', flyoverLabelMode); }, [flyoverLabelMode]);
-  useEffect(() => { localStorage.setItem('city_flyover_speed', String(flyoverSpeedMult)); }, [flyoverSpeedMult]);
-  useEffect(() => { localStorage.setItem('city_flyover_arc', String(flyoverArcHeightMult)); }, [flyoverArcHeightMult]);
-  useEffect(() => { localStorage.setItem('city_flyover_cam_height', String(flyoverCameraHeightOffset)); }, [flyoverCameraHeightOffset]);
-  useEffect(() => { localStorage.setItem('city_jump_enabled', String(jumpEnabled)); }, [jumpEnabled]);
+  useEffect(() => { localStorage.setItem('mountain_range_labels', String(showRangeLabels)); }, [showRangeLabels]);
+  useEffect(() => { localStorage.setItem('mountain_flyover_label_mode', flyoverLabelMode); }, [flyoverLabelMode]);
+  useEffect(() => { localStorage.setItem('mountain_flyover_speed', String(flyoverSpeedMult)); }, [flyoverSpeedMult]);
+  useEffect(() => { localStorage.setItem('mountain_flyover_arc', String(flyoverArcHeightMult)); }, [flyoverArcHeightMult]);
+  useEffect(() => { localStorage.setItem('mountain_flyover_cam_height', String(flyoverCameraHeightOffset)); }, [flyoverCameraHeightOffset]);
 
   function handleFieldConfigChange(dbId: string, cfg: DatabaseFieldConfig) {
     const next = { ...fieldConfig, [dbId]: cfg };
@@ -191,7 +192,6 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
   useEffect(() => {
     const isEmpty = enabledDbs.size === 0;
     if (wasEmptyRef.current && !isEmpty) {
-      // empty → has nodes
       wasEmptyRef.current = false;
       setCanvasOpacity(1);
       setIconOpacity(0);
@@ -199,7 +199,6 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
       return () => clearTimeout(timer);
     }
     if (!wasEmptyRef.current && isEmpty) {
-      // has nodes → empty
       wasEmptyRef.current = true;
       setCanvasOpacity(0);
       setIconOpacity(0);
@@ -271,9 +270,9 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
         onBackgroundClick={enabledDbs.size === 0 ? handleBackgroundClick : undefined}
       />
 
-      {/* Full-screen 3D city */}
+      {/* Full-screen 3D mountain */}
       <div style={{ position: "absolute", inset: 0, opacity: canvasOpacity, transition: "opacity 2s ease", pointerEvents: canvasOpacity === 0 ? "none" : "auto" }}>
-        <CityCanvas
+        <MountainCanvas
           graph={filteredGraph}
           onSelectNode={handleSelectNode}
           selectedNodeId={selectedDetail?.id ?? null}
@@ -283,6 +282,7 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
           showLabelsFP={showLabelsFP}
           showLabelsOverhead={showLabelsOverhead}
           showClickLabels={showClickLabels}
+          showRangeLabels={showRangeLabels}
           flyover={flyover}
           flyoverLabelMode={flyoverLabelMode}
           flyoverSpeedMult={flyoverSpeedMult}
@@ -290,7 +290,6 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
           flyoverCameraHeightOffset={flyoverCameraHeightOffset}
           onExitFlyover={() => setFlyover(false)}
           fitSceneTrigger={fitSceneTrigger}
-          jumpEnabled={jumpEnabled}
         />
       </div>
 
@@ -324,8 +323,8 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
               gap: 8,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/CityLightMode.png" alt="City" style={{ width: 24, height: 24, objectFit: "contain" }} />
-              Project City
+              <img src="/mountain.png" alt="Mountain" style={{ width: 24, height: 24, objectFit: "contain" }} />
+              Project Mountain
             </span>
             <span style={{
               fontFamily: "'DM Mono', monospace",
@@ -333,7 +332,7 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
               color: "var(--text-faint)",
               fontWeight: 300,
             }}>
-              navigate your data
+              explore your terrain
             </span>
           </div>
         </Link>
@@ -356,7 +355,7 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
         <button
           type="button"
           onClick={handleFitScene}
-          title="Fit all buildings in view"
+          title="Fit all peaks in view"
           disabled={filteredGraph.nodes.length === 0}
           style={{
             width: 28,
@@ -386,7 +385,7 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
             (e.currentTarget as HTMLElement).style.color = filteredGraph.nodes.length === 0 ? "var(--text-faint)" : "var(--text-muted)";
             (e.currentTarget as HTMLElement).style.borderColor = "var(--border-default)";
           }}
-          aria-label="Fit all buildings in view"
+          aria-label="Fit all peaks in view"
         >
           <FitViewIcon />
         </button>
@@ -456,48 +455,16 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
               }}>
-                Street View
+                Peak Labels
               </span>
 
-              {/* Jump toggle */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Jump (space)</span>
-                <button
-                  type="button"
-                  onClick={() => setJumpEnabled((v) => !v)}
-                  style={{
-                    width: 32, height: 17, borderRadius: 9, border: "none",
-                    background: jumpEnabled ? "var(--text-faint)" : "var(--border-default)",
-                    cursor: "pointer", position: "relative", transition: "background 0.15s", flexShrink: 0, padding: 0,
-                  }}
-                >
-                  <div style={{
-                    position: "absolute", top: 2, left: jumpEnabled ? 17 : 3,
-                    width: 13, height: 13, borderRadius: "50%",
-                    background: jumpEnabled ? "var(--text-primary)" : "var(--text-faint)",
-                    transition: "left 0.15s, background 0.15s",
-                  }} />
-                </button>
-              </div>
-
-              <span style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 10,
-                color: "var(--text-faint)",
-                fontWeight: 400,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}>
-                Building Labels
-              </span>
-
-              {/* Street view labels toggle */}
+              {/* Hike labels toggle */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{
                   fontFamily: "'DM Mono', monospace",
                   fontSize: 11,
                   color: "var(--text-muted)",
-                }}>Street view</span>
+                }}>Hike</span>
                 <button
                   type="button"
                   onClick={() => setShowLabelsFP((v) => !v)}
@@ -558,6 +525,54 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
                     height: 13,
                     borderRadius: "50%",
                     background: showLabelsOverhead ? "var(--text-primary)" : "var(--text-faint)",
+                    transition: "left 0.15s, background 0.15s",
+                  }} />
+                </button>
+              </div>
+
+              {/* Range Labels section */}
+              <span style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 10,
+                color: "var(--text-faint)",
+                fontWeight: 400,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginTop: 2,
+              }}>
+                Range Labels
+              </span>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 11,
+                  color: "var(--text-muted)",
+                }}>Show range labels</span>
+                <button
+                  type="button"
+                  onClick={() => setShowRangeLabels((v) => !v)}
+                  style={{
+                    width: 32,
+                    height: 17,
+                    borderRadius: 9,
+                    border: "none",
+                    background: showRangeLabels ? "var(--text-faint)" : "var(--border-default)",
+                    cursor: "pointer",
+                    position: "relative",
+                    transition: "background 0.15s",
+                    flexShrink: 0,
+                    padding: 0,
+                  }}
+                >
+                  <div style={{
+                    position: "absolute",
+                    top: 2,
+                    left: showRangeLabels ? 17 : 3,
+                    width: 13,
+                    height: 13,
+                    borderRadius: "50%",
+                    background: showRangeLabels ? "var(--text-primary)" : "var(--text-faint)",
                     transition: "left 0.15s, background 0.15s",
                   }} />
                 </button>
@@ -745,7 +760,7 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
         </span>
       </div>
 
-      {/* Bottom-right: street view toggle + controls hint */}
+      {/* Bottom-right: hike toggle + controls hint */}
       <div
         style={{
           position: "absolute",
@@ -759,11 +774,11 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
         }}
         className="animate-fade-up"
       >
-        {/* Street View toggle */}
+        {/* Hike toggle */}
         <button
           type="button"
           onClick={() => { setFirstPerson((v) => !v); setFlyover(false); }}
-          title={firstPerson ? "Exit street view" : "Enter street view"}
+          title={firstPerson ? "Exit hike" : "Enter hike"}
           style={{
             fontFamily: "'DM Mono', monospace",
             fontSize: 11,
@@ -791,14 +806,14 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
             (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
           }}
         >
-          street view
+          hike
         </button>
 
         {/* Flyover toggle */}
         <button
           type="button"
           onClick={() => {
-            if (!canToggleFlyover) return; // no-op if nothing selected
+            if (!canToggleFlyover) return;
             setFlyover((v) => !v);
             setFirstPerson(false);
           }}
@@ -909,7 +924,7 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
         flashTrigger={dbPanelFlashTrigger}
       />
 
-      {/* Side pull-tab — always visible at right edge, opens/closes the details panel */}
+      {/* Side pull-tab */}
       <button
         type="button"
         onClick={() => setPanelOpen((v) => !v)}

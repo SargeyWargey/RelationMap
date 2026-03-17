@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 
 import { GraphCanvas, type ShapeLayout } from "@/components/GraphCanvas";
+import { ParallaxMountainBg } from "@/components/ParallaxMountainBg";
 import { DatabaseTogglePanel } from "@/components/DatabaseTogglePanel";
 import { NodeDetailsPanel } from "@/components/NodeDetailsPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
@@ -17,10 +18,14 @@ type Props = {
   lastSyncAt?: string;
 };
 
-export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
+export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }: Props) {
   const [selectedDetail, setSelectedDetail] = useState<NodeDetail | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [shape, setShape] = useState<ShapeLayout>("sphere");
+
+  // Canvas opacity — fades in when a database is first selected, matches City/Mountain pattern
+  const [canvasOpacity, setCanvasOpacity] = useState(0);
+  const wasEmptyRef = useRef(true);
 
   // Schemas + field config
   const [schemas, setSchemas] = useState<DatabaseSchema[]>([]);
@@ -66,10 +71,31 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
     });
   }
 
+  // Fade canvas in/out matching City/Mountain pattern
+  useEffect(() => {
+    const isEmpty = enabledDbs.size === 0;
+    if (wasEmptyRef.current && !isEmpty) {
+      wasEmptyRef.current = false;
+      setCanvasOpacity(1);
+    }
+    if (!wasEmptyRef.current && isEmpty) {
+      wasEmptyRef.current = true;
+      setCanvasOpacity(0);
+    }
+  }, [enabledDbs.size]);
+
+  const coloredGraph = useMemo(() => {
+    const nodes = initialGraph.nodes.map((node) => ({
+      ...node,
+      color: fieldConfig[node.databaseId]?.databaseColor ?? databaseColors[node.databaseId] ?? node.color,
+    }));
+    return { ...initialGraph, nodes };
+  }, [initialGraph, fieldConfig, databaseColors]);
+
   // Filtered graph — enabled databases + active field filters
   const filteredGraph = useMemo(() => {
-    if (enabledDbs.size === 0) return { ...initialGraph, nodes: [], edges: [] };
-    const nodes = initialGraph.nodes.filter((n) => {
+    if (enabledDbs.size === 0) return { ...coloredGraph, nodes: [], edges: [] };
+    const nodes = coloredGraph.nodes.filter((n) => {
       if (!enabledDbs.has(n.databaseId)) return false;
       const cfg = fieldConfig[n.databaseId];
       if (!cfg) return true;
@@ -87,8 +113,8 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
     const edges = initialGraph.edges.filter(
       (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
     );
-    return { ...initialGraph, nodes, edges };
-  }, [initialGraph, enabledDbs, fieldConfig]);
+    return { ...coloredGraph, nodes, edges };
+  }, [coloredGraph, initialGraph.edges, enabledDbs, fieldConfig]);
 
   // Compute sphere center text from config + selected node's fieldValues
   const sphereCenterText = useMemo(() => {
@@ -111,6 +137,12 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
 
   // Database panel collapsed state
   const [dbPanelCollapsed, setDbPanelCollapsed] = useState(false);
+
+  // Flash trigger for database panel glow
+  const [dbPanelFlashTrigger, setDbPanelFlashTrigger] = useState(0);
+  const handleBackgroundClick = useCallback(() => {
+    if (enabledDbs.size === 0) setDbPanelFlashTrigger((v) => v + 1);
+  }, [enabledDbs.size]);
 
   // Refs for stale-closure-free keyboard shortcuts
   const panelOpenRef = useRef(panelOpen);
@@ -150,25 +182,34 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
 
   const dbIdToColor = useMemo(() => {
     const map: Record<string, string> = {};
-    for (const node of initialGraph.nodes) {
+    for (const node of coloredGraph.nodes) {
       if (!map[node.databaseId]) map[node.databaseId] = node.color;
     }
     return map;
-  }, [initialGraph.nodes]);
+  }, [coloredGraph.nodes]);
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}>
-      {/* Full-screen graph */}
-      <GraphCanvas
-        graph={filteredGraph}
-        onSelectNode={handleSelectNode}
-        selectedNodeId={selectedDetail?.id ?? null}
-        sphereCenterText={showCenterText ? sphereCenterText : null}
-        centerTextOpacity={centerTextOpacity}
-        shape={shape}
-        deepHighlight={deepHighlight}
-        panelOpen={panelOpen}
+      {/* Parallax mountain background — visible when no database is selected */}
+      <ParallaxMountainBg
+        visible={enabledDbs.size === 0}
+        showPrompt={enabledDbs.size === 0}
+        onBackgroundClick={enabledDbs.size === 0 ? handleBackgroundClick : undefined}
       />
+
+      {/* Full-screen graph */}
+      <div style={{ position: "absolute", inset: 0, opacity: canvasOpacity, transition: "opacity 2s ease", pointerEvents: canvasOpacity === 0 ? "none" : "auto" }}>
+        <GraphCanvas
+          graph={filteredGraph}
+          onSelectNode={handleSelectNode}
+          selectedNodeId={selectedDetail?.id ?? null}
+          sphereCenterText={showCenterText ? sphereCenterText : null}
+          centerTextOpacity={centerTextOpacity}
+          shape={shape}
+          deepHighlight={deepHighlight}
+          panelOpen={panelOpen}
+        />
+      </div>
 
       {/* Floating top-left wordmark — click to return home */}
       <div
@@ -387,6 +428,7 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
         onFieldConfigChange={handleFieldConfigChange}
         collapsed={dbPanelCollapsed}
         onToggleCollapsed={() => setDbPanelCollapsed((v) => !v)}
+        flashTrigger={dbPanelFlashTrigger}
       />
 
       {/* Sliding details panel */}
@@ -395,8 +437,8 @@ export function GraphScreen({ initialGraph, lastSyncAt }: Props) {
         open={panelOpen}
         onClose={handleClose}
         onSelectNode={handleSelectNode}
-        allNodes={initialGraph.nodes}
-        allEdges={initialGraph.edges}
+        allNodes={filteredGraph.nodes}
+        allEdges={filteredGraph.edges}
         enabledDbs={enabledDbs}
         schemas={schemas}
         fieldConfig={fieldConfig}

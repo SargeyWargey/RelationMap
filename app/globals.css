@@ -156,3 +156,15 @@ body {
 .animate-text-flash {
   animation: textFlash 1.4s ease-in-out infinite;
 }
+
+@keyframes dbPanelFlash {
+  0%   { box-shadow: var(--shadow-md); border-color: var(--border-default); }
+  20%  { box-shadow: var(--shadow-md), 0 0 0 2px rgba(224,122,53,0.5), 0 0 18px rgba(224,122,53,0.35); border-color: rgba(224,122,53,0.8); }
+  45%  { box-shadow: var(--shadow-md); border-color: var(--border-default); }
+  65%  { box-shadow: var(--shadow-md), 0 0 0 2px rgba(224,122,53,0.5), 0 0 18px rgba(224,122,53,0.35); border-color: rgba(224,122,53,0.8); }
+  100% { box-shadow: var(--shadow-md); border-color: var(--border-default); }
+}
+
+.db-panel-flash {
+  animation: dbPanelFlash 0.9s ease-in-out forwards;
+}

@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   title: "Data Visualizer",
   description: "Notion-powered data visualization tools",
   icons: {
-    icon: "/hog.png",
-    apple: "/hog.png",
+    icon: "/CityIcon.png",
+    apple: "/CityIcon.png",
   },
 };
 

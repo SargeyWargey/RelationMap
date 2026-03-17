@@ -16,6 +16,7 @@ export default async function ProjectCityPage() {
     <main style={{ width: "100vw", height: "100vh", overflow: "hidden", position: "relative" }}>
       <ProjectCityScreen
         initialGraph={graph}
+        databaseColors={config.databaseColors}
         lastSyncAt={config.lastSyncAt}
       />
     </main>

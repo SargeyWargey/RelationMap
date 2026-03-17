@@ -819,26 +819,6 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
           opacity={0.35}
         />
 
-        {/* Empty state — no database selected */}
-        {showBean && (() => {
-          const iconWidth = size.w * EMPTY_ICON_SCALE;
-          const iconHeight = size.h * EMPTY_ICON_SCALE;
-          const offsetX = (size.w - iconWidth) / 2;
-          const offsetY = (size.h - iconHeight) / 2;
-          return (
-            <g style={{ pointerEvents: "none", transition: "opacity 2s ease", opacity: beanOpacity }}>
-              <image
-                href="/GraphIcon2.png"
-                x={offsetX}
-                y={offsetY}
-                width={iconWidth}
-                height={iconHeight}
-                preserveAspectRatio="xMidYMid meet"
-                style={{ opacity: 0.25 }}
-              />
-            </g>
-          );
-        })()}
 
         {/* Sphere content — fades in when first database is selected */}
         <g style={{ opacity: sphereOpacity, transition: "opacity 2s ease" }}>
