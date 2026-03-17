@@ -149,3 +149,5 @@ Used cyclically to color-code databases and tags:
 ## App Icon Generation Prompt (Reference)
 
 > A modern app icon for **RelationCity** — a city-map relationship visualization tool. Use a warm orange (`#D97757`) as the dominant color on a warm cream background (`#F7F3ED`) for the light variant, and the same orange on near-black (`#1A1A1A`) for the dark variant. Incorporate rust (`#C06B43`) for depth and gold (`#C4923A`) as a highlight accent. The icon should evoke interconnected nodes or city blocks in an abstract, clean geometric style.
+
+-
