@@ -166,9 +166,9 @@ const MODES = [
     description: "See your Notion data as mountain ranges — each database a ridge, each record a peak.",
   },
   {
-    href: "/project-user",
+    href: "/project-timeline",
     icon: "/UserIcon.png",
-    title: "Project User",
+    title: "Project Timeline",
     subtitle: "explore your people",
     description: "See your Notion data through the lens of people — each person a timeline, each record a moment.",
   },

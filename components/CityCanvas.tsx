@@ -16,6 +16,13 @@ const FP_SENS     = 0.002; // mouse look sensitivity
 const FP_JUMP_VEL = 8;    // upward velocity on jump (world units/sec)
 const FP_GRAVITY  = 20;   // downward acceleration (world units/sec²)
 
+// ─── Web Swing Constants ──────────────────────────────────────────────────────
+const WEB_SHOOT_RANGE   = 80;   // max raycast distance to attach web
+const WEB_SWING_DAMPING = 0.995; // velocity damping per frame while swinging
+const WEB_LAUNCH_BOOST  = 6;    // extra upward velocity given when web first attaches
+const WEB_COLOR_LIGHT   = 0xaaaaaa;
+const WEB_COLOR_DARK    = 0x888888;
+
 const LABEL_NEAR  = 4;    // distance at which label reaches max opacity
 const LABEL_FAR   = 14;   // distance at which label starts fading in
 const OVERHEAD_LABEL_PRIORITY_COUNT = 10;
@@ -99,6 +106,12 @@ type SceneState = {
   flyoverLookTo: THREE.Vector3;    // look-at end of the active eased transition
   flyoverLookT: number;            // 0→1 progress through current transition
   flyoverLookArcNode: number;      // nodeIdx of the arc that last triggered a transition (-1 = none)
+  // Web swing state
+  webAnchor: THREE.Vector3 | null; // world-space anchor point (null = no web)
+  webLength: number;               // rope length at time of attachment
+  webVelX: number;                 // player velocity X (separate from fpVelY, for swing)
+  webVelZ: number;                 // player velocity Z
+  webLine: THREE.Line | null;      // visual web line in scene
 };
 
 type Props = {
@@ -119,6 +132,7 @@ type Props = {
   onExitFlyover?: () => void;
   fitSceneTrigger?: number;
   jumpEnabled?: boolean;
+  webEnabled?: boolean;
 };
 
 function fitCameraToBuildings(
@@ -845,6 +859,7 @@ export function CityCanvas({
   onExitFlyover,
   fitSceneTrigger = 0,
   jumpEnabled = true,
+  webEnabled = false,
 }: Props) {
   const mountRef        = useRef<HTMLDivElement>(null);
   const stateRef        = useRef<SceneState | null>(null);
@@ -852,10 +867,12 @@ export function CityCanvas({
   const onExitFPRef     = useRef(onExitFirstPerson);
   const onExitFlyoverRef = useRef(onExitFlyover);
   const jumpEnabledRef  = useRef(jumpEnabled);
+  const webEnabledRef   = useRef(webEnabled);
   useEffect(() => { onSelectRef.current      = onSelectNode; },      [onSelectNode]);
   useEffect(() => { onExitFPRef.current      = onExitFirstPerson; }, [onExitFirstPerson]);
   useEffect(() => { onExitFlyoverRef.current = onExitFlyover; },     [onExitFlyover]);
   useEffect(() => { jumpEnabledRef.current   = jumpEnabled; },       [jumpEnabled]);
+  useEffect(() => { webEnabledRef.current    = webEnabled; },        [webEnabled]);
 
   // ── Scene init ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1048,6 +1065,11 @@ export function CityCanvas({
           s.fpOnGround = false;
           e.preventDefault();
         }
+        // R key = release web
+        if (e.code === "KeyR" && s.webAnchor) {
+          releaseWeb(s);
+          e.preventDefault();
+        }
         s.fpKeys.add(e.code);
       } else if (e.key === "Escape") {
         if (s?.flyoverActive) {
@@ -1079,6 +1101,98 @@ export function CityCanvas({
         }
       }
     }
+
+    // ── Web swing: shoot on right-click, release on R key ──────────────────
+    function releaseWeb(s: SceneState) {
+      if (s.webLine) {
+        scene.remove(s.webLine);
+        s.webLine.geometry.dispose();
+        (s.webLine.material as THREE.Material).dispose();
+        s.webLine = null;
+      }
+      s.webAnchor = null;
+    }
+
+    function onContextMenu(e: MouseEvent) {
+      // Suppress browser context menu in all cases so right-click can be used for web swing
+      e.preventDefault();
+    }
+
+    function onWebShoot(e: MouseEvent) {
+      if (e.button !== 2) return;
+      const s = stateRef.current;
+      if (!s?.fpActive || !webEnabledRef.current) return;
+      // Works whether or not pointer lock is active
+
+      // Toggle: if web is active, release it
+      if (s.webAnchor) {
+        releaseWeb(s);
+        return;
+      }
+
+      // Shoot web from crosshair
+      raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+      // Raycast against buildings and also the ground
+      const buildingMeshes = [...buildingMap.values()].map((b) => b.face);
+      const hits = raycaster.intersectObjects(buildingMeshes);
+      let anchorPoint: THREE.Vector3 | null = null;
+
+      if (hits.length > 0 && hits[0].distance <= WEB_SHOOT_RANGE) {
+        // Aim for the top of the hit building face or exact hit point if high up
+        const hit = hits[0];
+        const nodeId = hit.object.userData.nodeId as string;
+        const entry = buildingMap.get(nodeId);
+        if (entry) {
+          // Prefer the top of the building as anchor so it swings well
+          const node = entry.node;
+          const topY = node.height;
+          // Use hit point X/Z but snap to building top if hit point is below top
+          if (hit.point.y < topY - 0.5) {
+            anchorPoint = new THREE.Vector3(hit.point.x, topY, hit.point.z);
+          } else {
+            anchorPoint = hit.point.clone();
+          }
+        } else {
+          anchorPoint = hit.point.clone();
+        }
+      }
+
+      if (!anchorPoint) return; // nothing in range
+
+      // Compute web length (distance from player to anchor)
+      const dist = camera.position.distanceTo(anchorPoint);
+      s.webAnchor = anchorPoint;
+      s.webLength = dist;
+
+      // Transfer current FP horizontal velocity into web swing velocity
+      // and give a small upward boost
+      const fwd = new THREE.Vector3(-Math.sin(s.fpYaw), 0, -Math.cos(s.fpYaw));
+      const spd = (s.fpKeys.has("ShiftLeft") || s.fpKeys.has("ShiftRight")) ? FP_SPRINT : FP_SPEED;
+      const hasMovement = s.fpKeys.has("KeyW") || s.fpKeys.has("KeyS") || s.fpKeys.has("KeyA") || s.fpKeys.has("KeyD");
+      if (hasMovement) {
+        s.webVelX = fwd.x * spd;
+        s.webVelZ = fwd.z * spd;
+      }
+      s.fpVelY += WEB_LAUNCH_BOOST;
+      s.fpOnGround = false;
+
+      // Create the visual web line
+      const lineMat = new THREE.LineBasicMaterial({
+        color: s.darkMode ? WEB_COLOR_DARK : WEB_COLOR_LIGHT,
+        transparent: true,
+        opacity: 0.6,
+      });
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([
+        camera.position.clone(),
+        anchorPoint,
+      ]);
+      const line = new THREE.Line(lineGeo, lineMat);
+      scene.add(line);
+      s.webLine = line;
+    }
+
+    renderer.domElement.addEventListener("contextmenu", onContextMenu);
+    document.addEventListener("mousedown", onWebShoot);
 
     renderer.domElement.addEventListener("pointerdown", onPointerDown);
     renderer.domElement.addEventListener("pointermove", onPointerMove);
@@ -1121,38 +1235,97 @@ export function CityCanvas({
         if (s.fpKeys.has("KeyS")) camera.position.addScaledVector(fwd, -speed * dt);
         if (s.fpKeys.has("KeyA")) camera.position.addScaledVector(rgt, -speed * dt);
         if (s.fpKeys.has("KeyD")) camera.position.addScaledVector(rgt,  speed * dt);
-        // Vertical physics (only when jump is enabled)
-        if (jumpEnabledRef.current) {
+        // ── Web swing physics (takes over vertical + horizontal when attached) ──
+        if (s.webAnchor && webEnabledRef.current) {
+          const anchor = s.webAnchor;
+
+          // Apply gravity to the full velocity vector
           s.fpVelY -= FP_GRAVITY * dt;
+
+          // Step the position using both horizontal web velocity and vertical fpVelY
+          camera.position.x += s.webVelX * dt;
+          camera.position.z += s.webVelZ * dt;
           camera.position.y += s.fpVelY * dt;
 
-          // Determine the floor height at the player's XZ position.
-          // The ground is FP_HEIGHT; buildings add a roof surface only when
-          // the player is falling onto the top from above (no wall/floor collision).
-          let floorY = FP_HEIGHT;
-          if (s.fpVelY <= 0) {
-            const px = camera.position.x;
-            const pz = camera.position.z;
-            for (const { node } of s.buildingMap.values()) {
-              const hw = (node.widthScale * BUILDING_BASE) / 2;
-              if (px >= node.cx - hw && px <= node.cx + hw &&
-                  pz >= node.cz - hw && pz <= node.cz + hw) {
-                const roofY = node.height + FP_HEIGHT;
-                if (roofY > floorY) floorY = roofY;
-              }
+          // Pendulum constraint: keep player at webLength from anchor
+          const toPlayer = new THREE.Vector3().subVectors(camera.position, anchor);
+          const dist = toPlayer.length();
+          if (dist > 0.001) {
+            // Project velocity onto the tangent (remove radial component)
+            const radialDir = toPlayer.clone().normalize();
+            const vel3 = new THREE.Vector3(s.webVelX, s.fpVelY, s.webVelZ);
+            const radialVel = vel3.dot(radialDir);
+            // Only remove inward (contracting) radial velocity; allow outward slightly
+            if (radialVel < 0) {
+              vel3.addScaledVector(radialDir, -radialVel);
+              s.webVelX = vel3.x;
+              s.fpVelY  = vel3.y;
+              s.webVelZ = vel3.z;
+            }
+
+            // Constrain position to rope length (snap back if stretched)
+            if (dist > s.webLength) {
+              camera.position.copy(anchor).addScaledVector(radialDir, s.webLength);
             }
           }
 
-          if (camera.position.y <= floorY) {
-            camera.position.y = floorY;
+          // Damping
+          s.webVelX *= WEB_SWING_DAMPING;
+          s.webVelZ *= WEB_SWING_DAMPING;
+
+          // Auto-release if player has landed on the ground
+          const floorCheck = FP_HEIGHT;
+          if (camera.position.y <= floorCheck) {
+            camera.position.y = floorCheck;
+            s.fpVelY = 0;
+            s.fpOnGround = true;
+            releaseWeb(s);
+          } else {
+            s.fpOnGround = false;
+          }
+
+          // Update visual web line geometry
+          if (s.webLine) {
+            const pos = s.webLine.geometry.attributes.position as THREE.BufferAttribute;
+            pos.setXYZ(0, camera.position.x, camera.position.y, camera.position.z);
+            pos.setXYZ(1, anchor.x, anchor.y, anchor.z);
+            pos.needsUpdate = true;
+          }
+        } else {
+          // Normal vertical physics (only when jump is enabled)
+          if (jumpEnabledRef.current) {
+            s.fpVelY -= FP_GRAVITY * dt;
+            camera.position.y += s.fpVelY * dt;
+
+            // Determine the floor height at the player's XZ position.
+            // The ground is FP_HEIGHT; buildings add a roof surface only when
+            // the player is falling onto the top from above (no wall/floor collision).
+            let floorY = FP_HEIGHT;
+            if (s.fpVelY <= 0) {
+              const px = camera.position.x;
+              const pz = camera.position.z;
+              for (const { node } of s.buildingMap.values()) {
+                const hw = (node.widthScale * BUILDING_BASE) / 2;
+                if (px >= node.cx - hw && px <= node.cx + hw &&
+                    pz >= node.cz - hw && pz <= node.cz + hw) {
+                  const roofY = node.height + FP_HEIGHT;
+                  if (roofY > floorY) floorY = roofY;
+                }
+              }
+            }
+
+            if (camera.position.y <= floorY) {
+              camera.position.y = floorY;
+              s.fpVelY = 0;
+              s.fpOnGround = true;
+            }
+          } else {
+            camera.position.y = FP_HEIGHT;
             s.fpVelY = 0;
             s.fpOnGround = true;
           }
-        } else {
-          camera.position.y = FP_HEIGHT;
-          s.fpVelY = 0;
-          s.fpOnGround = true;
         }
+
         camera.rotation.order = "YXZ";
         camera.rotation.y = s.fpYaw;
         camera.rotation.x = s.fpPitch;
@@ -1362,10 +1535,18 @@ export function CityCanvas({
       flyoverLookTo: new THREE.Vector3(),
       flyoverLookT: 1,
       flyoverLookArcNode: -1,
+      // Web swing
+      webAnchor: null,
+      webLength: 0,
+      webVelX: 0,
+      webVelZ: 0,
+      webLine: null,
     };
 
     return () => {
       cancelAnimationFrame(animFrameId);
+      renderer.domElement.removeEventListener("contextmenu", onContextMenu);
+      document.removeEventListener("mousedown", onWebShoot);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
@@ -1375,6 +1556,13 @@ export function CityCanvas({
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("pointerlockchange", onPointerLockChange);
       if (document.pointerLockElement === renderer.domElement) document.exitPointerLock();
+      // Clean up web line if active
+      const s = stateRef.current;
+      if (s?.webLine) {
+        scene.remove(s.webLine);
+        s.webLine.geometry.dispose();
+        (s.webLine.material as THREE.Material).dispose();
+      }
       controls.dispose();
       for (const { face, edges: em } of buildingMap.values()) {
         face.geometry.dispose(); (face.material as THREE.Material).dispose();

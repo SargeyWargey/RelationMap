@@ -75,7 +75,8 @@ export type DatabaseFieldConfig = {
   sphereField: string | null;
   activeFilters: Record<string, string[]>;
   databaseColor?: string;
-  nameField?: string | null;  // Project User: field used to extract person names
+  nameField?: string | null;    // Project Timeline: field used to extract person names
+  detailField?: string | null;  // Project Timeline: secondary text field shown below card title
 };
 
 export type NotionWorkspace = {

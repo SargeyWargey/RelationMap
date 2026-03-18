@@ -24,8 +24,11 @@ const FILTERABLE_TYPES = new Set(["select", "multi_select", "status"]);
 const TEXT_TYPES = new Set(["rich_text", "title"]);
 const SKIP_PANEL_TYPES = new Set(["relation", "formula", "rollup", "title"]);
 
-// Field types used by Project User to extract person names (people type only)
+// Field types used by Project Timeline to extract person names (people type only)
 const NAME_FIELD_TYPES = new Set(["people"]);
+
+// Field types eligible for the Detail Field selector
+const DETAIL_FIELD_TYPES = new Set(["title", "rich_text", "select", "multi_select", "formula", "rollup"]);
 const DATABASE_COLOR_OPTIONS = [
   "#0D9488",
   "#F97316",
@@ -127,8 +130,14 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
     onChange({ ...cfg, nameField: fieldName });
   }
 
+  function setDetailField(fieldName: string | null) {
+    onChange({ ...cfg, detailField: fieldName });
+  }
+
   const nameFieldOptions = schema.fields.filter((f) => NAME_FIELD_TYPES.has(f.type));
   const currentNameField = cfg.nameField ?? null;
+  const detailFieldOptions = schema.fields.filter((f) => DETAIL_FIELD_TYPES.has(f.type));
+  const currentDetailField = cfg.detailField ?? null;
 
   const displayFields = schema.fields.filter(
     (f) => !SKIP_PANEL_TYPES.has(f.type) && f.type !== "created_by" && f.type !== "last_edited_by"
@@ -331,6 +340,128 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
                   border: active
                     ? "1px solid var(--border-default)"
                     : "1px solid transparent",
+                  background: active ? "var(--bg-overlay)" : "transparent",
+                  cursor: "pointer",
+                  transition: "background 0.12s, border-color 0.12s",
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
+                }}
+              >
+                <span style={{
+                  fontFamily: "'Geist', sans-serif",
+                  fontSize: 11,
+                  color: active ? "var(--text-secondary)" : "var(--text-faint)",
+                  flex: 1,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  transition: "color 0.12s",
+                }}>
+                  {field.name}
+                </span>
+                <span style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 9,
+                  color: "var(--text-faint)",
+                  flexShrink: 0,
+                  opacity: 0.7,
+                }}>
+                  {field.type}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Detail Field — secondary text shown below card title on the timeline */}
+      {detailFieldOptions.length > 0 && (
+        <div style={{
+          padding: "10px 12px 10px",
+          borderBottom: "1px solid var(--border-subtle)",
+        }}>
+          <div style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 9,
+            color: "var(--text-faint)",
+            letterSpacing: "0.07em",
+            textTransform: "uppercase",
+            marginBottom: 7,
+          }}>
+            Detail Field
+            <span style={{
+              marginLeft: 6,
+              fontFamily: "'Geist', sans-serif",
+              fontSize: 9,
+              color: "var(--text-faint)",
+              textTransform: "none",
+              letterSpacing: 0,
+              opacity: 0.7,
+            }}>
+              (timeline card)
+            </span>
+          </div>
+
+          {/* "(none)" default option */}
+          <button
+            type="button"
+            onClick={() => setDetailField(null)}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "left",
+              padding: "4px 8px",
+              marginBottom: 2,
+              borderRadius: 5,
+              border: currentDetailField === null
+                ? "1px solid var(--border-default)"
+                : "1px solid transparent",
+              background: currentDetailField === null ? "var(--bg-overlay)" : "transparent",
+              cursor: "pointer",
+              fontFamily: "'Geist', sans-serif",
+              fontSize: 11,
+              color: currentDetailField === null ? "var(--text-secondary)" : "var(--text-faint)",
+              transition: "background 0.12s, border-color 0.12s, color 0.12s",
+            }}
+            onMouseEnter={(e) => {
+              if (currentDetailField !== null) {
+                (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
+                (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (currentDetailField !== null) {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.color = "var(--text-faint)";
+              }
+            }}
+          >
+            <span style={{ opacity: 0.55, marginRight: 4 }}>—</span>
+            none (title only)
+          </button>
+
+          {detailFieldOptions.map((field) => {
+            const active = currentDetailField === field.name;
+            return (
+              <button
+                key={field.id}
+                type="button"
+                onClick={() => setDetailField(field.name)}
+                title={`Show "${field.name}" (${field.type}) below card title`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "4px 8px",
+                  marginBottom: 2,
+                  borderRadius: 5,
+                  border: active ? "1px solid var(--border-default)" : "1px solid transparent",
                   background: active ? "var(--bg-overlay)" : "transparent",
                   cursor: "pointer",
                   transition: "background 0.12s, border-color 0.12s",
