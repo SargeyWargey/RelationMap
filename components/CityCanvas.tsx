@@ -133,6 +133,7 @@ type Props = {
   fitSceneTrigger?: number;
   jumpEnabled?: boolean;
   webEnabled?: boolean;
+  showConnectors?: boolean;
 };
 
 function fitCameraToBuildings(
@@ -860,6 +861,7 @@ export function CityCanvas({
   fitSceneTrigger = 0,
   jumpEnabled = true,
   webEnabled = false,
+  showConnectors = true,
 }: Props) {
   const mountRef        = useRef<HTMLDivElement>(null);
   const stateRef        = useRef<SceneState | null>(null);
@@ -1749,22 +1751,24 @@ export function CityCanvas({
     const sel = buildingMap.get(selectedNodeId);
     if (!sel) return;
 
-    const lineColor = s.darkMode ? 0xffffff : 0x222222;
-    const lineMat   = new THREE.LineBasicMaterial({ color: lineColor, opacity: 0.55, transparent: true });
+    if (showConnectors) {
+      const lineColor = s.darkMode ? 0xffffff : 0x222222;
+      const lineMat   = new THREE.LineBasicMaterial({ color: lineColor, opacity: 0.55, transparent: true });
 
-    for (const connId of connectedIds) {
-      const conn = buildingMap.get(connId);
-      if (!conn) continue;
-      const pts = [
-        new THREE.Vector3(sel.node.cx,  0.01, sel.node.cz),
-        new THREE.Vector3(conn.node.cx, 0.01, conn.node.cz),
-      ];
-      const geo  = new THREE.BufferGeometry().setFromPoints(pts);
-      const line = new THREE.Line(geo, lineMat);
-      scene.add(line);
-      s.connectionLines.push(line);
+      for (const connId of connectedIds) {
+        const conn = buildingMap.get(connId);
+        if (!conn) continue;
+        const pts = [
+          new THREE.Vector3(sel.node.cx,  0.01, sel.node.cz),
+          new THREE.Vector3(conn.node.cx, 0.01, conn.node.cz),
+        ];
+        const geo  = new THREE.BufferGeometry().setFromPoints(pts);
+        const line = new THREE.Line(geo, lineMat);
+        scene.add(line);
+        s.connectionLines.push(line);
+      }
     }
-  }, [selectedNodeId]);
+  }, [selectedNodeId, showConnectors]);
 
   return <div ref={mountRef} style={{ width: "100%", height: "100%", position: "relative" }} />;
 }

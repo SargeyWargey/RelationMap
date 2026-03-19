@@ -98,6 +98,7 @@ type TimelinePanelProps = {
   selectedNodeIdx:   number;   // index into laidOut-sorted array for selection ring
   onNodeClick:       (node: PersonNode, sortedIdx: number) => void;
   fieldConfig:       Record<string, import("@/lib/types").DatabaseFieldConfig>;
+  visibleWidth:      number;   // actual pixel width of the SVG container
 };
 
 function TimelinePanel({
@@ -111,6 +112,7 @@ function TimelinePanel({
   selectedNodeIdx,
   onNodeClick,
   fieldConfig,
+  visibleWidth,
 }: TimelinePanelProps) {
   const laidOut = useMemo(
     () => layoutPersonPanel(entry.nodes, groupByDb, entry.effectiveWidth),
@@ -125,13 +127,14 @@ function TimelinePanel({
 
   // Use entry's computed width so all nodes have room
   const totalWidth = entry.effectiveWidth;
-  // viewBox pans by scrollOffsetX, always shows PANEL_WIDTH world units at a time
-  const viewBox = `${scrollOffsetX} 0 ${PANEL_WIDTH} ${PANEL_HEIGHT}`;
+  // viewBox pans by scrollOffsetX, shows exactly visibleWidth world units (1:1 world-to-pixel)
+  const vw = visibleWidth > 0 ? visibleWidth : PANEL_WIDTH;
+  const viewBox = `${scrollOffsetX} 0 ${vw} ${PANEL_HEIGHT}`;
   const spineY  = SPINE_Y;
 
-  // Spine grows at a fixed speed: always covers PANEL_WIDTH world units in GROW_DURATION_MS,
-  // so all timelines draw at the same pixels-per-second rate regardless of total length.
-  const spineEndX = PANEL_MARGIN + PANEL_WIDTH * easeOutCubic(growProgress);
+  // Spine grows to cover the full effectiveWidth at a fixed pixel-per-second rate.
+  // Speed is based on PANEL_WIDTH so short timelines don't feel sluggish.
+  const spineEndX = PANEL_MARGIN + Math.max(totalWidth, vw) * easeOutCubic(growProgress);
 
   // Clip ID unique per entry to avoid conflicts
   const clipId = `timeline-clip-${entry.key.replace(/[^a-z0-9]/g, "")}`;
@@ -139,14 +142,14 @@ function TimelinePanel({
   return (
     <svg
       viewBox={viewBox}
-      width={PANEL_WIDTH}
+      width={vw}
       height={PANEL_HEIGHT}
       style={{ display: "block", overflow: "visible" }}
       aria-label={`Timeline for ${entry.displayName}`}
     >
       <defs>
         <clipPath id={clipId}>
-          <rect x={scrollOffsetX} y={0} width={PANEL_WIDTH} height={PANEL_HEIGHT} />
+          <rect x={scrollOffsetX} y={0} width={vw} height={PANEL_HEIGHT} />
         </clipPath>
       </defs>
       {/* All content clipped to viewport */}
@@ -189,7 +192,7 @@ function TimelinePanel({
 
         // Cull nodes outside the visible viewport window (with padding for labels)
         const viewLeft  = scrollOffsetX - 200;
-        const viewRight = scrollOffsetX + PANEL_WIDTH + 200;
+        const viewRight = scrollOffsetX + vw + 200;
         if (node.xPosition < viewLeft || node.xPosition > viewRight) return null;
 
         // Node appears as soon as spine reaches it
@@ -229,7 +232,7 @@ function TimelinePanel({
                 const labelBoxW = 200;
                 const titleBoxH = 44;
                 const dateH = 22;
-                const dbH = showDbLabels ? 20 : 0;
+                const CARD_SPINE_BUFFER = 12; // visual gap between card bottom/top and spine
 
                 // Resolve detail field value for this node
                 const detailFieldName = fieldConfig[node.databaseId]?.detailField ?? null;
@@ -241,16 +244,21 @@ function TimelinePanel({
                       return String(raw) || null;
                     })()
                   : null;
-                const detailBoxH = detailValue ? 32 : 0;
+
+                // Detail box fills all available space from below the title to the spine (minus buffer)
+                const availableForDetail = node.branchHeight - NODE_R - 2 - titleBoxH - CARD_SPINE_BUFFER;
+                const detailBoxH = detailValue ? Math.max(32, availableForDetail) : 0;
 
                 const cardBoxH = titleBoxH + detailBoxH;
-                // Left edge of label box pinned to connector line X
-                const boxX = node.xPosition;
+                // Left edge of label box is to the right of the connector line
+                const boxX = node.xPosition + 10;
 
-                // above: card floats upward from branch end; below: downward
+                // Card fills the space between branch end and the spine on both sides
+                // above: card top at branch end, bottom near spine
+                // below: card bottom at branch end, top near spine
                 const titleY = node.side === "above"
-                  ? branchEndY - 6 - cardBoxH
-                  : branchEndY + 6;
+                  ? branchEndY
+                  : spineY + CARD_SPINE_BUFFER;
                 const detailY = titleY + titleBoxH + 2;
 
                 // Date is on the OPPOSITE side of the spine from the card:
@@ -258,13 +266,10 @@ function TimelinePanel({
                 const dateY2 = node.side === "above"
                   ? spineY + 8
                   : spineY - dateH - 8;
-                const dbY2 = node.side === "above"
-                  ? dateY2 - dbH - 2
-                  : dateY2 + dateH + 2;
 
                 return (
                   <>
-                    {/* Title — left-justified, pinned to connector line X */}
+                    {/* Title — left-justified, to the right of connector line, top aligned to branch end */}
                     <foreignObject
                       x={boxX}
                       y={titleY}
@@ -276,7 +281,7 @@ function TimelinePanel({
                         fontFamily: "'Geist', sans-serif",
                         fontSize: "15px",
                         fontWeight: 500,
-                        color: textPrimary,
+                        color: nodeColor,
                         lineHeight: "1.35",
                         wordWrap: "break-word",
                         overflow: "hidden",
@@ -302,15 +307,12 @@ function TimelinePanel({
                         {/* @ts-expect-error xmlns required */}
                         <div xmlns="http://www.w3.org/1999/xhtml" style={{
                           fontFamily: "'Geist', sans-serif",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          color: nodeColor,
-                          lineHeight: "1.3",
+                          fontSize: "13px",
+                          fontWeight: 400,
+                          color: textPrimary,
+                          lineHeight: "1.45",
                           wordWrap: "break-word",
                           overflow: "hidden",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
                           textAlign: "left",
                           width: "100%",
                           height: "100%",
@@ -333,22 +335,6 @@ function TimelinePanel({
                     >
                       {formatDate(node.createdTime)}
                     </text>
-
-                    {/* DB label */}
-                    {showDbLabels && (
-                      <text
-                        x={boxX}
-                        y={dbY2 + 15}
-                        textAnchor="start"
-                        fontFamily="'DM Mono', monospace"
-                        fontSize={13}
-                        fill={nodeColor}
-                        fontWeight={400}
-                        opacity={0.7}
-                      >
-                        {node.databaseName}
-                      </text>
-                    )}
                   </>
                 );
               })()}
@@ -622,7 +608,7 @@ export function TimelineCanvas({
           const rightEdge   = containerWidth * (1 - PANEL_SCROLL_MARGIN);
           if (nodeScreenX > rightEdge) {
             const newScroll = scrollX + (nodeScreenX - rightEdge);
-            const maxScroll = Math.max(0, (entry.effectiveWidth ?? PANEL_WIDTH) - PANEL_WIDTH);
+            const maxScroll = Math.max(0, (entry.effectiveWidth ?? PANEL_WIDTH) - (containerWidth - LEFT_INSET));
             timelineScrollXRef.current.set(key, Math.max(0, Math.min(maxScroll, newScroll)));
           } else if (nodeScreenX < LEFT_INSET + 40) {
             const newScroll = scrollX - (LEFT_INSET + 40 - nodeScreenX);
@@ -680,7 +666,7 @@ export function TimelineCanvas({
       if (!entry || !containerWidth) return;
       const scrollDelta = e.deltaX; // SVG is 1:1 world-to-pixel
       const current = timelineScrollXRef.current.get(key) ?? 0;
-      const maxScroll = Math.max(0, entry.effectiveWidth - PANEL_WIDTH);
+      const maxScroll = Math.max(0, entry.effectiveWidth - (containerWidth - LEFT_INSET));
       timelineScrollXRef.current.set(key, Math.max(0, Math.min(maxScroll, current + scrollDelta)));
       setRenderTick(v => v + 1); // eslint-disable-line
     }
@@ -928,6 +914,7 @@ export function TimelineCanvas({
                 selectedNodeIdx={selectedNodeIdxRef.current.get(key) ?? -1}
                 onNodeClick={handleNodeClick}
                 fieldConfig={fieldConfig}
+                visibleWidth={containerWidth > 0 ? containerWidth - LEFT_INSET : PANEL_WIDTH}
               />
             </div>
           </div>

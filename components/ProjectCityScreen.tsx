@@ -103,6 +103,12 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
     }
     return false;
   });
+  const [showConnectors, setShowConnectors] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('city_show_connectors') !== 'false';
+    }
+    return true;
+  });
 
   // Schemas + field config
   const [schemas, setSchemas] = useState<DatabaseSchema[]>([]);
@@ -119,6 +125,7 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
   useEffect(() => { localStorage.setItem('city_flyover_cam_height', String(flyoverCameraHeightOffset)); }, [flyoverCameraHeightOffset]);
   useEffect(() => { localStorage.setItem('city_jump_enabled', String(jumpEnabled)); }, [jumpEnabled]);
   useEffect(() => { localStorage.setItem('city_web_enabled', String(webEnabled)); }, [webEnabled]);
+  useEffect(() => { localStorage.setItem('city_show_connectors', String(showConnectors)); }, [showConnectors]);
 
   function handleFieldConfigChange(dbId: string, cfg: DatabaseFieldConfig) {
     const next = { ...fieldConfig, [dbId]: cfg };
@@ -299,6 +306,7 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
           fitSceneTrigger={fitSceneTrigger}
           jumpEnabled={jumpEnabled}
           webEnabled={webEnabled}
+          showConnectors={showConnectors}
         />
       </div>
 
@@ -504,6 +512,27 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
                     position: "absolute", top: 2, left: webEnabled ? 17 : 3,
                     width: 13, height: 13, borderRadius: "50%",
                     background: webEnabled ? "var(--text-primary)" : "var(--text-faint)",
+                    transition: "left 0.15s, background 0.15s",
+                  }} />
+                </button>
+              </div>
+
+              {/* Connector lines toggle */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Connector lines</span>
+                <button
+                  type="button"
+                  onClick={() => setShowConnectors((v) => !v)}
+                  style={{
+                    width: 32, height: 17, borderRadius: 9, border: "none",
+                    background: showConnectors ? "var(--text-faint)" : "var(--border-default)",
+                    cursor: "pointer", position: "relative", transition: "background 0.15s", flexShrink: 0, padding: 0,
+                  }}
+                >
+                  <div style={{
+                    position: "absolute", top: 2, left: showConnectors ? 17 : 3,
+                    width: 13, height: 13, borderRadius: "50%",
+                    background: showConnectors ? "var(--text-primary)" : "var(--text-faint)",
                     transition: "left 0.15s, background 0.15s",
                   }} />
                 </button>
