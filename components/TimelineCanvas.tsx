@@ -15,7 +15,7 @@ import {
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
-const PANEL_HEIGHT      = 480;   // SVG viewBox height per panel
+const PANEL_HEIGHT      = 560;   // SVG viewBox height per panel
 const SPINE_Y           = PANEL_HEIGHT / 2;  // spine at vertical center
 const NAME_BAR_H        = 64;    // approx pixel height of PersonNameBar (for positioning)
 const NODE_R            = 8;     // radius of node circle on spine
@@ -25,8 +25,9 @@ const NODE_STROKE       = 2.5;
 const GROW_DURATION_MS  = 5000;  // spine + nodes grow-in time (uniform regardless of length)
 const LABEL_DELAY_MS    = 1200;  // labels start appearing after spine starts
 
-// Left offset: leave some room for position dots; content shifted left
-const LEFT_INSET = 60;
+// Left offset for position dots; name sits here, timeline SVG is indented further
+const LEFT_INSET     = 60;
+const TIMELINE_INSET = 60; // extra indent for the SVG timeline relative to the name
 
 const PANEL_SCROLL_MARGIN = 0.30; // keep active node this fraction from right edge
 
@@ -62,7 +63,7 @@ function avatarColor(key: string): string {
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   } catch {
     return "";
   }
@@ -114,6 +115,7 @@ function TimelinePanel({
   fieldConfig,
   visibleWidth,
 }: TimelinePanelProps) {
+  const [hoveredNodeIdx, setHoveredNodeIdx] = useState(-1);
   const laidOut = useMemo(
     () => layoutPersonPanel(entry.nodes, groupByDb, entry.effectiveWidth),
     [entry, groupByDb],
@@ -211,9 +213,15 @@ function TimelinePanel({
 
         const labelOpacity  = labelProgress * nodeOpacity;
         const isSelected    = idx === selectedNodeIdx;
+        const isHovered     = idx === hoveredNodeIdx;
 
         return (
-          <g key={`${node.nodeId}-${idx}`} opacity={nodeOpacity}>
+          <g
+            key={`${node.nodeId}-${idx}`}
+            opacity={nodeOpacity}
+            onMouseEnter={() => setHoveredNodeIdx(idx)}
+            onMouseLeave={() => setHoveredNodeIdx(-1)}
+          >
             {/* Connector line from spine up/down */}
             <line
               x1={node.xPosition}
@@ -232,7 +240,7 @@ function TimelinePanel({
                 const labelBoxW = 200;
                 const titleBoxH = 44;
                 const dateH = 22;
-                const CARD_SPINE_BUFFER = 12; // visual gap between card bottom/top and spine
+                const CARD_SPINE_BUFFER = 32; // visual gap between card bottom/top and spine (leaves room for date)
 
                 // Resolve detail field value for this node
                 const detailFieldName = fieldConfig[node.databaseId]?.detailField ?? null;
@@ -245,31 +253,31 @@ function TimelinePanel({
                     })()
                   : null;
 
-                // Detail box fills all available space from below the title to the spine (minus buffer)
+                // Detail box fills all available space between the spine buffer and the title
                 const availableForDetail = node.branchHeight - NODE_R - 2 - titleBoxH - CARD_SPINE_BUFFER;
                 const detailBoxH = detailValue ? Math.max(32, availableForDetail) : 0;
 
-                const cardBoxH = titleBoxH + detailBoxH;
                 // Left edge of label box is to the right of the connector line
                 const boxX = node.xPosition + 10;
 
-                // Card fills the space between branch end and the spine on both sides
-                // above: card top at branch end, bottom near spine
-                // below: card bottom at branch end, top near spine
+                // above: title at branch end (top), detail below title toward spine
+                // below: title at branch end (bottom), detail above title toward spine
                 const titleY = node.side === "above"
                   ? branchEndY
-                  : spineY + CARD_SPINE_BUFFER;
-                const detailY = titleY + titleBoxH + 2;
+                  : branchEndY - titleBoxH;
+                const detailY = node.side === "above"
+                  ? titleY + titleBoxH + 2
+                  : titleY - detailBoxH - 4;
 
                 // Date is on the OPPOSITE side of the spine from the card:
                 // card above → date below the spine; card below → date above the spine
                 const dateY2 = node.side === "above"
-                  ? spineY + 8
-                  : spineY - dateH - 8;
+                  ? spineY + 10
+                  : spineY - dateH - 10;
 
                 return (
                   <>
-                    {/* Title — left-justified, to the right of connector line, top aligned to branch end */}
+                    {/* Title — left-justified, to the right of connector line */}
                     <foreignObject
                       x={boxX}
                       y={titleY}
@@ -278,31 +286,41 @@ function TimelinePanel({
                     >
                       {/* @ts-expect-error xmlns required */}
                       <div xmlns="http://www.w3.org/1999/xhtml" style={{
-                        fontFamily: "'Geist', sans-serif",
-                        fontSize: "15px",
-                        fontWeight: 500,
-                        color: nodeColor,
-                        lineHeight: "1.35",
-                        wordWrap: "break-word",
-                        overflow: "hidden",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: "vertical",
-                        textAlign: "left",
                         width: "100%",
                         height: "100%",
+                        display: "flex",
+                        alignItems: node.side === "below" ? "flex-end" : "flex-start",
                       }}>
-                        {node.nodeName}
+                        <div style={{
+                          fontFamily: "'Geist', sans-serif",
+                          fontSize: "15px",
+                          fontWeight: 500,
+                          color: nodeColor,
+                          lineHeight: "1.35",
+                          wordWrap: "break-word",
+                          overflow: "hidden",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          textAlign: "left",
+                          width: "100%",
+                        }}>
+                          {node.nodeName}
+                        </div>
                       </div>
                     </foreignObject>
 
-                    {/* Detail field value — semi-bold, below title */}
+                    {/* Detail field value — hidden by default, fades in on hover or selection */}
                     {detailValue && (
                       <foreignObject
                         x={boxX}
                         y={detailY}
                         width={labelBoxW}
                         height={detailBoxH}
+                        style={{
+                          opacity: (isHovered || isSelected) ? 0.85 : 0,
+                          transition: (isHovered || isSelected) ? "opacity 1s ease" : "opacity 1.5s ease",
+                        }}
                       >
                         {/* @ts-expect-error xmlns required */}
                         <div xmlns="http://www.w3.org/1999/xhtml" style={{
@@ -316,7 +334,6 @@ function TimelinePanel({
                           textAlign: "left",
                           width: "100%",
                           height: "100%",
-                          opacity: 0.85,
                         }}>
                           {detailValue}
                         </div>
@@ -404,7 +421,7 @@ function PersonNameBar({
       opacity,
       transition:   "opacity 0.3s ease",
       flexShrink:   0,
-      marginBottom: 28,
+      marginBottom: 10,
     }}>
       <div style={{
         width:           32,
@@ -424,7 +441,7 @@ function PersonNameBar({
       </div>
       <span style={{
         fontFamily:    "'Lora', Georgia, serif",
-        fontSize:      20,
+        fontSize:      26,
         fontWeight:    600,
         color:         textPrimary,
         letterSpacing: "-0.01em",
@@ -460,6 +477,8 @@ export function TimelineCanvas({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const nameBarRef = useRef<HTMLDivElement>(null);
+  const [nameBarWidth, setNameBarWidth] = useState(LEFT_INSET + TIMELINE_INSET);
 
   // ── Per-person timeline scroll state ───────────────────────────────────────
   const timelineScrollXRef  = useRef<Map<string, number>>(new Map());
@@ -602,16 +621,17 @@ export function TimelineCanvas({
         // Pan so the selected node is visible with PANEL_SCROLL_MARGIN from right
         const node = sorted[nextIdx];
         if (node && containerWidth > 0) {
-          // SVG is 1:1 world-to-pixel; node screen X = LEFT_INSET + xPosition - scrollOffsetX
+          // SVG is 1:1 world-to-pixel; spine starts at svgLeft = nameBarWidth - PANEL_MARGIN
+          const svgLeft     = Math.max(LEFT_INSET, nameBarWidth - PANEL_MARGIN);
           const scrollX     = timelineScrollXRef.current.get(key) ?? 0;
-          const nodeScreenX = LEFT_INSET + node.xPosition - scrollX;
+          const nodeScreenX = svgLeft + node.xPosition - scrollX;
           const rightEdge   = containerWidth * (1 - PANEL_SCROLL_MARGIN);
           if (nodeScreenX > rightEdge) {
             const newScroll = scrollX + (nodeScreenX - rightEdge);
-            const maxScroll = Math.max(0, (entry.effectiveWidth ?? PANEL_WIDTH) - (containerWidth - LEFT_INSET));
+            const maxScroll = Math.max(0, (entry.effectiveWidth ?? PANEL_WIDTH) - (containerWidth - svgLeft));
             timelineScrollXRef.current.set(key, Math.max(0, Math.min(maxScroll, newScroll)));
-          } else if (nodeScreenX < LEFT_INSET + 40) {
-            const newScroll = scrollX - (LEFT_INSET + 40 - nodeScreenX);
+          } else if (nodeScreenX < svgLeft + 40) {
+            const newScroll = scrollX - (svgLeft + 40 - nodeScreenX);
             timelineScrollXRef.current.set(key, Math.max(0, newScroll));
           }
         }
@@ -666,7 +686,8 @@ export function TimelineCanvas({
       if (!entry || !containerWidth) return;
       const scrollDelta = e.deltaX; // SVG is 1:1 world-to-pixel
       const current = timelineScrollXRef.current.get(key) ?? 0;
-      const maxScroll = Math.max(0, entry.effectiveWidth - (containerWidth - LEFT_INSET));
+      const svgLeft = Math.max(LEFT_INSET, nameBarWidth - PANEL_MARGIN);
+      const maxScroll = Math.max(0, entry.effectiveWidth - (containerWidth - svgLeft));
       timelineScrollXRef.current.set(key, Math.max(0, Math.min(maxScroll, current + scrollDelta)));
       setRenderTick(v => v + 1); // eslint-disable-line
     }
@@ -685,6 +706,18 @@ export function TimelineCanvas({
     setContainerWidth(el.clientWidth);
     return () => obs.disconnect();
   }, []);
+
+  // ── Name bar width measurement ──────────────────────────────────────────────
+  useEffect(() => {
+    const el = nameBarRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(() => {
+      setNameBarWidth(LEFT_INSET + el.offsetWidth);
+    });
+    obs.observe(el);
+    setNameBarWidth(LEFT_INSET + el.offsetWidth);
+    return () => obs.disconnect();
+  });
 
   // ── Node click handler ─────────────────────────────────────────────────────
   const handleNodeClick = useCallback((node: PersonNode, sortedIdx: number) => {
@@ -724,29 +757,39 @@ export function TimelineCanvas({
 
   // Fixed slot step — spacing between neighbor name bands
   const containerHeight = containerRef.current?.clientHeight ?? 600;
-  const panelSlotH      = 75;
+  const panelSlotH      = 52;
   const nowMs           = performance.now();
 
-  // ── Neighbor band Y positions (computed from carousel geometry each frame) ──
-  // Panel i center Y in container space = containerHeight/2 + (i - offsetY) * panelSlotH
-  // We render bands for i ≠ activeIdx, within ±3, capped at N=20.
-  const MAX_BANDS = 3;
-  // Anchor bands to the active name bar center (spine at 44% - SPINE_Y - NAME_BAR_H/2)
-  const nameBandRefY  = Math.round(containerHeight * 0.44) - SPINE_Y - NAME_BAR_H / 2;
-  // Chrome margins: don't let bands overlap top header or bottom bar
-  const TOP_MARGIN    = 90;
-  const BOTTOM_MARGIN = 70;
+  // ── Active unit geometry (centered vertically) ─────────────────────────────
+  // "Active unit" = name bar (NAME_BAR_H) + SVG panel (PANEL_HEIGHT), treated as one block.
+  // We center this combined block on screen.
+  const unitH        = NAME_BAR_H + PANEL_HEIGHT;
+  const unitTop      = Math.round((containerHeight - unitH) / 2);
+  const nameBarTop   = unitTop;
+  const svgTop       = unitTop + NAME_BAR_H;
+  const spineScreenY = svgTop + SPINE_Y;
+  // Bottom of the active unit
+  const unitBottom   = unitTop + unitH;
+
+  // ── Neighbor band Y positions ───────────────────────────────────────────────
+  // Earlier entries (i < activeIdx) stack upward from just above the name bar.
+  // Later entries (i > activeIdx) stack downward from just below the unit bottom.
+  const TOP_MARGIN    = 60;
+  const BOTTOM_MARGIN = 60;
+  const MAX_BANDS     = 4;
   const neighborBands = sortedKeys
     .map((key, i) => {
-      const dist = i - offsetYRef.current;
+      const dist    = i - offsetYRef.current;
       const absDist = Math.abs(dist);
       if (absDist < 0.4 || absDist > MAX_BANDS + 0.5) return null;
-      const bandCenterY = nameBandRefY + dist * panelSlotH;
-      // Fade based on distance from center
-      const distOpacity = Math.max(0, 0.80 * (1 - Math.max(0, absDist - 0.4) / (MAX_BANDS + 0.1)));
-      // Also fade based on proximity to screen edges (fade to 0 within margin zone)
-      const topFade    = Math.min(1, Math.max(0, (bandCenterY - TOP_MARGIN) / 40));
-      const bottomFade = Math.min(1, Math.max(0, (containerHeight - BOTTOM_MARGIN - bandCenterY) / 40));
+      // Above-active bands anchor from nameBarTop upward; below-active from unitBottom downward
+      const bandCenterY = dist < 0
+        ? nameBarTop + dist * panelSlotH          // negative dist → above name bar
+        : unitBottom + (dist - 1) * panelSlotH + panelSlotH / 2; // positive → below unit
+      // Fade based on distance
+      const distOpacity = Math.max(0, 0.75 * (1 - Math.max(0, absDist - 0.4) / (MAX_BANDS + 0.1)));
+      const topFade     = Math.min(1, Math.max(0, (bandCenterY - TOP_MARGIN) / 40));
+      const bottomFade  = Math.min(1, Math.max(0, (containerHeight - BOTTOM_MARGIN - bandCenterY) / 40));
       const bandOpacity = distOpacity * topFade * bottomFade;
       if (bandOpacity < 0.02) return null;
       return { key, i, bandCenterY, bandOpacity };
@@ -872,19 +915,15 @@ export function TimelineCanvas({
         })}
       </div>
 
-      {/* Active panel — spine pinned to vertical center, name bar floats above it */}
+      {/* Active panel — name + timeline centered as one unit vertically */}
       {(() => {
         const key   = sortedKeys[activeIdx];
         const entry = key ? personIndex.get(key) : undefined;
         if (!key || !entry) return null;
         const { grow, label } = getGrowProgress(key, nowMs);
-        // Pin spine to 44% down the screen — name bar just above, cards fill below
-        const spineScreenY = Math.round(containerHeight * 0.44);
-        const svgTop       = spineScreenY - SPINE_Y;
-        const nameBarTop   = svgTop - NAME_BAR_H;
         return (
           <div key={key} style={{ position: "absolute", inset: 0, zIndex: 5, pointerEvents: "none" }}>
-            {/* Name bar — just above the spine */}
+            {/* Name bar — sits directly above the timeline SVG */}
             <div style={{
               position:    "absolute",
               left:        LEFT_INSET,
@@ -892,31 +931,39 @@ export function TimelineCanvas({
               top:         nameBarTop,
               pointerEvents: "auto",
             }}>
-              <PersonNameBar entry={entry} darkMode={darkMode} opacity={1} />
+              <div ref={nameBarRef} style={{ display: "inline-flex" }}>
+                <PersonNameBar entry={entry} darkMode={darkMode} opacity={1} />
+              </div>
             </div>
-            {/* Timeline SVG — spine at containerHeight/2 */}
-            <div style={{
-              position:    "absolute",
-              left:        LEFT_INSET,
-              right:       0,
-              top:         svgTop,
-              height:      PANEL_HEIGHT,
-              pointerEvents: "auto",
-            }}>
-              <TimelinePanel
-                entry={entry}
-                groupByDb={groupByDb}
-                showDbLabels={showDbLabels}
-                darkMode={darkMode}
-                growProgress={grow}
-                labelProgress={label}
-                scrollOffsetX={timelineScrollXRef.current.get(key) ?? 0}
-                selectedNodeIdx={selectedNodeIdxRef.current.get(key) ?? -1}
-                onNodeClick={handleNodeClick}
-                fieldConfig={fieldConfig}
-                visibleWidth={containerWidth > 0 ? containerWidth - LEFT_INSET : PANEL_WIDTH}
-              />
-            </div>
+            {/* Timeline SVG — spine aligns to the right edge of the name bar */}
+            {(() => {
+              const svgLeft = Math.max(LEFT_INSET, nameBarWidth - PANEL_MARGIN);
+              const svgVisibleWidth = containerWidth > 0 ? containerWidth - svgLeft : PANEL_WIDTH;
+              return (
+                <div style={{
+                  position:    "absolute",
+                  left:        svgLeft,
+                  right:       0,
+                  top:         svgTop,
+                  height:      PANEL_HEIGHT,
+                  pointerEvents: "auto",
+                }}>
+                  <TimelinePanel
+                    entry={entry}
+                    groupByDb={groupByDb}
+                    showDbLabels={showDbLabels}
+                    darkMode={darkMode}
+                    growProgress={grow}
+                    labelProgress={label}
+                    scrollOffsetX={timelineScrollXRef.current.get(key) ?? 0}
+                    selectedNodeIdx={selectedNodeIdxRef.current.get(key) ?? -1}
+                    onNodeClick={handleNodeClick}
+                    fieldConfig={fieldConfig}
+                    visibleWidth={svgVisibleWidth}
+                  />
+                </div>
+              );
+            })()}
           </div>
         );
       })()}

@@ -296,7 +296,7 @@ export function ProjectTimelineScreen({ initialGraph, databaseColors, lastSyncAt
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/UserIcon.png" alt="User" style={{ width: 24, height: 24, objectFit: "contain" }} />
-              Project Timeline
+              The Line
             </span>
             <span style={{
               fontFamily: "'DM Mono', monospace",

@@ -247,7 +247,7 @@ export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }:
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/GraphIcon2.png" alt="Graph" style={{ width: 17, height: 17, objectFit: "contain" }} />
-              Project Graph
+              The Sphere
             </span>
             <span style={{
               fontFamily: "'DM Mono', monospace",

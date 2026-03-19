@@ -341,7 +341,7 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/CityLightMode.png" alt="City" style={{ width: 24, height: 24, objectFit: "contain" }} />
-              Project City
+              The City
             </span>
             <span style={{
               fontFamily: "'DM Mono', monospace",

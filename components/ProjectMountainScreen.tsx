@@ -324,7 +324,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/mountain.png" alt="Mountain" style={{ width: 24, height: 24, objectFit: "contain" }} />
-              Project Mountain
+              The Mountain
             </span>
             <span style={{
               fontFamily: "'DM Mono', monospace",

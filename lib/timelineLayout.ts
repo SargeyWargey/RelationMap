@@ -11,7 +11,7 @@ const FALLBACK_DATE = "2025-11-02T00:00:00Z";
  */
 export const PANEL_WIDTH       = 2400;
 export const PANEL_MARGIN      = 120;   // horizontal padding on each side of the spine
-export const BRANCH_HEIGHT     = 160;   // Y distance from spine center to card center
+export const BRANCH_HEIGHT     = 190;   // Y distance from spine center to card center
 export const MIN_NODE_SPACING  = 220;   // world units minimum gap between node xPositions
 
 /** If a person has more than this many nodes, use even spacing instead of time-proportional. */
