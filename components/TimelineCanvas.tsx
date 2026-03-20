@@ -15,8 +15,11 @@ import {
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
-const PANEL_HEIGHT      = 560;   // SVG viewBox height per panel
-const SPINE_Y           = PANEL_HEIGHT / 2;  // spine at vertical center
+const PANEL_HEIGHT           = 700;   // SVG viewBox height per panel
+const SPINE_Y                = PANEL_HEIGHT / 2;  // spine at vertical center
+const BRANCH_COLLAPSED       = 65;    // branch length (spine to title) when collapsed
+const DESC_MAX_H             = 280;   // cap on description height before fade
+const LABEL_BOX_W            = 200;   // description/title box width (world units = px in SVG)
 const NAME_BAR_H        = 64;    // approx pixel height of PersonNameBar (for positioning)
 const NODE_R            = 8;     // radius of node circle on spine
 const NODE_STROKE       = 2.5;
@@ -116,11 +119,29 @@ function TimelinePanel({
   visibleWidth,
 }: TimelinePanelProps) {
   const [hoveredNodeIdx, setHoveredNodeIdx] = useState(-1);
+  const [descHeights, setDescHeights] = useState<Map<string, number>>(new Map());
+  const measDivRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+
   const laidOut = useMemo(
     () => layoutPersonPanel(entry.nodes, groupByDb, entry.effectiveWidth),
     [entry, groupByDb],
   );
   const ticks = useMemo(() => generateTimeAxisTicks(laidOut, entry.effectiveWidth), [laidOut, entry.effectiveWidth]);
+
+  // Measure description heights after render — only update state if values changed
+  useEffect(() => {
+    const next = new Map<string, number>();
+    measDivRefs.current.forEach((el, id) => {
+      if (el) next.set(id, el.scrollHeight);
+    });
+    setDescHeights(prev => {
+      for (const [id, h] of next) {
+        if (prev.get(id) !== h) return next;
+      }
+      if (prev.size !== next.size) return next;
+      return prev;
+    });
+  });
 
   const spineColor  = darkMode ? "#dddddd" : "#888888";
   const textPrimary = darkMode ? "#ececec" : "#2d2520";
@@ -142,6 +163,31 @@ function TimelinePanel({
   const clipId = `timeline-clip-${entry.key.replace(/[^a-z0-9]/g, "")}`;
 
   return (
+    <>
+    {/* Hidden measurement layer — renders each description at the real width to get its natural height */}
+    <div style={{ position: "absolute", visibility: "hidden", pointerEvents: "none", top: 0, left: 0, width: LABEL_BOX_W }}>
+      {laidOut.map((node) => {
+        const detailFieldName = fieldConfig[node.databaseId]?.detailField ?? null;
+        const detailValue: string | null = detailFieldName
+          ? (() => {
+              const raw = node.fieldValues?.[detailFieldName] ?? null;
+              if (raw == null) return null;
+              if (Array.isArray(raw)) return raw.filter(Boolean).join(", ") || null;
+              return String(raw) || null;
+            })()
+          : null;
+        if (!detailValue) return null;
+        return (
+          <div
+            key={node.nodeId}
+            ref={el => { measDivRefs.current.set(node.nodeId, el); }}
+            style={{ fontFamily: "'Geist', sans-serif", fontSize: "13px", lineHeight: "1.45", wordWrap: "break-word", width: LABEL_BOX_W }}
+          >
+            {detailValue}
+          </div>
+        );
+      })}
+    </div>
     <svg
       viewBox={viewBox}
       width={vw}
@@ -151,7 +197,7 @@ function TimelinePanel({
     >
       <defs>
         <clipPath id={clipId}>
-          <rect x={scrollOffsetX} y={0} width={vw} height={PANEL_HEIGHT} />
+          <rect x={scrollOffsetX} y={-600} width={vw} height={PANEL_HEIGHT + 1200} />
         </clipPath>
       </defs>
       {/* All content clipped to viewport */}
@@ -203,10 +249,6 @@ function TimelinePanel({
           : 0;
         const nodeOpacity = easeOutCubic(nodeRevealT);
 
-        const sideSign   = node.side === "above" ? -1 : 1;
-        const branchTopY = spineY + sideSign * (NODE_R + 2);
-        const branchEndY = spineY + sideSign * node.branchHeight;
-
         // Parse color — handle hex or fallback
         let nodeColor = node.color ?? "#888888";
         if (!nodeColor.startsWith("#")) nodeColor = "#888888";
@@ -214,6 +256,20 @@ function TimelinePanel({
         const labelOpacity  = labelProgress * nodeOpacity;
         const isSelected    = idx === selectedNodeIdx;
         const isHovered     = idx === hoveredNodeIdx;
+        const active        = isHovered || isSelected;
+        const sideSign      = node.side === "above" ? -1 : 1;
+        const branchTopY    = spineY + sideSign * (NODE_R + 2);
+        const SPINE_BUFFER  = 28;
+        const titleBoxH     = 44;
+        const rawDescH      = descHeights.get(node.nodeId) ?? 0;
+        const clampedDescH  = Math.min(rawDescH, DESC_MAX_H);
+        const isCapped      = rawDescH > DESC_MAX_H;
+        const branchExpanded = clampedDescH > 0
+          ? BRANCH_COLLAPSED + titleBoxH + SPINE_BUFFER + clampedDescH
+          : BRANCH_COLLAPSED;
+        const collapsedEndY = spineY + sideSign * BRANCH_COLLAPSED;
+        const expandedEndY  = spineY + sideSign * branchExpanded;
+        const pushDY        = sideSign * (branchExpanded - BRANCH_COLLAPSED);
 
         return (
           <g
@@ -222,25 +278,35 @@ function TimelinePanel({
             onMouseEnter={() => setHoveredNodeIdx(idx)}
             onMouseLeave={() => setHoveredNodeIdx(-1)}
           >
-            {/* Connector line from spine up/down */}
+            {/* Connector line — fixed base segment */}
             <line
               x1={node.xPosition}
               y1={branchTopY}
               x2={node.xPosition}
-              y2={branchEndY}
+              y2={collapsedEndY}
               stroke={nodeColor}
               strokeWidth={1.5}
               strokeDasharray="4 3"
               opacity={0.45 * labelOpacity}
             />
+            {/* Connector line — animated extension on hover/select */}
+            <line
+              x1={node.xPosition}
+              y1={collapsedEndY}
+              x2={node.xPosition}
+              y2={active ? expandedEndY : collapsedEndY}
+              stroke={nodeColor}
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              opacity={0.45 * labelOpacity}
+              style={{ transition: active ? "y2 0.4s ease, opacity 0.4s ease" : "y2 0.6s ease, opacity 0.6s ease" }}
+            />
 
             {/* Text labels with wrapping via foreignObject */}
             <g opacity={labelOpacity}>
               {(() => {
-                const labelBoxW = 200;
-                const titleBoxH = 44;
-                const dateH = 22;
-                const CARD_SPINE_BUFFER = 32; // visual gap between card bottom/top and spine (leaves room for date)
+                const dateH   = 22;
+                const boxX    = node.xPosition + 10;
 
                 // Resolve detail field value for this node
                 const detailFieldName = fieldConfig[node.databaseId]?.detailField ?? null;
@@ -253,97 +319,84 @@ function TimelinePanel({
                     })()
                   : null;
 
-                // Detail box fills all available space between the spine buffer and the title
-                const availableForDetail = node.branchHeight - NODE_R - 2 - titleBoxH - CARD_SPINE_BUFFER;
-                const detailBoxH = detailValue ? Math.max(32, availableForDetail) : 0;
+                // Use measured height (capped). Falls back to 0 until first measurement.
+                const descH = clampedDescH;
 
-                // Left edge of label box is to the right of the connector line
-                const boxX = node.xPosition + 10;
+                // Title anchored at collapsed end, animates outward on active
+                const titleBaseY     = node.side === "above" ? collapsedEndY - titleBoxH : collapsedEndY;
+                const titleTranslate = active ? pushDY : 0;
 
-                // above: title at branch end (top), detail below title toward spine
-                // below: title at branch end (bottom), detail above title toward spine
-                const titleY = node.side === "above"
-                  ? branchEndY
-                  : branchEndY - titleBoxH;
-                const detailY = node.side === "above"
-                  ? titleY + titleBoxH + 2
-                  : titleY - detailBoxH - 4;
+                // Description sits just off the spine, sized to measured content
+                const descY = node.side === "above"
+                  ? spineY - NODE_R - 2 - SPINE_BUFFER - descH
+                  : spineY + NODE_R + 2 + SPINE_BUFFER;
 
-                // Date is on the OPPOSITE side of the spine from the card:
-                // card above → date below the spine; card below → date above the spine
-                const dateY2 = node.side === "above"
+                // Date on the OPPOSITE side of the spine
+                const dateY = node.side === "above"
                   ? spineY + 10
                   : spineY - dateH - 10;
 
+                // Fade direction: for above-cards, fade fades toward top; below-cards toward bottom
+                const fadeDir = node.side === "above" ? "to top" : "to bottom";
+                const bgColor = bgSurface;
+
                 return (
                   <>
-                    {/* Title — left-justified, to the right of connector line */}
-                    <foreignObject
-                      x={boxX}
-                      y={titleY}
-                      width={labelBoxW}
-                      height={titleBoxH}
-                    >
-                      {/* @ts-expect-error xmlns required */}
-                      <div xmlns="http://www.w3.org/1999/xhtml" style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        alignItems: node.side === "below" ? "flex-end" : "flex-start",
-                      }}>
-                        <div style={{
-                          fontFamily: "'Geist', sans-serif",
-                          fontSize: "15px",
-                          fontWeight: 500,
-                          color: nodeColor,
-                          lineHeight: "1.35",
-                          wordWrap: "break-word",
-                          overflow: "hidden",
-                          display: "-webkit-box",
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical",
-                          textAlign: "left",
-                          width: "100%",
+                    {/* Title — animates outward on hover/select */}
+                    <g style={{
+                      transform:  `translateY(${titleTranslate}px)`,
+                      transition: active ? "transform 0.4s ease" : "transform 0.6s ease",
+                    }}>
+                      <foreignObject x={boxX} y={titleBaseY} width={LABEL_BOX_W} height={titleBoxH}>
+                        {/* @ts-expect-error xmlns required */}
+                        <div xmlns="http://www.w3.org/1999/xhtml" style={{
+                          width: "100%", height: "100%", display: "flex",
+                          alignItems: node.side === "below" ? "flex-start" : "flex-end",
                         }}>
-                          {node.nodeName}
+                          <div style={{
+                            fontFamily: "'Geist', sans-serif", fontSize: "15px", fontWeight: 500,
+                            color: nodeColor, lineHeight: "1.35", wordWrap: "break-word",
+                            overflow: "hidden", display: "-webkit-box",
+                            WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                            textAlign: "left", width: "100%",
+                          }}>
+                            {node.nodeName}
+                          </div>
                         </div>
-                      </div>
-                    </foreignObject>
+                      </foreignObject>
+                    </g>
 
-                    {/* Detail field value — hidden by default, fades in on hover or selection */}
-                    {detailValue && (
+                    {/* Description — fades in, sized to measured content, gradient if capped */}
+                    {detailValue && descH > 0 && (
                       <foreignObject
-                        x={boxX}
-                        y={detailY}
-                        width={labelBoxW}
-                        height={detailBoxH}
-                        style={{
-                          opacity: (isHovered || isSelected) ? 0.85 : 0,
-                          transition: (isHovered || isSelected) ? "opacity 1s ease" : "opacity 1.5s ease",
-                        }}
+                        x={boxX} y={descY} width={LABEL_BOX_W} height={descH}
+                        style={{ opacity: active ? 0.85 : 0, transition: active ? "opacity 1s ease" : "opacity 1.5s ease" }}
                       >
                         {/* @ts-expect-error xmlns required */}
                         <div xmlns="http://www.w3.org/1999/xhtml" style={{
-                          fontFamily: "'Geist', sans-serif",
-                          fontSize: "13px",
-                          fontWeight: 400,
-                          color: textPrimary,
-                          lineHeight: "1.45",
-                          wordWrap: "break-word",
-                          overflow: "hidden",
-                          textAlign: "left",
-                          width: "100%",
-                          height: "100%",
+                          position: "relative", width: "100%", height: "100%", overflow: "hidden",
                         }}>
-                          {detailValue}
+                          <div style={{
+                            fontFamily: "'Geist', sans-serif", fontSize: "13px", fontWeight: 400,
+                            color: textPrimary, lineHeight: "1.45", wordWrap: "break-word", textAlign: "left",
+                          }}>
+                            {detailValue}
+                          </div>
+                          {isCapped && (
+                            <div style={{
+                              position: "absolute", bottom: 0, left: 0, right: 0, height: 48,
+                              background: `linear-gradient(${fadeDir}, ${bgColor}, transparent)`,
+                              pointerEvents: "none",
+                            }} />
+                          )}
                         </div>
                       </foreignObject>
                     )}
 
-                    {/* Date — opposite side of spine from card */}
+                    {/* Date — opposite side of spine */}
                     <text
                       x={boxX}
-                      y={dateY2 + 16}
+                      y={dateY + 16}
                       textAnchor="start"
                       fontFamily="'DM Mono', monospace"
                       fontSize={14}
@@ -395,6 +448,7 @@ function TimelinePanel({
       })}
       </g>
     </svg>
+    </>
   );
 }
 
