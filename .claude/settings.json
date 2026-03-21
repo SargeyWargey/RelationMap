@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Users/josh.sargent/Development/RelationCity log --oneline)",
+      "Bash(find . -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) \\\\\\( -path \"./app/*\" -o -path \"./lib/*\" -o -path \"./components/*\" -o -path \"./scripts/*\" \\\\\\) -exec wc -l {} +)"
+    ]
+  }
+}
