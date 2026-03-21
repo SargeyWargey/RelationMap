@@ -33,7 +33,7 @@ const PARALLAX_LAYERS = [
     lightFill: "rgba(196,146,58,0.09)",
     darkFill:  "rgba(100,120,160,0.10)",
     shiftFactor: 0.008,
-    exitLerp: 0.018,
+    exitLerp: 0.009,
     exitTarget: 90,
   },
   {
@@ -59,7 +59,7 @@ const PARALLAX_LAYERS = [
     lightFill: "rgba(217,119,87,0.07)",
     darkFill:  "rgba(80,100,140,0.10)",
     shiftFactor: 0.018,
-    exitLerp: 0.030,
+    exitLerp: 0.015,
     exitTarget: 110,
   },
   {
@@ -85,14 +85,14 @@ const PARALLAX_LAYERS = [
     lightFill: "rgba(192,107,67,0.065)",
     darkFill:  "rgba(60,80,120,0.12)",
     shiftFactor: 0.032,
-    exitLerp: 0.048,
+    exitLerp: 0.024,
     exitTarget: 130,
   },
 ] as const;
 
 // The text uses the same exit params as layer 2 (front), so it falls with it.
 // It sits between layers 1 and 2 visually (zIndex between them).
-const TEXT_EXIT_LERP   = 0.038; // slightly slower than layer 2 — feels like it's between 1 and 2
+const TEXT_EXIT_LERP   = 0.019; // slightly slower than layer 2 — feels like it's between 1 and 2
 const TEXT_EXIT_TARGET = 120;   // between layer 1 (110) and layer 2 (130)
 
 interface Props {

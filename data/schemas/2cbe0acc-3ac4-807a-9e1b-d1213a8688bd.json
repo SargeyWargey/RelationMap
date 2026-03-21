@@ -13,6 +13,11 @@
       "type": "relation"
     },
     {
+      "id": "B%3Bv%60",
+      "name": "Nick Ops Tasks",
+      "type": "relation"
+    },
+    {
       "id": "Dplc",
       "name": "R-Hours Total",
       "type": "rollup"

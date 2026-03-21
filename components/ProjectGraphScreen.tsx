@@ -198,7 +198,7 @@ export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }:
       />
 
       {/* Full-screen graph */}
-      <div style={{ position: "absolute", inset: 0, opacity: canvasOpacity, transition: "opacity 2s ease", pointerEvents: canvasOpacity === 0 ? "none" : "auto" }}>
+      <div style={{ position: "absolute", inset: 0, opacity: canvasOpacity, transition: "opacity 4s ease", pointerEvents: canvasOpacity === 0 ? "none" : "auto" }}>
         <GraphCanvas
           graph={filteredGraph}
           onSelectNode={handleSelectNode}

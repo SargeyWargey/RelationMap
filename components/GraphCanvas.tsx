@@ -560,7 +560,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
       wasEmptyRef.current = false;
       setSphereOpacity(1);
       setBeanOpacity(0);
-      const timer = setTimeout(() => setShowBean(false), 2000);
+      const timer = setTimeout(() => setShowBean(false), 4000);
       return () => clearTimeout(timer);
     }
     if (!wasEmptyRef.current && isEmpty) {
@@ -821,7 +821,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
 
 
         {/* Sphere content — fades in when first database is selected */}
-        <g style={{ opacity: sphereOpacity, transition: "opacity 2s ease" }}>
+        <g style={{ opacity: sphereOpacity, transition: "opacity 4s ease" }}>
 
         {/* Center text — rendered first so all edges and nodes paint over it */}
         {displayedCenterText && localSelectedId && (() => {

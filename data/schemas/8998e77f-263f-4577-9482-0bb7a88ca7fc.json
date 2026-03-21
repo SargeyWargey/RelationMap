@@ -1,0 +1,221 @@
+{
+  "databaseId": "8998e77f-263f-4577-9482-0bb7a88ca7fc",
+  "databaseName": "IT Ops Board",
+  "fields": [
+    {
+      "id": "%3B%5BDI",
+      "name": "Status",
+      "type": "select",
+      "options": [
+        {
+          "id": "zWV@",
+          "name": "Intake",
+          "color": "gray"
+        },
+        {
+          "id": "D@A@",
+          "name": "Ready",
+          "color": "yellow"
+        },
+        {
+          "id": "Z<L_",
+          "name": "In Progress",
+          "color": "blue"
+        },
+        {
+          "id": "kzOP",
+          "name": "Waiting",
+          "color": "orange"
+        },
+        {
+          "id": "HLd=",
+          "name": "Done",
+          "color": "green"
+        },
+        {
+          "id": "e>^k",
+          "name": "Parked",
+          "color": "brown"
+        }
+      ]
+    },
+    {
+      "id": "%3EWu%3A",
+      "name": "Notes / Outcome",
+      "type": "rich_text"
+    },
+    {
+      "id": "%3Ek%60d",
+      "name": "Project",
+      "type": "relation"
+    },
+    {
+      "id": "AKK%3B",
+      "name": "Target Date",
+      "type": "date"
+    },
+    {
+      "id": "A%7DKN",
+      "name": "Effort",
+      "type": "select",
+      "options": [
+        {
+          "id": "zWV@",
+          "name": "Small",
+          "color": "green"
+        },
+        {
+          "id": "D@A@",
+          "name": "Medium",
+          "color": "yellow"
+        },
+        {
+          "id": "Z<L_",
+          "name": "Large",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "FNQc",
+      "name": "Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "zWV@",
+          "name": "Support",
+          "color": "gray"
+        },
+        {
+          "id": "D@A@",
+          "name": "Operations",
+          "color": "blue"
+        },
+        {
+          "id": "Z<L_",
+          "name": "Vendor",
+          "color": "orange"
+        },
+        {
+          "id": "kzOP",
+          "name": "Infrastructure",
+          "color": "purple"
+        },
+        {
+          "id": "HLd=",
+          "name": "Security",
+          "color": "red"
+        },
+        {
+          "id": "e>^k",
+          "name": "Small Project",
+          "color": "green"
+        },
+        {
+          "id": "RC{Z",
+          "name": "Admin",
+          "color": "brown"
+        }
+      ]
+    },
+    {
+      "id": "Xl%5DG",
+      "name": "Priority",
+      "type": "select",
+      "options": [
+        {
+          "id": "zWV@",
+          "name": "High",
+          "color": "red"
+        },
+        {
+          "id": "D@A@",
+          "name": "Medium",
+          "color": "yellow"
+        },
+        {
+          "id": "Z<L_",
+          "name": "Low",
+          "color": "gray"
+        }
+      ]
+    },
+    {
+      "id": "Y%5B%5B%5B",
+      "name": "Area",
+      "type": "select",
+      "options": [
+        {
+          "id": "zWV@",
+          "name": "Stands",
+          "color": "yellow"
+        },
+        {
+          "id": "D@A@",
+          "name": "Corporate IT",
+          "color": "blue"
+        },
+        {
+          "id": "Z<L_",
+          "name": "Identity",
+          "color": "purple"
+        },
+        {
+          "id": "kzOP",
+          "name": "Network",
+          "color": "orange"
+        },
+        {
+          "id": "HLd=",
+          "name": "Endpoints",
+          "color": "green"
+        },
+        {
+          "id": "e>^k",
+          "name": "Vendors",
+          "color": "brown"
+        },
+        {
+          "id": "RC{Z",
+          "name": "AI / SaaS",
+          "color": "pink"
+        },
+        {
+          "id": "eqBL",
+          "name": "Finance Systems",
+          "color": "gray"
+        },
+        {
+          "id": ">hc`",
+          "name": "Security",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "__%5ED",
+      "name": "Owner",
+      "type": "people"
+    },
+    {
+      "id": "iTO%3B",
+      "name": "Last edited time",
+      "type": "last_edited_time"
+    },
+    {
+      "id": "rS%3BI",
+      "name": "Win Candidate",
+      "type": "checkbox"
+    },
+    {
+      "id": "tY%60Q",
+      "name": "Blocked By",
+      "type": "rich_text"
+    },
+    {
+      "id": "title",
+      "name": "Task Name",
+      "type": "title"
+    }
+  ]
+}

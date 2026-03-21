@@ -98,6 +98,11 @@
           "id": "@uGB",
           "name": "Testing",
           "color": "blue"
+        },
+        {
+          "id": "[tnT",
+          "name": "In QA",
+          "color": "blue"
         }
       ]
     },
@@ -177,7 +182,7 @@
     },
     {
       "id": "6959a5fb-ebd7-4469-8b13-bca9c048fbde",
-      "name": "Project 1",
+      "name": "Project 2",
       "type": "rich_text"
     },
     {
