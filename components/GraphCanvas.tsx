@@ -561,7 +561,25 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
       setSphereOpacity(1);
       setBeanOpacity(0);
       const timer = setTimeout(() => setShowBean(false), 4000);
-      return () => clearTimeout(timer);
+
+      // Intro rotation: start ~20° offset toward top-left, settle to identity over 3.5s
+      const INTRO_DURATION = 3500;
+      const startRot = quatNorm(quatMul(
+        quatFromAxisAngle([0, -1, 0], Math.PI / 12), // ~15° left
+        quatFromAxisAngle([-1, 0, 0], Math.PI / 15), // ~12° up
+      ));
+      setRotation(startRot);
+      const introStart = performance.now();
+      let introFrame: number;
+      const introStep = (now: number) => {
+        const t = Math.min(1, (now - introStart) / INTRO_DURATION);
+        const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+        setRotation(quatNorm(quatSlerp(startRot, QUAT_IDENTITY, ease)));
+        if (t < 1) introFrame = requestAnimationFrame(introStep);
+      };
+      introFrame = requestAnimationFrame(introStep);
+
+      return () => { clearTimeout(timer); cancelAnimationFrame(introFrame); };
     }
     if (!wasEmptyRef.current && isEmpty) {
       // Transition: has nodes → empty (deselect all dbs)

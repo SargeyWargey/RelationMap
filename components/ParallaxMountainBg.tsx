@@ -194,6 +194,8 @@ export function ParallaxMountainBg({ visible = true, showPrompt = false, onBackg
         cursor: onBackgroundClick ? "pointer" : "default",
         zIndex: 0,
         overflow: "hidden",
+        opacity: visible ? 1 : 0,
+        transition: "opacity 3s ease",
       }}
     >
       {/* Layer 0 — back */}
