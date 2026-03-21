@@ -92,6 +92,27 @@ function quatNorm(q: Quat): Quat {
   return [q[0]/len, q[1]/len, q[2]/len, q[3]/len];
 }
 
+/** Inverse of a unit quaternion (conjugate). */
+function quatInverse(q: Quat): Quat {
+  return [-q[0], -q[1], -q[2], q[3]];
+}
+
+/** Convert quaternion to a CSS matrix3d() rotation string (column-major). */
+function quatToMatrix3d(q: Quat): string {
+  const [qx, qy, qz, qw] = q;
+  const r00 = 1 - 2*(qy*qy + qz*qz);
+  const r01 = 2*(qx*qy - qz*qw);
+  const r02 = 2*(qx*qz + qy*qw);
+  const r10 = 2*(qx*qy + qz*qw);
+  const r11 = 1 - 2*(qx*qx + qz*qz);
+  const r12 = 2*(qy*qz - qx*qw);
+  const r20 = 2*(qx*qz - qy*qw);
+  const r21 = 2*(qy*qz + qx*qw);
+  const r22 = 1 - 2*(qx*qx + qy*qy);
+  // matrix3d is column-major: col0, col1, col2, col3
+  return `matrix3d(${r00},${r10},${r20},0, ${r01},${r11},${r21},0, ${r02},${r12},${r22},0, 0,0,0,1)`;
+}
+
 function quatSlerp(a: Quat, b: Quat, t: number): Quat {
   let dot = a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3];
   // Choose shortest path
@@ -455,6 +476,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
   const svgRef       = useRef<SVGSVGElement>(null);
 
   const [rotation, setRotation] = useState<Quat>(QUAT_IDENTITY);
+  const [textBaseRotation, setTextBaseRotation] = useState<Quat>(QUAT_IDENTITY);
   const [zoom, setZoom]         = useState(1.0);
 
   // Animation state for smooth focus transitions
@@ -549,6 +571,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
       return { id: n.id, name: n.name, color: n.color, databaseId: n.databaseId, sx, sy, sz };
     }));
     setRotation(QUAT_IDENTITY);
+    setTextBaseRotation(QUAT_IDENTITY);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphKey, shape]);
 
@@ -642,6 +665,8 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
     animFromRef.current = rotation;
     animToRef.current = targetRotation;
     animStartRef.current = performance.now();
+    // Text base = target so the text faces camera head-on when animation settles
+    setTextBaseRotation(targetRotation);
 
     function animate(now: number) {
       const t = Math.min(1, (now - animStartRef.current) / ANIM_DURATION);
@@ -845,18 +870,27 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
         {displayedCenterText && localSelectedId && (() => {
           const sphereR = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
           const maxW = sphereR * 1.1;
+          const perspective = FOV_BASE * sphereR;
           return (
             <foreignObject
               x={size.w / 2 - maxW / 2}
               y={size.h / 2 - sphereR * 0.55}
               width={maxW}
               height={sphereR * 1.1}
-              style={{ pointerEvents: "none" }}
+              style={{ pointerEvents: "none", overflow: "visible" }}
             >
               <div
                 // @ts-expect-error xmlns required for foreignObject
                 xmlns="http://www.w3.org/1999/xhtml"
-                style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "visible",
+                  perspective: `${perspective}px`,
+                }}
               >
                 <p style={{
                   margin: 0,
@@ -874,6 +908,10 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
                   WebkitLineClamp: 6,
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",
+                  transform: quatToMatrix3d(quatNorm(quatMul(rotation, quatInverse(textBaseRotation)))),
+                  transformStyle: "preserve-3d",
+                  backfaceVisibility: "visible",
+                  maxWidth: maxW,
                 }}>{displayedCenterText}</p>
               </div>
             </foreignObject>
