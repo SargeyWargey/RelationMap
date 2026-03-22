@@ -143,7 +143,16 @@ function HexTile({ r, children, href, className, glowRing }: HexTileProps) {
 // ---------------------------------------------------------------------------
 // Mode definitions
 // ---------------------------------------------------------------------------
-const MODES = [
+type ModeEntry = {
+  href:       string;
+  icon?:      string;
+  iconNode?:  React.ReactNode;
+  title:      string;
+  subtitle:   string;
+  description: string;
+};
+
+const MODES: ModeEntry[] = [
   {
     href: "/graph",
     icon: "/GraphIcon2.png",
@@ -172,6 +181,13 @@ const MODES = [
     subtitle: "explore your people",
     description: "See your Notion data through the lens of people — each person a timeline, each record a moment.",
   },
+  {
+    href:      "/project-archive",
+    iconNode:  <span style={{ fontSize: 28, lineHeight: 1, display: "block", marginBottom: 2 }}>📚</span>,
+    title:     "The Archive",
+    subtitle:  "walk your knowledge",
+    description: "Browse your Notion workspace as a candlelit 3D library — each database an aisle, each record a book.",
+  },
 ];
 
 
@@ -180,23 +196,27 @@ const MODES = [
 // ---------------------------------------------------------------------------
 function ModeHexContent({
   icon,
+  iconNode,
   title,
   subtitle,
   description,
 }: {
-  icon: string;
-  title: string;
-  subtitle: string;
+  icon?:      string;
+  iconNode?:  React.ReactNode;
+  title:      string;
+  subtitle:   string;
   description: string;
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, width: "100%" }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={icon}
-        alt=""
-        style={{ width: 36, height: 36, objectFit: "contain", marginBottom: 2 }}
-      />
+      {iconNode ? iconNode : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={icon}
+          alt=""
+          style={{ width: 36, height: 36, objectFit: "contain", marginBottom: 2 }}
+        />
+      )}
       <span
         style={{
           fontFamily: "'Lora', Georgia, serif",
@@ -282,11 +302,12 @@ export default function HomePage() {
   const sideCY   = (topCY + bottomCY) / 2;
 
   const hexCenters: [number, number][] = [
-    [cx,           topCY              ],  // logo       (top center)
-    [cx,           topCY + vStep      ],  // mode 0  — Graph    (bottom center)
-    [cx - hOffset, sideCY             ],  // mode 1  — City     (left mid)
-    [cx + hOffset, sideCY             ],  // mode 2  — Mountain (right mid)
-    [cx,           topCY + 2 * vStep  ],  // mode 3  — User     (below bottom center)
+    [cx,           topCY              ],  // logo    (top center)
+    [cx,           topCY + vStep      ],  // mode 0 — Graph    (center)
+    [cx - hOffset, sideCY             ],  // mode 1 — City     (left mid)
+    [cx + hOffset, sideCY             ],  // mode 2 — Mountain (right mid)
+    [cx,           topCY + 2 * vStep  ],  // mode 3 — Line     (below center)
+    [cx + hOffset, sideCY + vStep     ],  // mode 4 — Archive  (below Mountain)
   ];
 
   return (
@@ -469,6 +490,7 @@ export default function HomePage() {
               <HexTile r={r} href={mode.href}>
                 <ModeHexContent
                   icon={mode.icon}
+                  iconNode={mode.iconNode}
                   title={mode.title}
                   subtitle={mode.subtitle}
                   description={mode.description}
