@@ -96,4 +96,5 @@ export type AppConfig = {
   workspaces?: NotionWorkspace[];
   activeWorkspaceId?: string;
   fieldConfig?: Record<string, DatabaseFieldConfig>;
+  orreryConfig?: import("./orreryTypes").OrreryConfig;
 };

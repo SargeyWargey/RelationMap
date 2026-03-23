@@ -183,10 +183,19 @@ const MODES: ModeEntry[] = [
   },
   {
     href:      "/project-archive",
-    iconNode:  <span style={{ fontSize: 28, lineHeight: 1, display: "block", marginBottom: 2 }}>📚</span>,
+    // eslint-disable-next-line @next/next/no-img-element
+    iconNode:  <img src="/library.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", marginBottom: 2 }} />,
     title:     "The Archive",
     subtitle:  "walk your knowledge",
     description: "Browse your Notion workspace as a candlelit 3D library — each database an aisle, each record a book.",
+  },
+  {
+    href:      "/project-orrery",
+    // eslint-disable-next-line @next/next/no-img-element
+    iconNode:  <img src="/universe.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", marginBottom: 2 }} />,
+    title:     "The Universe",
+    subtitle:  "your living universe",
+    description: "Map your Notion databases to galaxies, stars, planets, and moons — then fly through your data as a living cosmos.",
   },
 ];
 
@@ -308,6 +317,7 @@ export default function HomePage() {
     [cx + hOffset, sideCY             ],  // mode 2 — Mountain (right mid)
     [cx,           topCY + 2 * vStep  ],  // mode 3 — Line     (below center)
     [cx + hOffset, sideCY + vStep     ],  // mode 4 — Archive  (below Mountain)
+    [cx - hOffset, sideCY + vStep     ],  // mode 5 — Orrery   (below City)
   ];
 
   return (
@@ -442,8 +452,8 @@ export default function HomePage() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/universe.png"
-                alt="The Universe"
+                src="/PimaryIcon.png"
+                alt="Data Visualizer"
                 style={{ width: 80, height: 80, objectFit: "contain" }}
               />
               <span

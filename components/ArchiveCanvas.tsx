@@ -1003,7 +1003,8 @@ export function ArchiveCanvas({ graph, databaseColors }: Props) {
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
           >
             <span style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 20, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.01em", display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontSize: 17 }}>📚</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/library.png" alt="" style={{ width: 20, height: 20, objectFit: "contain" }} />
               The Archive
             </span>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-faint)", fontWeight: 300 }}>
