@@ -442,8 +442,8 @@ export default function HomePage() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/PimaryIcon.png"
-                alt="Data Visualizer Logo"
+                src="/universe.png"
+                alt="The Universe"
                 style={{ width: 80, height: 80, objectFit: "contain" }}
               />
               <span
@@ -457,7 +457,7 @@ export default function HomePage() {
                   textAlign: "center",
                 }}
               >
-                Data Visualizer
+                The Universe
               </span>
               <span
                 style={{

@@ -3,11 +3,11 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "Data Visualizer",
+  title: "The Universe",
   description: "Notion-powered data visualization tools",
   icons: {
-    icon: "/CityIcon.png",
-    apple: "/CityIcon.png",
+    icon: "/universe.png",
+    apple: "/universe.png",
   },
 };
 
