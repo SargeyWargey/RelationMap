@@ -40,6 +40,11 @@
       ]
     },
     {
+      "id": "DUEr",
+      "name": "📘 Franchise DC Purchases - Stories",
+      "type": "relation"
+    },
+    {
       "id": "F%3Ab%3D",
       "name": "Status",
       "type": "status",
@@ -183,11 +188,6 @@
     {
       "id": "hgW%7D",
       "name": "Project",
-      "type": "relation"
-    },
-    {
-      "id": "qz%3Cj",
-      "name": "Stories",
       "type": "relation"
     },
     {

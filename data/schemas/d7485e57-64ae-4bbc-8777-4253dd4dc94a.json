@@ -23,6 +23,11 @@
       "type": "rollup"
     },
     {
+      "id": "%5ERr%5B",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
       "id": "oZAj",
       "name": "Applications",
       "type": "relation"

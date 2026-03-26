@@ -13,6 +13,11 @@
       "type": "date"
     },
     {
+      "id": "eMcS",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
       "id": "lSA%5B",
       "name": "Vendor/Partner",
       "type": "rich_text"

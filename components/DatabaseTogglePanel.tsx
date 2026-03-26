@@ -20,6 +20,11 @@ type Props = {
   flashTrigger?: number;
   /** If provided, only show these database IDs in the panel */
   filterDbIds?: Set<string>;
+  /** Databases that cannot be toggled (e.g. missing required field) */
+  disabledDbs?: Set<string>;
+  /** null = partial selection, true = all selected, false = none selected */
+  selectAllState?: boolean | null;
+  onSelectAll?: () => void;
 };
 
 export function DatabaseTogglePanel({
@@ -35,6 +40,9 @@ export function DatabaseTogglePanel({
   onToggleCollapsed,
   flashTrigger = 0,
   filterDbIds,
+  disabledDbs,
+  selectAllState,
+  onSelectAll,
 }: Props) {
   // flashStep: 0=off, odd=glow-on, even(>0)=glow-off — two pulses
   const [flashStep, setFlashStep] = useState(0);
@@ -151,14 +159,15 @@ export function DatabaseTogglePanel({
   const schemaMap = Object.fromEntries(schemas.map((s) => [s.databaseId, s]));
 
   const glowOn = flashStep === 1;
+  const MOVE_TRANSITION = "left 0.3s cubic-bezier(0.32, 0, 0.15, 1), top 0.3s cubic-bezier(0.32, 0, 0.15, 1)";
   const glowStyle = {
     outline: glowOn ? "1px solid rgba(224,122,53,0.45)" : "1px solid transparent",
     filter: glowOn
       ? "drop-shadow(0 0 10px rgba(224,122,53,0.28)) drop-shadow(0 0 4px rgba(224,122,53,0.18))"
       : "none",
     transition: glowOn
-      ? "outline 0.3s ease, filter 0.3s ease"
-      : "outline 1.2s ease, filter 1.2s ease",
+      ? `${MOVE_TRANSITION}, outline 0.3s ease, filter 0.3s ease`
+      : `${MOVE_TRANSITION}, outline 1.2s ease, filter 1.2s ease`,
   };
 
   // Collapsed pill — same visual style as the bottom stats bar
@@ -181,7 +190,6 @@ export function DatabaseTogglePanel({
           boxShadow: "var(--shadow-sm)",
           cursor: "pointer",
           userSelect: "none",
-          transition: "left 0.3s cubic-bezier(0.32, 0, 0.15, 1), top 0.3s cubic-bezier(0.32, 0, 0.15, 1)",
           ...glowStyle,
         }}
         onClick={onToggleCollapsed}
@@ -230,7 +238,6 @@ export function DatabaseTogglePanel({
           boxShadow: "var(--shadow-md)",
           overflow: "hidden",
           userSelect: "none",
-          transition: "left 0.3s cubic-bezier(0.32, 0, 0.15, 1), top 0.3s cubic-bezier(0.32, 0, 0.15, 1)",
           ...glowStyle,
         }}
         className="animate-fade-up"
@@ -273,7 +280,61 @@ export function DatabaseTogglePanel({
 
         {/* Database rows */}
         <div style={{ padding: "5px 0" }}>
+          {/* Select All row — only shown when onSelectAll is provided */}
+          {onSelectAll && (
+            <div style={{ display: "flex", alignItems: "center", width: "100%", borderBottom: "1px solid var(--border-subtle)", marginBottom: 4, paddingBottom: 2 }}>
+              <button
+                type="button"
+                onClick={onSelectAll}
+                title={selectAllState === true ? "Deselect all" : "Select all"}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 9,
+                  flex: 1,
+                  padding: "5px 8px 5px 14px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  transition: "background 0.12s",
+                  minWidth: 0,
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+              >
+                {/* Select-all indicator: filled=all, half=partial, empty=none */}
+                <span style={{
+                  flexShrink: 0,
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: selectAllState === true
+                    ? "var(--accent-warm)"
+                    : selectAllState === null
+                      ? "var(--accent-gold)"
+                      : "var(--border-default)",
+                  boxShadow: selectAllState ? "0 0 6px rgba(249,115,22,0.5)" : "none",
+                  transition: "background 0.2s, box-shadow 0.2s",
+                }} />
+                <span style={{
+                  fontFamily: "'Geist', sans-serif",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: selectAllState ? "var(--text-secondary)" : "var(--text-faint)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  transition: "color 0.2s",
+                }}>
+                  All Databases
+                </span>
+              </button>
+            </div>
+          )}
+
           {visibleIds.map((id) => {
+            const isDisabled = disabledDbs?.has(id) ?? false;
             const enabled = enabledDbs.has(id);
             const name = dbIdToName[id] ?? id;
             const color = databaseColors[id] ?? "#888";
@@ -287,12 +348,13 @@ export function DatabaseTogglePanel({
                   display: "flex",
                   alignItems: "center",
                   width: "100%",
+                  opacity: isDisabled ? 0.4 : 1,
                 }}
               >
                 <button
                   type="button"
-                  onClick={() => onToggle(id)}
-                  title={name}
+                  onClick={() => !isDisabled && onToggle(id)}
+                  title={isDisabled ? `${name} — no created time field` : name}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -301,13 +363,13 @@ export function DatabaseTogglePanel({
                     padding: "6px 8px 6px 14px",
                     background: "transparent",
                     border: "none",
-                    cursor: "pointer",
+                    cursor: isDisabled ? "not-allowed" : "pointer",
                     textAlign: "left",
                     transition: "background 0.12s",
                     minWidth: 0,
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
+                    if (!isDisabled) (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
                   }}
                   onMouseLeave={(e) => {
                     (e.currentTarget as HTMLElement).style.background = "transparent";

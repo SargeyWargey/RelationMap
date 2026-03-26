@@ -33,6 +33,11 @@
       "type": "rollup"
     },
     {
+      "id": "v~m%3D",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
       "id": "title",
       "name": "Vendor",
       "type": "title"

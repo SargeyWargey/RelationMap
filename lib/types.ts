@@ -86,6 +86,12 @@ export type NotionWorkspace = {
   rootPages: string[];
 };
 
+export type CultureConfig = {
+  playbackSpeed: number;   // months per second (default: 1)
+  showRelations: boolean;  // default: true
+  nodeSizeScale: number;   // multiplier (default: 1)
+};
+
 export type AppConfig = {
   databaseColors: Record<string, string>;
   lastSyncAt?: string;
@@ -97,4 +103,5 @@ export type AppConfig = {
   activeWorkspaceId?: string;
   fieldConfig?: Record<string, DatabaseFieldConfig>;
   orreryConfig?: import("./orreryTypes").OrreryConfig;
+  cultureConfig?: CultureConfig;
 };

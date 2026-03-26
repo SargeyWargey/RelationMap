@@ -529,6 +529,11 @@
       ]
     },
     {
+      "id": "jIyI",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
       "id": "j%5Bgn",
       "name": "CONSTRUCTION KICKOFF (Actual)",
       "type": "date"

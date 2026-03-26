@@ -3,6 +3,11 @@
   "databaseName": "Templates",
   "fields": [
     {
+      "id": "Ecpm",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
       "id": "title",
       "name": "Name",
       "type": "title"

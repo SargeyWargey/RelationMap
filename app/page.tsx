@@ -182,12 +182,11 @@ const MODES: ModeEntry[] = [
     description: "See your Notion data through the lens of people — each person a timeline, each record a moment.",
   },
   {
-    href:      "/project-archive",
-    // eslint-disable-next-line @next/next/no-img-element
-    iconNode:  <img src="/library.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", marginBottom: 2 }} />,
-    title:     "The Archive",
-    subtitle:  "walk your knowledge",
-    description: "Browse your Notion workspace as a candlelit 3D library — each database an aisle, each record a book.",
+    href:      "/project-culture",
+    iconNode:  <span style={{ fontSize: 32, lineHeight: 1, marginBottom: 2 }}>🧫</span>,
+    title:     "The Culture",
+    subtitle:  "growth over time",
+    description: "Watch your Notion data grow like a living culture — nodes bloom from the center as records are created, pushing outward over time.",
   },
   {
     href:      "/project-orrery",
@@ -316,7 +315,7 @@ export default function HomePage() {
     [cx - hOffset, sideCY             ],  // mode 1 — City     (left mid)
     [cx + hOffset, sideCY             ],  // mode 2 — Mountain (right mid)
     [cx,           topCY + 2 * vStep  ],  // mode 3 — Line     (below center)
-    [cx + hOffset, sideCY + vStep     ],  // mode 4 — Archive  (below Mountain)
+    [cx + hOffset, sideCY + vStep     ],  // mode 4 — Culture  (below Mountain)
     [cx - hOffset, sideCY + vStep     ],  // mode 5 — Orrery   (below City)
   ];
 

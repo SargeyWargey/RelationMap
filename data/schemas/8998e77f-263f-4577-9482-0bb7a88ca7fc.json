@@ -24,7 +24,7 @@
         },
         {
           "id": "kzOP",
-          "name": "Waiting",
+          "name": "Waiting/Blocked",
           "color": "orange"
         },
         {
@@ -34,7 +34,7 @@
         },
         {
           "id": "e>^k",
-          "name": "Parked",
+          "name": "Parked/On Hold",
           "color": "brown"
         }
       ]
@@ -206,6 +206,23 @@
       "id": "rS%3BI",
       "name": "Win Candidate",
       "type": "checkbox"
+    },
+    {
+      "id": "r%5C%5Dc",
+      "name": "Ops Window",
+      "type": "select",
+      "options": [
+        {
+          "id": "zWV@",
+          "name": "Weekend Ops (3/28–3/29)",
+          "color": "purple"
+        },
+        {
+          "id": "D@A@",
+          "name": "BAU",
+          "color": "gray"
+        }
+      ]
     },
     {
       "id": "tY%60Q",
