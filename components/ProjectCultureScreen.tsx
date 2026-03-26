@@ -262,7 +262,9 @@ export function ProjectCultureScreen({
             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.7"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
           >
-            <span style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 20, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+            <span style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 20, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.01em", display: "flex", alignItems: "center", gap: 8 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/Culture.png" alt="Culture" style={{ width: 17, height: 17, objectFit: "contain" }} />
               The Culture
             </span>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-faint)", fontWeight: 300 }}>

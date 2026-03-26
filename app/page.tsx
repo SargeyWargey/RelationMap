@@ -183,7 +183,8 @@ const MODES: ModeEntry[] = [
   },
   {
     href:      "/project-culture",
-    iconNode:  <span style={{ fontSize: 32, lineHeight: 1, marginBottom: 2 }}>🧫</span>,
+    // eslint-disable-next-line @next/next/no-img-element
+    iconNode:  <img src="/Culture.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", marginBottom: 2 }} />,
     title:     "The Culture",
     subtitle:  "growth over time",
     description: "Watch your Notion data grow like a living culture — nodes bloom from the center as records are created, pushing outward over time.",

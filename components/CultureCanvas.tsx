@@ -302,7 +302,6 @@ export function CultureCanvas({
       const dx = cx - s.x;
       const dy = cy - s.y;
       const distFromCenter = Math.sqrt(dx * dx + dy * dy) || 1;
-      // Stronger pull the further a node is — prevents escape
       const gravityScale = 1 + Math.max(0, distFromCenter - 200) * 0.003;
       s.vx += dx * CENTER_PULL * gravityScale;
       s.vy += dy * CENTER_PULL * gravityScale;
@@ -313,12 +312,43 @@ export function CultureCanvas({
       s.x += s.vx;
       s.y += s.vy;
 
-      // Soft boundary — push back if outside safe zone
+      // Soft boundary
       const pad = s.r + 16;
-      if (s.x < pad)      { s.x = pad;      s.vx = Math.abs(s.vx) * 0.3; }
-      if (s.x > W - pad)  { s.x = W - pad;  s.vx = -Math.abs(s.vx) * 0.3; }
-      if (s.y < pad)      { s.y = pad;      s.vy = Math.abs(s.vy) * 0.3; }
-      if (s.y > H - pad)  { s.y = H - pad;  s.vy = -Math.abs(s.vy) * 0.3; }
+      if (s.x < pad)     { s.x = pad;     s.vx = Math.abs(s.vx) * 0.3; }
+      if (s.x > W - pad) { s.x = W - pad; s.vx = -Math.abs(s.vx) * 0.3; }
+      if (s.y < pad)     { s.y = pad;     s.vy = Math.abs(s.vy) * 0.3; }
+      if (s.y > H - pad) { s.y = H - pad; s.vy = -Math.abs(s.vy) * 0.3; }
+    }
+
+    // ── Collision resolution — always runs, alpha-independent ────────────────
+    // Directly corrects positions so nodes never overlap, regardless of whether
+    // the simulation has cooled. Run multiple passes so dense clusters resolve.
+    const COLLISION_GAP = 3;
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i], b = nodes[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+          const minDist = a.r + b.r + COLLISION_GAP;
+          if (dist < minDist) {
+            // Push apart by half the overlap each
+            const overlap = (minDist - dist) / 2;
+            const nx = dx / dist;
+            const ny = dy / dist;
+            a.x -= nx * overlap;
+            a.y -= ny * overlap;
+            b.x += nx * overlap;
+            b.y += ny * overlap;
+            // Nudge velocities apart so they don't immediately re-collide
+            a.vx -= nx * overlap * 0.5;
+            a.vy -= ny * overlap * 0.5;
+            b.vx += nx * overlap * 0.5;
+            b.vy += ny * overlap * 0.5;
+          }
+        }
+      }
     }
   }, [size.w, size.h, graph.edges]);
 
