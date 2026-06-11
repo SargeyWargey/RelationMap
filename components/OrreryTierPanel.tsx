@@ -9,6 +9,21 @@ type Props = {
   graphData: GraphData;
 };
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 export function OrreryTierPanel({ orreryConfig, graphData }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -33,15 +48,15 @@ export function OrreryTierPanel({ orreryConfig, graphData }: Props) {
     <>
       {/* Toggle button */}
       <button
-        type="button"
+        type="button" {...focusRing}
         onClick={() => setOpen((v) => !v)}
         title="Show tier mapping"
         style={{
           height: 28,
           padding: "0 12px",
           borderRadius: 8,
-          border: `1px solid ${open ? "rgba(224,122,53,0.55)" : "rgba(255,255,255,0.15)"}`,
-          background: open ? "rgba(224,122,53,0.09)" : "rgba(255,255,255,0.06)",
+          border: `1px solid ${open ? "var(--accent-warm-glow, rgba(217,119,87,0.35))" : "rgba(255,255,255,0.15)"}`,
+          background: open ? "var(--accent-warm-soft, rgba(217,119,87,0.18))" : "rgba(255,255,255,0.06)",
           backdropFilter: "blur(12px)",
           cursor: "pointer",
           display: "flex",
@@ -50,7 +65,7 @@ export function OrreryTierPanel({ orreryConfig, graphData }: Props) {
           fontSize: 11,
           fontFamily: "'Geist', sans-serif",
           fontWeight: 500,
-          color: open ? "rgba(224,122,53,0.85)" : "rgba(255,255,255,0.5)",
+          color: open ? "var(--accent-warm)" : "rgba(255,255,255,0.5)",
           transition: "background 0.15s, color 0.15s, border-color 0.15s",
           whiteSpace: "nowrap",
         }}
@@ -59,8 +74,8 @@ export function OrreryTierPanel({ orreryConfig, graphData }: Props) {
           (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.85)";
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.background = open ? "rgba(224,122,53,0.09)" : "rgba(255,255,255,0.06)";
-          (e.currentTarget as HTMLElement).style.color = open ? "rgba(224,122,53,0.85)" : "rgba(255,255,255,0.5)";
+          (e.currentTarget as HTMLElement).style.background = open ? "var(--accent-warm-soft, rgba(217,119,87,0.18))" : "rgba(255,255,255,0.06)";
+          (e.currentTarget as HTMLElement).style.color = open ? "var(--accent-warm)" : "rgba(255,255,255,0.5)";
         }}
       >
         🪐 Tiers
@@ -78,7 +93,7 @@ export function OrreryTierPanel({ orreryConfig, graphData }: Props) {
             background: "rgba(5,6,13,0.93)",
             backdropFilter: "blur(20px)",
             border: "1px solid rgba(255,255,255,0.11)",
-            borderRadius: 14,
+            borderRadius: 12,
             boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
             overflow: "hidden",
           }}
@@ -108,7 +123,7 @@ export function OrreryTierPanel({ orreryConfig, graphData }: Props) {
                   fontSize: 9,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: "rgba(224,122,53,0.65)",
+                  color: "var(--accent-warm)",
                   minWidth: 44,
                   flexShrink: 0,
                 }}>

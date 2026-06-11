@@ -26,6 +26,9 @@
   --accent-sage:    #5a7a5e;
   --accent-slate:   #5a7080;
 
+  --accent-warm-glow: rgba(217, 119, 87, 0.35);
+  --accent-warm-soft: rgba(217, 119, 87, 0.18);
+
   --node-glow:      rgba(217, 119, 87, 0.35);
   --edge-color:     rgba(90, 80, 68, 0.22);
   --edge-hover:     rgba(217, 119, 87, 0.55);
@@ -62,6 +65,9 @@
   --accent-gold:    #c99a4b;
   --accent-sage:    #6a9b6e;
   --accent-slate:   #6a8a9a;
+
+  --accent-warm-glow: rgba(218, 119, 86, 0.35);
+  --accent-warm-soft: rgba(218, 119, 86, 0.18);
 
   --node-glow:      rgba(218, 119, 86, 0.40);
   --edge-color:     rgba(255, 255, 255, 0.10);
@@ -109,6 +115,12 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
   border-radius: 10px;
+}
+
+/* Brand focus state — keyboard navigation only (:focus-visible) */
+:focus-visible {
+  outline: 2px solid var(--accent-warm);
+  outline-offset: 2px;
 }
 
 /* Graph canvas cursor states */
@@ -159,9 +171,9 @@ body {
 
 @keyframes dbPanelFlash {
   0%   { box-shadow: var(--shadow-md); border-color: var(--border-default); }
-  20%  { box-shadow: var(--shadow-md), 0 0 0 2px rgba(224,122,53,0.5), 0 0 18px rgba(224,122,53,0.35); border-color: rgba(224,122,53,0.8); }
+  20%  { box-shadow: var(--shadow-md), 0 0 0 2px var(--accent-warm-glow), 0 0 18px var(--accent-warm-glow); border-color: var(--accent-warm); }
   45%  { box-shadow: var(--shadow-md); border-color: var(--border-default); }
-  65%  { box-shadow: var(--shadow-md), 0 0 0 2px rgba(224,122,53,0.5), 0 0 18px rgba(224,122,53,0.35); border-color: rgba(224,122,53,0.8); }
+  65%  { box-shadow: var(--shadow-md), 0 0 0 2px var(--accent-warm-glow), 0 0 18px var(--accent-warm-glow); border-color: var(--accent-warm); }
   100% { box-shadow: var(--shadow-md); border-color: var(--border-default); }
 }
 

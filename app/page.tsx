@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "@/components/ThemeProvider";
 import { WorkspaceConfigModal } from "@/components/WorkspaceConfigModal";
@@ -37,9 +37,10 @@ interface HexTileProps {
   href?: string;
   className?: string;
   glowRing?: boolean; // permanently orange border + orange glow
+  ariaLabel?: string; // accessible name for the link
 }
 
-function HexTile({ r, children, href, className, glowRing }: HexTileProps) {
+function HexTile({ r, children, href, className, glowRing, ariaLabel }: HexTileProps) {
   const [hovered, setHovered] = useState(false);
   const s3 = Math.sqrt(3);
   const W = 2 * r;
@@ -65,7 +66,7 @@ function HexTile({ r, children, href, className, glowRing }: HexTileProps) {
         filter: glowRing
           ? "drop-shadow(0 4px 16px rgba(0,0,0,0.28)) drop-shadow(0 1px 4px rgba(0,0,0,0.16))"
           : hovered
-            ? "drop-shadow(0 0 11px rgba(224,122,53,0.33)) drop-shadow(0 0 4px rgba(224,122,53,0.21)) drop-shadow(0 4px 12px rgba(0,0,0,0.18))"
+            ? "drop-shadow(0 0 11px var(--accent-warm-glow, rgba(217,119,87,0.35))) drop-shadow(0 0 4px var(--accent-warm-soft, rgba(217,119,87,0.18))) drop-shadow(0 4px 12px rgba(0,0,0,0.18))"
             : "drop-shadow(0 2px 8px rgba(0,0,0,0.10)) drop-shadow(0 1px 2px rgba(0,0,0,0.07))",
         cursor: href ? "pointer" : "default",
         flexShrink: 0,
@@ -132,7 +133,11 @@ function HexTile({ r, children, href, className, glowRing }: HexTileProps) {
 
   if (href) {
     return (
-      <Link href={href} style={{ textDecoration: "none", display: "block", flexShrink: 0 }}>
+      <Link
+        href={href}
+        aria-label={ariaLabel}
+        style={{ textDecoration: "none", display: "block", flexShrink: 0 }}
+      >
         {tile}
       </Link>
     );
@@ -289,6 +294,19 @@ export default function HomePage() {
   const { darkMode, toggleDarkMode } = useTheme();
   const [configOpen, setConfigOpen] = useState(false);
 
+  // Viewport size — drives honeycomb scaling and the narrow stacked layout.
+  // SSR-safe default renders full size; corrected on mount.
+  const [viewport, setViewport] = useState({ w: 1280, h: 1000 });
+  useEffect(() => {
+    const update = () => setViewport({ w: window.innerWidth, h: window.innerHeight });
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  const scale = Math.min(1, viewport.w / 1280, viewport.h / 1000);
+  const stacked = viewport.w < 700;
+
   // All hexagons the same radius
   const r = 140;
   const s3 = Math.sqrt(3);
@@ -319,6 +337,53 @@ export default function HomePage() {
     [cx + hOffset, sideCY + vStep     ],  // mode 4 — Archive  (below Mountain)
     [cx - hOffset, sideCY + vStep     ],  // mode 5 — Orrery   (below City)
   ];
+
+  // Logo hexagon — shared by both the honeycomb and stacked layouts.
+  const logoHex = (
+    <HexTile r={r} glowRing>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 10,
+          width: r * 1.05,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/PimaryIcon.png"
+          alt="The Universe — Notion data visualizer"
+          style={{ width: 80, height: 80, objectFit: "contain" }}
+        />
+        <span
+          style={{
+            fontFamily: "'Lora', Georgia, serif",
+            fontSize: 20,
+            fontWeight: 600,
+            color: "var(--text-primary)",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.2,
+            textAlign: "center",
+          }}
+        >
+          The Universe
+        </span>
+        <span
+          style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 10,
+            color: "var(--text-faint)",
+            fontWeight: 300,
+            letterSpacing: "0.03em",
+            textAlign: "center",
+          }}
+        >
+          choose a mode to get started
+        </span>
+      </div>
+    </HexTile>
+  );
 
   return (
     <main
@@ -354,6 +419,7 @@ export default function HomePage() {
           type="button"
           onClick={() => setConfigOpen(true)}
           title="Configure workspaces"
+          aria-label="Configure workspaces"
           style={{
             height: 28,
             padding: "0 12px",
@@ -393,6 +459,7 @@ export default function HomePage() {
           type="button"
           onClick={toggleDarkMode}
           title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           style={{
             width: 28,
             height: 28,
@@ -422,82 +489,34 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* Honeycomb cluster */}
-      <div
-        className="animate-fade-up"
-        style={{
-          position: "relative",
-          width: canvasW,
-          height: canvasH,
-          flexShrink: 0,
-        }}
-      >
-        {/* ---- Logo hexagon (top center) ---- */}
+      {/* Honeycomb cluster — scaled to fit, or a vertical stack on narrow screens */}
+      {stacked ? (
         <div
+          role="navigation"
+          aria-label="Visualization modes"
           style={{
-            position: "absolute",
-            left: hexCenters[0][0] - W / 2,
-            top: hexCenters[0][1] - H / 2,
+            position: "relative",
+            zIndex: 1,
+            width: "100%",
+            height: "100%",
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 16,
+            padding: "72px 16px 48px",
           }}
         >
-          <HexTile r={r} glowRing>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 10,
-                width: r * 1.05,
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/PimaryIcon.png"
-                alt="Data Visualizer"
-                style={{ width: 80, height: 80, objectFit: "contain" }}
-              />
-              <span
-                style={{
-                  fontFamily: "'Lora', Georgia, serif",
-                  fontSize: 20,
-                  fontWeight: 600,
-                  color: "var(--text-primary)",
-                  letterSpacing: "-0.02em",
-                  lineHeight: 1.2,
-                  textAlign: "center",
-                }}
-              >
-                The Universe
-              </span>
-              <span
-                style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 10,
-                  color: "var(--text-faint)",
-                  fontWeight: 300,
-                  letterSpacing: "0.03em",
-                  textAlign: "center",
-                }}
-              >
-                choose a mode to get started
-              </span>
-            </div>
-          </HexTile>
-        </div>
-
-        {/* ---- Mode hexagons (2×2 grid below logo) ---- */}
-        {MODES.map((mode, i) => {
-          const [mx, my] = hexCenters[i + 1];
-          return (
+          <div className="animate-fade-up" style={{ flexShrink: 0 }}>
+            {logoHex}
+          </div>
+          {MODES.map((mode, i) => (
             <div
               key={mode.href}
-              style={{
-                position: "absolute",
-                left: mx - W / 2,
-                top: my - H / 2,
-              }}
+              className="animate-fade-up"
+              style={{ animationDelay: `${(i + 1) * 60}ms`, flexShrink: 0 }}
             >
-              <HexTile r={r} href={mode.href}>
+              <HexTile r={r} href={mode.href} ariaLabel={`${mode.title} — ${mode.subtitle}`}>
                 <ModeHexContent
                   icon={mode.icon}
                   iconNode={mode.iconNode}
@@ -507,9 +526,61 @@ export default function HomePage() {
                 />
               </HexTile>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div
+          role="navigation"
+          aria-label="Visualization modes"
+          style={{
+            position: "relative",
+            width: canvasW,
+            height: canvasH,
+            flexShrink: 0,
+            transform: `scale(${scale})`,
+            transformOrigin: "center center",
+          }}
+        >
+          {/* ---- Logo hexagon (top center) ---- */}
+          <div
+            className="animate-fade-up"
+            style={{
+              position: "absolute",
+              left: hexCenters[0][0] - W / 2,
+              top: hexCenters[0][1] - H / 2,
+            }}
+          >
+            {logoHex}
+          </div>
+
+          {/* ---- Mode hexagons (staggered entry, logo first) ---- */}
+          {MODES.map((mode, i) => {
+            const [mx, my] = hexCenters[i + 1];
+            return (
+              <div
+                key={mode.href}
+                className="animate-fade-up"
+                style={{
+                  position: "absolute",
+                  left: mx - W / 2,
+                  top: my - H / 2,
+                  animationDelay: `${(i + 1) * 60}ms`,
+                }}
+              >
+                <HexTile r={r} href={mode.href} ariaLabel={`${mode.title} — ${mode.subtitle}`}>
+                  <ModeHexContent
+                    icon={mode.icon}
+                    iconNode={mode.iconNode}
+                    title={mode.title}
+                    subtitle={mode.subtitle}
+                    description={mode.description}
+                  />
+                </HexTile>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Workspace config modal */}
       {configOpen && <WorkspaceConfigModal onClose={() => setConfigOpen(false)} />}

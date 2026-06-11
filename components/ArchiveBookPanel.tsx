@@ -12,6 +12,21 @@ type Props = {
   onNavigate: (nodeId: string) => void;
 };
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ArchiveBookPanel({ book, graph, onClose, onNavigate }: Props) {
@@ -103,6 +118,7 @@ export function ArchiveBookPanel({ book, graph, onClose, onNavigate }: Props) {
         <button
           onClick={onClose}
           aria-label="Close"
+          {...focusRing}
           style={{
             background:  "none",
             border:      "none",
@@ -181,6 +197,7 @@ export function ArchiveBookPanel({ book, graph, onClose, onNavigate }: Props) {
             href={book.notionUrl}
             target="_blank"
             rel="noopener noreferrer"
+            {...focusRing}
             style={{
               color:          "var(--accent-warm, #d97757)",
               fontSize:       13,
@@ -214,6 +231,7 @@ export function ArchiveBookPanel({ book, graph, onClose, onNavigate }: Props) {
               <button
                 key={n.id}
                 onClick={() => onNavigate(n.id)}
+                {...focusRing}
                 style={{
                   background:    "rgba(255,213,158,0.05)",
                   border:        `1px solid ${BORDER}`,

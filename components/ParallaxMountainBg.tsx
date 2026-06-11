@@ -130,13 +130,23 @@ export function ParallaxMountainBg({ visible = true, showPrompt = false, onBackg
     };
     window.addEventListener("mousemove", onMove, { passive: true });
 
+    // Live media query — .matches stays current without a listener.
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
     const tick = () => {
       // Mouse parallax
       const lerp = 0.06;
       smoothRef.current.x += (mouseRef.current.x - smoothRef.current.x) * lerp;
       smoothRef.current.y += (mouseRef.current.y - smoothRef.current.y) * lerp;
-      const dx = smoothRef.current.x - 0.5;
-      const dy = smoothRef.current.y - 0.5;
+
+      // Very slow ambient drift (~60s / ~45s periods) so the scene feels
+      // alive even without mouse movement. Skipped for reduced motion.
+      const t = performance.now();
+      const driftX = reduceMotion.matches ? 0 : Math.sin(t * 0.000105) * 0.16;
+      const driftY = reduceMotion.matches ? 0 : Math.cos(t * 0.00014) * 0.09;
+
+      const dx = smoothRef.current.x - 0.5 + driftX;
+      const dy = smoothRef.current.y - 0.5 + driftY;
 
       PARALLAX_LAYERS.forEach((layer, i) => {
         const el = layerRefs.current[i];

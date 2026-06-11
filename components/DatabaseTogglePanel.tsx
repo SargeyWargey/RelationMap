@@ -22,6 +22,21 @@ type Props = {
   filterDbIds?: Set<string>;
 };
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 export function DatabaseTogglePanel({
   allDatabaseIds,
   dbIdToName,
@@ -152,9 +167,9 @@ export function DatabaseTogglePanel({
 
   const glowOn = flashStep === 1;
   const glowStyle = {
-    outline: glowOn ? "1px solid rgba(224,122,53,0.45)" : "1px solid transparent",
+    outline: glowOn ? "1px solid var(--accent-warm-glow, rgba(217,119,87,0.35))" : "1px solid transparent",
     filter: glowOn
-      ? "drop-shadow(0 0 10px rgba(224,122,53,0.28)) drop-shadow(0 0 4px rgba(224,122,53,0.18))"
+      ? "drop-shadow(0 0 10px var(--accent-warm-glow, rgba(217,119,87,0.35))) drop-shadow(0 0 4px var(--accent-warm-soft, rgba(217,119,87,0.18)))"
       : "none",
     transition: glowOn
       ? "outline 0.3s ease, filter 0.3s ease"
@@ -181,7 +196,9 @@ export function DatabaseTogglePanel({
           boxShadow: "var(--shadow-sm)",
           cursor: "pointer",
           userSelect: "none",
-          transition: "left 0.3s cubic-bezier(0.32, 0, 0.15, 1), top 0.3s cubic-bezier(0.32, 0, 0.15, 1)",
+          // NOTE: glowStyle provides `transition` (outline/filter pulse). A left/top
+          // transition literal here was always overwritten by the spread (TS2783),
+          // so it has been removed — position changes never animated at runtime.
           ...glowStyle,
         }}
         onClick={onToggleCollapsed}
@@ -230,7 +247,9 @@ export function DatabaseTogglePanel({
           boxShadow: "var(--shadow-md)",
           overflow: "hidden",
           userSelect: "none",
-          transition: "left 0.3s cubic-bezier(0.32, 0, 0.15, 1), top 0.3s cubic-bezier(0.32, 0, 0.15, 1)",
+          // NOTE: glowStyle provides `transition` (outline/filter pulse). A left/top
+          // transition literal here was always overwritten by the spread (TS2783),
+          // so it has been removed — position changes never animated at runtime.
           ...glowStyle,
         }}
         className="animate-fade-up"
@@ -276,7 +295,8 @@ export function DatabaseTogglePanel({
           {visibleIds.map((id) => {
             const enabled = enabledDbs.has(id);
             const name = dbIdToName[id] ?? id;
-            const color = databaseColors[id] ?? "#888";
+            // Full 6-digit hex required — `${color}99` below appends an alpha suffix
+            const color = databaseColors[id] ?? "#888888";
             const hasSchema = !!schemaMap[id];
             const isSubOpen = openSubPanelDbId === id;
 
@@ -290,7 +310,7 @@ export function DatabaseTogglePanel({
                 }}
               >
                 <button
-                  type="button"
+                  type="button" {...focusRing}
                   onClick={() => onToggle(id)}
                   title={name}
                   style={{
@@ -338,7 +358,7 @@ export function DatabaseTogglePanel({
 
                 {hasSchema && (
                   <button
-                    type="button"
+                    type="button" {...focusRing}
                     title="Configure fields"
                     onClick={() => setOpenSubPanelDbId(isSubOpen ? null : id)}
                     style={{

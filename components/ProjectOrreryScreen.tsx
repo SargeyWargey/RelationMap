@@ -32,6 +32,21 @@ type NavigationPath = {
   planetName?: string;
 };
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 export function ProjectOrreryScreen({ initialGraph, databaseColors: _databaseColors, lastSyncAt: _lastSyncAt, orreryConfig: initialOrreryConfig }: Props) {
   const { darkMode, toggleDarkMode } = useTheme();
   const [orreryConfig, setOrreryConfig] = useState<OrreryConfig | null>(initialOrreryConfig);
@@ -186,7 +201,7 @@ export function ProjectOrreryScreen({ initialGraph, databaseColors: _databaseCol
         {/* Reconfigure button (8.7) */}
         {orreryConfig && !showBuilder && (
           <button
-            type="button"
+            type="button" {...focusRing}
             onClick={() => setShowBuilder(true)}
             style={{ height: 28, padding: "0 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", backdropFilter: "blur(12px)", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontFamily: "'Geist', sans-serif", fontWeight: 500, color: "rgba(255,255,255,0.5)", transition: "background 0.15s, color 0.15s, border-color 0.15s", whiteSpace: "nowrap" }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.12)"; (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.85)"; }}
@@ -198,7 +213,7 @@ export function ProjectOrreryScreen({ initialGraph, databaseColors: _databaseCol
 
         {/* Dark mode toggle */}
         <button
-          type="button"
+          type="button" {...focusRing}
           onClick={toggleDarkMode}
           title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", backdropFilter: "blur(12px)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "rgba(255,255,255,0.5)", transition: "background 0.15s, color 0.15s" }}
@@ -246,7 +261,7 @@ export function ProjectOrreryScreen({ initialGraph, databaseColors: _databaseCol
 
           {/* Tier + database */}
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(224,122,53,0.7)" }}>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--accent-warm)" }}>
               {hoverInfo.tier}
             </span>
             <span style={{ width: 1, height: 10, background: "rgba(255,255,255,0.12)", flexShrink: 0 }} />

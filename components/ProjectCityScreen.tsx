@@ -239,6 +239,13 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
 
   const canToggleFlyover = !!selectedDetail || flyover;
 
+  // Return-to-center affordance (street view, far from origin)
+  const [farFromCenter, setFarFromCenter] = useState(false);
+  const [returnToCenterTrigger, setReturnToCenterTrigger] = useState(0);
+  useEffect(() => {
+    if (!firstPerson) setFarFromCenter(false);
+  }, [firstPerson]);
+
   // Database panel collapsed state
   const [dbPanelCollapsed, setDbPanelCollapsed] = useState(false);
 
@@ -307,6 +314,8 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
           jumpEnabled={jumpEnabled}
           webEnabled={webEnabled}
           showConnectors={showConnectors}
+          onFarFromCenterChange={setFarFromCenter}
+          returnToCenterTrigger={returnToCenterTrigger}
         />
       </div>
 
@@ -905,7 +914,12 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
           boxShadow: "var(--shadow-sm)",
         }}>
           {(firstPerson
-            ? [["W A S D", "move"], ["mouse", "look"], ["shift", "sprint"]]
+            ? [
+                ["W A S D", "move"], ["mouse", "look"], ["shift", "sprint"],
+                ...(jumpEnabled ? [["space", "jump"]] : []),
+                ...(webEnabled ? [["right-click", "web"]] : []),
+                ["esc", "exit"],
+              ]
             : flyover
               ? [["esc", "exit flyover"], ["click", "select & restart"]]
               : [["drag", "orbit"], ["right-drag", "pan"], ["scroll", "zoom"], ["click", "select"]]
@@ -930,6 +944,44 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
           ))}
         </div>
       </div>
+
+      {/* Return-to-center hint — shown when the player wanders far from the city */}
+      {firstPerson && farFromCenter && (
+        <button
+          type="button"
+          onClick={() => setReturnToCenterTrigger((v) => v + 1)}
+          title="Teleport back to the city center"
+          style={{
+            position: "absolute",
+            bottom: 70,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 20,
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 11,
+            color: "var(--text-muted)",
+            background: "var(--panel-bg)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid var(--border-default)",
+            borderRadius: 8,
+            padding: "5px 12px",
+            cursor: "pointer",
+            boxShadow: "var(--shadow-sm)",
+            letterSpacing: "0.03em",
+            transition: "color 0.2s, border-color 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "var(--accent-warm)";
+            (e.currentTarget as HTMLElement).style.borderColor = "var(--accent-warm)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
+            (e.currentTarget as HTMLElement).style.borderColor = "var(--border-default)";
+          }}
+        >
+          far from town — return to center
+        </button>
+      )}
 
       {/* First-person HUD hint */}
       {firstPerson && (
@@ -1010,15 +1062,16 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
         >
           <polyline
             points={panelOpen ? "3,2 8,8 3,14" : "7,2 2,8 7,14"}
-            stroke={
-              !panelOpen && selectedDetail !== null
-                ? "#f97316"
-                : "var(--text-muted)"
-            }
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ transition: "stroke 0.2s" }}
+            style={{
+              transition: "stroke 0.2s",
+              stroke:
+                !panelOpen && selectedDetail !== null
+                  ? "var(--accent-warm)"
+                  : "var(--text-muted)",
+            }}
           />
         </svg>
       </button>

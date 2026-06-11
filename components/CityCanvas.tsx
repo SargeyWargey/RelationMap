@@ -15,6 +15,24 @@ const FP_SPRINT   = 14;   // units/sec sprinting
 const FP_SENS     = 0.002; // mouse look sensitivity
 const FP_JUMP_VEL = 8;    // upward velocity on jump (world units/sec)
 const FP_GRAVITY  = 20;   // downward acceleration (world units/sec²)
+const FP_ACCEL_TIME = 0.1;  // seconds for walk velocity to reach ~63% of target
+const FP_MAX_FALL   = 15;   // max downward speed (world units/sec)
+const FP_BOB_AMP    = 0.035; // head-bob amplitude (world units, ≤ 0.05)
+const FP_BOB_FREQ_WALK   = 9;  // head-bob frequency while walking (rad/sec)
+const FP_BOB_FREQ_SPRINT = 13; // head-bob frequency while sprinting (rad/sec)
+const FAR_FROM_CENTER_DIST = 250; // horizontal distance that triggers the return-to-center hint
+const COLLISION_CELL = BUILDING_BASE * 3; // spatial-grid cell size for FP roof collision
+
+// ─── Hover Constants ──────────────────────────────────────────────────────────
+const HOVER_THROTTLE_MS    = 30;   // min interval between hover raycasts
+const HOVER_OPACITY_BOOST  = 0.10; // face-opacity bump on hovered building
+
+// ─── Atmosphere Constants ─────────────────────────────────────────────────────
+// Theme-resolved equivalents of --bg-base (see docs/color-scheme.md)
+const BG_LIGHT = 0xf7f3ed;
+const BG_DARK  = 0x1a1a1a;
+const FOG_NEAR = 140;  // beyond the default fitted orbit distance — city stays crisp
+const FOG_FAR  = 460;  // ground plane edge (~300 from center) fades into haze
 
 // ─── Web Swing Constants ──────────────────────────────────────────────────────
 const WEB_SHOOT_RANGE   = 80;   // max raycast distance to attach web
@@ -77,10 +95,24 @@ type SceneState = {
   fpKeys: Set<string>;
   fpVelY: number;
   fpOnGround: boolean;
+  fpMoveVelX: number;       // smoothed walk velocity (world units/sec)
+  fpMoveVelZ: number;
+  fpBobPhase: number;       // head-bob sine phase
+  fpBobOffset: number;      // head-bob Y offset applied to the camera last frame
+  fpSpawn: THREE.Vector3;   // street-level spawn point (return-to-center target)
+  farFromCenter: boolean;   // player wandered beyond FAR_FROM_CENTER_DIST
+  lastFarCheckMs: number;
+  collisionGrid: Map<string, CityNode[]>;
   overheadPos: THREE.Vector3;
   overheadTarget: THREE.Vector3;
   animFrameId: number;
   prevTime: number;
+  // Reusable scratch vectors (avoid per-frame allocation)
+  _fwd: THREE.Vector3;
+  _rgt: THREE.Vector3;
+  _toPlayer: THREE.Vector3;
+  _radialDir: THREE.Vector3;
+  _vel3: THREE.Vector3;
   // Label settings
   showLabelsFP: boolean;
   showLabelsOverhead: boolean;
@@ -134,6 +166,8 @@ type Props = {
   jumpEnabled?: boolean;
   webEnabled?: boolean;
   showConnectors?: boolean;
+  onFarFromCenterChange?: (far: boolean) => void;
+  returnToCenterTrigger?: number;
 };
 
 function fitCameraToBuildings(
@@ -451,6 +485,67 @@ function buildOverheadOpacityMap<T>(
   return opacityMap;
 }
 
+// Shared layout constants for overhead label pills (orbit + flyover renderers)
+const LABEL_DIAG_X = 26;   // horizontal offset of angled segment (toward label)
+const LABEL_DIAG_Y = 54;   // default vertical rise of angled segment
+const LABEL_HORIZ  = 62;   // horizontal segment length
+const LABEL_BOX_H  = 22;   // approximate label height for overlap detection
+const LABEL_PAD_X  = 8;    // pill horizontal padding
+const LABEL_PAD_Y  = 4;    // pill vertical padding
+const LABEL_FONT   = "'DM Mono',monospace";
+
+function labelPalette(darkMode: boolean): { textFill: string; pillBg: string } {
+  return {
+    textFill: darkMode ? "rgba(255,255,255,0.96)" : "rgba(14,14,20,0.96)",
+    pillBg:   darkMode ? "rgba(10,10,22,0.84)"    : "rgba(255,255,255,0.90)",
+  };
+}
+
+function approxLabelTextWidth(name: string, isMain: boolean): number {
+  return Math.max(44, name.length * (isMain ? 7.6 : 7.1));
+}
+
+// Renders one leader-line + pill + text label as an SVG fragment.
+// Shared by the orbit-mode click labels and the flyover labels.
+function renderOverheadLabelPill(opts: {
+  sx: number; sy: number;          // dot at building top (screen px)
+  ex: number; ey: number;          // elbow of the leader line
+  facingRight: boolean;
+  name: string;
+  isMain: boolean;
+  color: string;
+  opacity: number;                 // overall label opacity
+  lineOpacity: number;             // leader-line opacity (already scaled)
+  textFill: string;
+  pillBg: string;
+}): string {
+  const { sx, sy, ex, ey, facingRight, name, isMain, color, opacity, lineOpacity, textFill, pillBg } = opts;
+  const fs  = isMain ? 12 : 11;
+  const fw  = isMain ? "600" : "400";
+  const sw  = isMain ? "1.7" : "1.3";
+  const horizEnd = facingRight ? ex + LABEL_HORIZ : ex - LABEL_HORIZ;
+  const approxTW = approxLabelTextWidth(name, isMain);
+  const pillW    = approxTW + LABEL_PAD_X * 2;
+  const pillH    = fs + LABEL_PAD_Y * 2;
+  const rectX    = facingRight ? horizEnd : horizEnd - pillW;
+  const rectY    = ey - pillH / 2;
+  const textX    = facingRight ? horizEnd + LABEL_PAD_X : horizEnd - LABEL_PAD_X;
+  const anchor   = facingRight ? "start" : "end";
+
+  let html = "";
+  // Dot at building top
+  html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="2.5" fill="${color}" opacity="${(0.92 * opacity).toFixed(2)}"/>`;
+  // Angled segment
+  html += `<line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${sw}" opacity="${lineOpacity.toFixed(2)}"/>`;
+  // Horizontal segment
+  html += `<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${horizEnd.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${sw}" opacity="${lineOpacity.toFixed(2)}"/>`;
+  // Pill background
+  html += `<rect x="${rectX.toFixed(1)}" y="${rectY.toFixed(1)}" width="${pillW.toFixed(1)}" height="${pillH.toFixed(1)}" rx="3" ry="3" fill="${pillBg}" opacity="${(0.93 * opacity).toFixed(2)}"/>`;
+  // Label text
+  html += `<text x="${textX.toFixed(1)}" y="${ey.toFixed(1)}" font-family="${LABEL_FONT}" font-size="${fs}" font-weight="${fw}" fill="${textFill}" text-anchor="${anchor}" dominant-baseline="middle" opacity="${opacity.toFixed(2)}">${escSvg(name)}</text>`;
+  return html;
+}
+
 function updateOverheadLabels(
   buildingMap: Map<string, BuildingEntry>,
   svg: SVGSVGElement,
@@ -462,18 +557,9 @@ function updateOverheadLabels(
   H: number,
   vec: THREE.Vector3,
 ): void {
-  // Layout constants
-  const DIAG_X    = 26;   // horizontal offset of angled segment (toward label)
-  const DIAG_Y    = 54;   // default vertical rise of angled segment
-  const HORIZ     = 62;   // horizontal segment length
-  const LABEL_H   = 22;   // approximate label height for overlap detection
   const LABEL_PAD = 7;    // minimum vertical gap between labels
 
-  // Colour scheme
-  const textFill = darkMode ? "rgba(255,255,255,0.96)" : "rgba(14,14,20,0.96)";
-  const pillBg   = darkMode ? "rgba(10,10,22,0.84)"   : "rgba(255,255,255,0.90)";
-  const padX = 8, padY = 4;
-  const fontBase = "'DM Mono',monospace";
+  const { textFill, pillBg } = labelPalette(darkMode);
 
   // Collect items
   interface Item {
@@ -501,8 +587,8 @@ function updateOverheadLabels(
     items.push({
       id, name: e.node.name, isMain, sx, sy,
       color: e.node.color, distance, facingRight,
-      ex: sx + (facingRight ? DIAG_X : -DIAG_X),
-      ey: sy - DIAG_Y,
+      ex: sx + (facingRight ? LABEL_DIAG_X : -LABEL_DIAG_X),
+      ey: sy - LABEL_DIAG_Y,
     });
   };
 
@@ -520,17 +606,17 @@ function updateOverheadLabels(
   const placed: Item[] = [];
   for (const item of items) {
     let ey = item.ey;
-    const approxTW = Math.max(44, item.name.length * (item.isMain ? 7.6 : 7.1));
-    const lx1 = item.facingRight ? item.ex + HORIZ : item.ex - HORIZ - approxTW;
+    const approxTW = approxLabelTextWidth(item.name, item.isMain);
+    const lx1 = item.facingRight ? item.ex + LABEL_HORIZ : item.ex - LABEL_HORIZ - approxTW;
     const lx2 = lx1 + approxTW;
 
     for (const p of placed) {
-      const pTW = Math.max(44, p.name.length * (p.isMain ? 7.6 : 7.1));
-      const plx1 = p.facingRight ? p.ex + HORIZ : p.ex - HORIZ - pTW;
+      const pTW = approxLabelTextWidth(p.name, p.isMain);
+      const plx1 = p.facingRight ? p.ex + LABEL_HORIZ : p.ex - LABEL_HORIZ - pTW;
       const plx2 = plx1 + pTW;
       const xOverlap = lx2 + 4 > plx1 && lx1 - 4 < plx2;
-      if (xOverlap && Math.abs(ey - p.ey) < LABEL_H + LABEL_PAD) {
-        ey = p.ey - LABEL_H - LABEL_PAD;
+      if (xOverlap && Math.abs(ey - p.ey) < LABEL_BOX_H + LABEL_PAD) {
+        ey = p.ey - LABEL_BOX_H - LABEL_PAD;
       }
     }
     item.ey = Math.max(16, ey); // don't go off the top of the viewport
@@ -540,33 +626,15 @@ function updateOverheadLabels(
   // Build SVG markup
   let html = "";
   for (const item of items) {
-    const { sx, sy, ex, ey, facingRight, name, isMain, color, distance } = item;
-    const fs  = isMain ? 12 : 11;
-    const fw  = isMain ? "600" : "400";
-    const sw  = isMain ? "1.7" : "1.3";
-    const baseLineOpacity = isMain ? 0.88 : 0.68;
+    const baseLineOpacity = item.isMain ? 0.88 : 0.68;
     const opacity = opacityById.get(item.id) ?? OVERHEAD_LABEL_HIDDEN_OPACITY;
-    const so  = baseLineOpacity * opacity;
-
-    const horizEnd  = facingRight ? ex + HORIZ : ex - HORIZ;
-    const approxTW  = Math.max(44, name.length * (isMain ? 7.6 : 7.1));
-    const pillW     = approxTW + padX * 2;
-    const pillH     = fs + padY * 2;
-    const rectX     = facingRight ? horizEnd : horizEnd - pillW;
-    const rectY     = ey - pillH / 2;
-    const textX     = facingRight ? horizEnd + padX : horizEnd - padX;
-    const anchor    = facingRight ? "start" : "end";
-
-    // Dot at building top
-    html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="2.5" fill="${color}" opacity="${(0.92 * opacity).toFixed(2)}"/>`;
-    // Angled segment
-    html += `<line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${sw}" opacity="${so.toFixed(2)}"/>`;
-    // Horizontal segment
-    html += `<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${horizEnd.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${sw}" opacity="${so.toFixed(2)}"/>`;
-    // Pill background
-    html += `<rect x="${rectX.toFixed(1)}" y="${rectY.toFixed(1)}" width="${pillW.toFixed(1)}" height="${pillH.toFixed(1)}" rx="3" ry="3" fill="${pillBg}" opacity="${(0.93 * opacity).toFixed(2)}"/>`;
-    // Label text
-    html += `<text x="${textX.toFixed(1)}" y="${ey.toFixed(1)}" font-family="${fontBase}" font-size="${fs}" font-weight="${fw}" fill="${textFill}" text-anchor="${anchor}" dominant-baseline="middle" opacity="${opacity.toFixed(2)}">${escSvg(name)}</text>`;
+    html += renderOverheadLabelPill({
+      sx: item.sx, sy: item.sy, ex: item.ex, ey: item.ey,
+      facingRight: item.facingRight,
+      name: item.name, isMain: item.isMain, color: item.color,
+      opacity, lineOpacity: baseLineOpacity * opacity,
+      textFill, pillBg,
+    });
   }
 
   svg.innerHTML = html;
@@ -792,10 +860,7 @@ function updateFlyoverOverheadLabels(
   W: number, H: number,
   vec: THREE.Vector3,
 ): void {
-  const textFill = darkMode ? "rgba(255,255,255,0.96)" : "rgba(14,14,20,0.96)";
-  const pillBg   = darkMode ? "rgba(10,10,22,0.84)"   : "rgba(255,255,255,0.90)";
-  const fontBase = "'DM Mono',monospace";
-  const DIAG_X = 26, DIAG_Y = 54, HORIZ = 62, padX = 8, padY = 4;
+  const { textFill, pillBg } = labelPalette(darkMode);
   let html = "";
 
   const renderLabel = (id: string, isMain: boolean, opacity: number) => {
@@ -808,31 +873,81 @@ function updateFlyoverOverheadLabels(
     const sx = (vec.x + 1) / 2 * W;
     const sy = (-vec.y + 1) / 2 * H;
     if (sx < -300 || sx > W + 300 || sy < -300 || sy > H + 300) return;
-    const facingRight = true; // always label to the right in flyover mode
-    const ex = sx + (facingRight ? DIAG_X : -DIAG_X);
-    const ey = sy - DIAG_Y;
-    const horizEnd = facingRight ? ex + HORIZ : ex - HORIZ;
-    const { name, color } = e.node;
-    const fs = isMain ? 12 : 11;
-    const fw = isMain ? "600" : "400";
-    const sw = isMain ? "1.7" : "1.3";
-    const approxTW = Math.max(44, name.length * (isMain ? 7.6 : 7.1));
-    const pillW = approxTW + padX * 2;
-    const pillH = fs + padY * 2;
-    const rectX = facingRight ? horizEnd : horizEnd - pillW;
-    const rectY = ey - pillH / 2;
-    const textX = facingRight ? horizEnd + padX : horizEnd - padX;
-    const anchor = facingRight ? "start" : "end";
-    html += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="2.5" fill="${color}" opacity="${(0.92*opacity).toFixed(2)}"/>`;
-    html += `<line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${sw}" opacity="${(0.88*opacity).toFixed(2)}"/>`;
-    html += `<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${horizEnd.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${sw}" opacity="${(0.88*opacity).toFixed(2)}"/>`;
-    html += `<rect x="${rectX.toFixed(1)}" y="${rectY.toFixed(1)}" width="${pillW.toFixed(1)}" height="${pillH.toFixed(1)}" rx="3" ry="3" fill="${pillBg}" opacity="${(0.93*opacity).toFixed(2)}"/>`;
-    html += `<text x="${textX.toFixed(1)}" y="${ey.toFixed(1)}" font-family="${fontBase}" font-size="${fs}" font-weight="${fw}" fill="${textFill}" text-anchor="${anchor}" dominant-baseline="middle" opacity="${opacity.toFixed(2)}">${escSvg(name)}</text>`;
+    // Always label to the right in flyover mode
+    const ex = sx + LABEL_DIAG_X;
+    const ey = sy - LABEL_DIAG_Y;
+    html += renderOverheadLabelPill({
+      sx, sy, ex, ey, facingRight: true,
+      name: e.node.name, isMain, color: e.node.color,
+      opacity, lineOpacity: 0.88 * opacity,
+      textFill, pillBg,
+    });
   };
 
   if (currentId) renderLabel(currentId, true, currentOpacity);
   if (nextId && nextId !== currentId) renderLabel(nextId, false, nextOpacity);
   svg.innerHTML = html;
+}
+
+// ─── Web swing helper ────────────────────────────────────────────────────────
+
+function releaseWeb(s: SceneState): void {
+  if (s.webLine) {
+    s.scene.remove(s.webLine);
+    s.webLine.geometry.dispose();
+    (s.webLine.material as THREE.Material).dispose();
+    s.webLine = null;
+  }
+  s.webAnchor = null;
+}
+
+// ─── FP collision spatial grid ───────────────────────────────────────────────
+// Buildings are bucketed into every grid cell their footprint overlaps, so a
+// point query only needs to look at the single cell containing the player.
+
+function collisionGridKey(ix: number, iz: number): string {
+  return `${ix},${iz}`;
+}
+
+function buildCollisionGrid(cityNodes: CityNode[]): Map<string, CityNode[]> {
+  const grid = new Map<string, CityNode[]>();
+  for (const node of cityNodes) {
+    const hw = (node.widthScale * BUILDING_BASE) / 2;
+    const ix0 = Math.floor((node.cx - hw) / COLLISION_CELL);
+    const ix1 = Math.floor((node.cx + hw) / COLLISION_CELL);
+    const iz0 = Math.floor((node.cz - hw) / COLLISION_CELL);
+    const iz1 = Math.floor((node.cz + hw) / COLLISION_CELL);
+    for (let ix = ix0; ix <= ix1; ix++) {
+      for (let iz = iz0; iz <= iz1; iz++) {
+        const key = collisionGridKey(ix, iz);
+        let bucket = grid.get(key);
+        if (!bucket) { bucket = []; grid.set(key, bucket); }
+        bucket.push(node);
+      }
+    }
+  }
+  return grid;
+}
+
+// ─── Atmosphere helpers ──────────────────────────────────────────────────────
+// Soft vertical gradient derived from the theme background color.
+
+function makeBackgroundTexture(darkMode: boolean): THREE.CanvasTexture {
+  const canvas = document.createElement("canvas");
+  canvas.width  = 2;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d")!;
+  const base   = new THREE.Color(darkMode ? BG_DARK : BG_LIGHT);
+  const top    = base.clone().offsetHSL(0, 0, darkMode ? -0.015 : 0.02);
+  const bottom = base.clone().offsetHSL(0, 0, darkMode ? 0.015 : -0.02);
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, `#${top.getHexString()}`);
+  grad.addColorStop(1, `#${bottom.getHexString()}`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }
 
 function toNodeDetail(node: CityNode): NodeDetail {
@@ -862,6 +977,8 @@ export function CityCanvas({
   jumpEnabled = true,
   webEnabled = false,
   showConnectors = true,
+  onFarFromCenterChange,
+  returnToCenterTrigger = 0,
 }: Props) {
   const mountRef        = useRef<HTMLDivElement>(null);
   const stateRef        = useRef<SceneState | null>(null);
@@ -870,11 +987,13 @@ export function CityCanvas({
   const onExitFlyoverRef = useRef(onExitFlyover);
   const jumpEnabledRef  = useRef(jumpEnabled);
   const webEnabledRef   = useRef(webEnabled);
+  const onFarFromCenterRef = useRef(onFarFromCenterChange);
   useEffect(() => { onSelectRef.current      = onSelectNode; },      [onSelectNode]);
   useEffect(() => { onExitFPRef.current      = onExitFirstPerson; }, [onExitFirstPerson]);
   useEffect(() => { onExitFlyoverRef.current = onExitFlyover; },     [onExitFlyover]);
   useEffect(() => { jumpEnabledRef.current   = jumpEnabled; },       [jumpEnabled]);
   useEffect(() => { webEnabledRef.current    = webEnabled; },        [webEnabled]);
+  useEffect(() => { onFarFromCenterRef.current = onFarFromCenterChange; }, [onFarFromCenterChange]);
 
   // ── Scene init ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -896,6 +1015,15 @@ export function CityCanvas({
     mount.appendChild(labelSvg);
 
     const scene  = new THREE.Scene();
+
+    // Atmosphere: soft vertical gradient background + distance fog so the
+    // city fades at the horizon instead of hard-stopping at the ground edge.
+    const bgTexture = makeBackgroundTexture(darkMode);
+    scene.background = bgTexture;
+    const fogColor = new THREE.Color(darkMode ? BG_DARK : BG_LIGHT)
+      .offsetHSL(0, 0, darkMode ? 0.01 : -0.01);
+    scene.fog = new THREE.Fog(fogColor, FOG_NEAR, FOG_FAR);
+
     const camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 1000);
     camera.position.set(0, 22, 32);
 
@@ -926,23 +1054,27 @@ export function CityCanvas({
     grid.position.y = -0.01;
     scene.add(grid);
 
-    // Buildings
+    // Buildings — ONE shared unit geometry, scaled per mesh. Materials stay
+    // per-building because selection highlighting mutates opacity per building.
     const cityNodes  = computeCityLayout(graph);
     const buildingMap = new Map<string, BuildingEntry>();
+
+    const unitBoxGeo   = new THREE.BoxGeometry(1, 1, 1);
+    const unitEdgesGeo = new THREE.EdgesGeometry(unitBoxGeo);
 
     for (const node of cityNodes) {
       const color = new THREE.Color(node.color);
       const w = BUILDING_BASE * node.widthScale;
-      const boxGeo = new THREE.BoxGeometry(w, node.height, w);
 
       const faceMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false });
-      const face    = new THREE.Mesh(boxGeo, faceMat);
+      const face    = new THREE.Mesh(unitBoxGeo, faceMat);
+      face.scale.set(w, node.height, w);
       face.position.set(node.cx, node.height / 2, node.cz);
       face.userData = { nodeId: node.id };
 
-      const edgesGeo  = new THREE.EdgesGeometry(boxGeo);
       const edgesMat  = new THREE.LineBasicMaterial({ color });
-      const edgesMesh = new THREE.LineSegments(edgesGeo, edgesMat);
+      const edgesMesh = new THREE.LineSegments(unitEdgesGeo, edgesMat);
+      edgesMesh.scale.set(w, node.height, w);
       edgesMesh.position.set(node.cx, node.height / 2, node.cz);
       edgesMesh.userData = { nodeId: node.id };
 
@@ -950,6 +1082,11 @@ export function CityCanvas({
       scene.add(edgesMesh);
       buildingMap.set(node.id, { face, edges: edgesMesh, node });
     }
+
+    // Cached raycast target list (rebuilt only when the scene rebuilds)
+    const buildingFaces = [...buildingMap.values()].map((b) => b.face);
+    // Spatial grid for FP floor/roof collision queries
+    const collisionGrid = buildCollisionGrid(cityNodes);
 
     // Building name labels (visible in first-person only)
     const labelSprites: THREE.Sprite[] = [];
@@ -985,7 +1122,7 @@ export function CityCanvas({
 
     function hitBuildingFromPointer(e: MouseEvent | PointerEvent): BuildingEntry | null {
       setRayFromPointer(e);
-      const hits = raycaster.intersectObjects([...buildingMap.values()].map((b) => b.face));
+      const hits = raycaster.intersectObjects(buildingFaces);
       if (hits.length === 0) return null;
       const nodeId = hits[0].object.userData.nodeId as string;
       return buildingMap.get(nodeId) ?? null;
@@ -1030,7 +1167,7 @@ export function CityCanvas({
         }
         // In first-person with pointer lock — raycast from screen center (crosshair)
         raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-        const hits = raycaster.intersectObjects([...buildingMap.values()].map((b) => b.face));
+        const hits = raycaster.intersectObjects(buildingFaces);
         if (hits.length > 0) {
           const nodeId = hits[0].object.userData.nodeId as string;
           const entry  = buildingMap.get(nodeId);
@@ -1104,17 +1241,48 @@ export function CityCanvas({
       }
     }
 
-    // ── Web swing: shoot on right-click, release on R key ──────────────────
-    function releaseWeb(s: SceneState) {
-      if (s.webLine) {
-        scene.remove(s.webLine);
-        s.webLine.geometry.dispose();
-        (s.webLine.material as THREE.Material).dispose();
-        s.webLine = null;
-      }
-      s.webAnchor = null;
+    // ── Hover feedback (orbit mode only) ───────────────────────────────────
+    function baseFaceOpacity(st: SceneState, id: string): number {
+      if (!st.selectedNodeIdForLabels) return 0.12;
+      if (id === st.selectedNodeIdForLabels) return 0.30;
+      if (st.connectedNodeIdsForLabels.has(id)) return 0.22;
+      return 0.04;
     }
 
+    let hoveredId: string | null = null;
+    let lastHoverMs = 0;
+
+    function setHovered(id: string | null) {
+      const s = stateRef.current;
+      if (!s || hoveredId === id) return;
+      if (hoveredId) {
+        const prev = s.buildingMap.get(hoveredId);
+        if (prev) (prev.face.material as THREE.MeshBasicMaterial).opacity = baseFaceOpacity(s, hoveredId);
+      }
+      hoveredId = id;
+      if (id) {
+        const entry = s.buildingMap.get(id);
+        if (entry) {
+          const fm = entry.face.material as THREE.MeshBasicMaterial;
+          fm.opacity = Math.min(1, baseFaceOpacity(s, id) + HOVER_OPACITY_BOOST);
+        }
+      }
+      renderer.domElement.style.cursor = id ? "pointer" : "";
+    }
+
+    function onHoverMove(e: PointerEvent) {
+      const s = stateRef.current;
+      if (!s) return;
+      if (s.fpActive || s.flyoverActive) { setHovered(null); return; }
+      const now = performance.now();
+      if (now - lastHoverMs < HOVER_THROTTLE_MS) return;
+      lastHoverMs = now;
+      setRayFromPointer(e);
+      const hits = raycaster.intersectObjects(buildingFaces);
+      setHovered(hits.length > 0 ? (hits[0].object.userData.nodeId as string) : null);
+    }
+
+    // ── Web swing: shoot on right-click, release on R key ──────────────────
     function onContextMenu(e: MouseEvent) {
       // Suppress browser context menu in all cases so right-click can be used for web swing
       e.preventDefault();
@@ -1134,9 +1302,7 @@ export function CityCanvas({
 
       // Shoot web from crosshair
       raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-      // Raycast against buildings and also the ground
-      const buildingMeshes = [...buildingMap.values()].map((b) => b.face);
-      const hits = raycaster.intersectObjects(buildingMeshes);
+      const hits = raycaster.intersectObjects(buildingFaces);
       let anchorPoint: THREE.Vector3 | null = null;
 
       if (hits.length > 0 && hits[0].distance <= WEB_SHOOT_RANGE) {
@@ -1198,6 +1364,7 @@ export function CityCanvas({
 
     renderer.domElement.addEventListener("pointerdown", onPointerDown);
     renderer.domElement.addEventListener("pointermove", onPointerMove);
+    renderer.domElement.addEventListener("pointermove", onHoverMove);
     renderer.domElement.addEventListener("pointerup", onPointerUp);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup",   onKeyUp);
@@ -1229,14 +1396,23 @@ export function CityCanvas({
       const flyoverWasActive = !!s?.flyoverActive;
 
       if (s?.fpActive) {
-        // First-person movement
+        // Remove last frame's head-bob offset before running physics so the
+        // bob never interferes with jump / web-swing camera-Y management.
+        camera.position.y -= s.fpBobOffset;
+
+        // First-person movement — short acceleration/deceleration lerp
         const speed = (s.fpKeys.has("ShiftLeft") || s.fpKeys.has("ShiftRight")) ? FP_SPRINT : FP_SPEED;
-        const fwd   = new THREE.Vector3(-Math.sin(s.fpYaw), 0, -Math.cos(s.fpYaw));
-        const rgt   = new THREE.Vector3( Math.cos(s.fpYaw), 0, -Math.sin(s.fpYaw));
-        if (s.fpKeys.has("KeyW")) camera.position.addScaledVector(fwd,  speed * dt);
-        if (s.fpKeys.has("KeyS")) camera.position.addScaledVector(fwd, -speed * dt);
-        if (s.fpKeys.has("KeyA")) camera.position.addScaledVector(rgt, -speed * dt);
-        if (s.fpKeys.has("KeyD")) camera.position.addScaledVector(rgt,  speed * dt);
+        const fwd   = s._fwd.set(-Math.sin(s.fpYaw), 0, -Math.cos(s.fpYaw));
+        const rgt   = s._rgt.set( Math.cos(s.fpYaw), 0, -Math.sin(s.fpYaw));
+        const fwdInput = (s.fpKeys.has("KeyW") ? 1 : 0) - (s.fpKeys.has("KeyS") ? 1 : 0);
+        const rgtInput = (s.fpKeys.has("KeyD") ? 1 : 0) - (s.fpKeys.has("KeyA") ? 1 : 0);
+        const targetVelX = (fwd.x * fwdInput + rgt.x * rgtInput) * speed;
+        const targetVelZ = (fwd.z * fwdInput + rgt.z * rgtInput) * speed;
+        const accel = dt > 0 ? 1 - Math.exp(-dt / FP_ACCEL_TIME) : 0;
+        s.fpMoveVelX += (targetVelX - s.fpMoveVelX) * accel;
+        s.fpMoveVelZ += (targetVelZ - s.fpMoveVelZ) * accel;
+        camera.position.x += s.fpMoveVelX * dt;
+        camera.position.z += s.fpMoveVelZ * dt;
         // ── Web swing physics (takes over vertical + horizontal when attached) ──
         if (s.webAnchor && webEnabledRef.current) {
           const anchor = s.webAnchor;
@@ -1250,12 +1426,12 @@ export function CityCanvas({
           camera.position.y += s.fpVelY * dt;
 
           // Pendulum constraint: keep player at webLength from anchor
-          const toPlayer = new THREE.Vector3().subVectors(camera.position, anchor);
+          const toPlayer = s._toPlayer.subVectors(camera.position, anchor);
           const dist = toPlayer.length();
           if (dist > 0.001) {
             // Project velocity onto the tangent (remove radial component)
-            const radialDir = toPlayer.clone().normalize();
-            const vel3 = new THREE.Vector3(s.webVelX, s.fpVelY, s.webVelZ);
+            const radialDir = s._radialDir.copy(toPlayer).normalize();
+            const vel3 = s._vel3.set(s.webVelX, s.fpVelY, s.webVelZ);
             const radialVel = vel3.dot(radialDir);
             // Only remove inward (contracting) radial velocity; allow outward slightly
             if (radialVel < 0) {
@@ -1297,21 +1473,30 @@ export function CityCanvas({
           // Normal vertical physics (only when jump is enabled)
           if (jumpEnabledRef.current) {
             s.fpVelY -= FP_GRAVITY * dt;
+            if (s.fpVelY < -FP_MAX_FALL) s.fpVelY = -FP_MAX_FALL;
             camera.position.y += s.fpVelY * dt;
 
             // Determine the floor height at the player's XZ position.
             // The ground is FP_HEIGHT; buildings add a roof surface only when
             // the player is falling onto the top from above (no wall/floor collision).
+            // Only the player's spatial-grid cell is checked — buildings were
+            // bucketed into every cell their footprint overlaps at scene build.
             let floorY = FP_HEIGHT;
             if (s.fpVelY <= 0) {
               const px = camera.position.x;
               const pz = camera.position.z;
-              for (const { node } of s.buildingMap.values()) {
-                const hw = (node.widthScale * BUILDING_BASE) / 2;
-                if (px >= node.cx - hw && px <= node.cx + hw &&
-                    pz >= node.cz - hw && pz <= node.cz + hw) {
-                  const roofY = node.height + FP_HEIGHT;
-                  if (roofY > floorY) floorY = roofY;
+              const bucket = s.collisionGrid.get(collisionGridKey(
+                Math.floor(px / COLLISION_CELL),
+                Math.floor(pz / COLLISION_CELL),
+              ));
+              if (bucket) {
+                for (const node of bucket) {
+                  const hw = (node.widthScale * BUILDING_BASE) / 2;
+                  if (px >= node.cx - hw && px <= node.cx + hw &&
+                      pz >= node.cz - hw && pz <= node.cz + hw) {
+                    const roofY = node.height + FP_HEIGHT;
+                    if (roofY > floorY) floorY = roofY;
+                  }
                 }
               }
             }
@@ -1325,6 +1510,31 @@ export function CityCanvas({
             camera.position.y = FP_HEIGHT;
             s.fpVelY = 0;
             s.fpOnGround = true;
+          }
+        }
+
+        // Head-bob: subtle sine on camera Y while walking on the ground.
+        // Disabled while jumping/falling or web-swinging; the offset is
+        // removed at the top of the block so physics never sees it.
+        const isWalking = !s.webAnchor && s.fpOnGround && (fwdInput !== 0 || rgtInput !== 0);
+        if (isWalking) {
+          s.fpBobPhase += dt * (speed === FP_SPRINT ? FP_BOB_FREQ_SPRINT : FP_BOB_FREQ_WALK);
+          s.fpBobOffset = Math.sin(s.fpBobPhase) * FP_BOB_AMP;
+        } else {
+          s.fpBobPhase = 0;
+          s.fpBobOffset *= 0.8; // ease back to level
+          if (Math.abs(s.fpBobOffset) < 0.001) s.fpBobOffset = 0;
+        }
+        camera.position.y += s.fpBobOffset;
+
+        // Return-to-center hint: notify the screen when the player wanders far
+        // from the city origin (checked at most twice per second).
+        if (nowMs - s.lastFarCheckMs > 500) {
+          s.lastFarCheckMs = nowMs;
+          const far = Math.hypot(camera.position.x, camera.position.z) > FAR_FROM_CENTER_DIST;
+          if (far !== s.farFromCenter) {
+            s.farFromCenter = far;
+            onFarFromCenterRef.current?.(far);
           }
         }
 
@@ -1512,10 +1722,21 @@ export function CityCanvas({
       buildingMap, labelSpriteMap, connectionLines: [], streetGroup, labelSprites,
       graphEdges: graph.edges, darkMode,
       fpActive: false, fpYaw: 0, fpPitch: 0, fpKeys: new Set(), fpVelY: 0, fpOnGround: true,
+      fpMoveVelX: 0, fpMoveVelZ: 0,
+      fpBobPhase: 0, fpBobOffset: 0,
+      fpSpawn: new THREE.Vector3(),
+      farFromCenter: false,
+      lastFarCheckMs: 0,
+      collisionGrid,
       overheadPos:    new THREE.Vector3(),
       overheadTarget: new THREE.Vector3(),
       animFrameId,
       prevTime: performance.now(),
+      _fwd: new THREE.Vector3(),
+      _rgt: new THREE.Vector3(),
+      _toPlayer: new THREE.Vector3(),
+      _radialDir: new THREE.Vector3(),
+      _vel3: new THREE.Vector3(),
       showLabelsFP, showLabelsOverhead, showClickLabels,
       labelOverlaySvg: labelSvg,
       selectedNodeIdForLabels: null,
@@ -1551,6 +1772,7 @@ export function CityCanvas({
       document.removeEventListener("mousedown", onWebShoot);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointermove", onPointerMove);
+      renderer.domElement.removeEventListener("pointermove", onHoverMove);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup",   onKeyUp);
@@ -1567,9 +1789,12 @@ export function CityCanvas({
       }
       controls.dispose();
       for (const { face, edges: em } of buildingMap.values()) {
-        face.geometry.dispose(); (face.material as THREE.Material).dispose();
-        em.geometry.dispose();   (em.material   as THREE.Material).dispose();
+        (face.material as THREE.Material).dispose();
+        (em.material   as THREE.Material).dispose();
       }
+      // Geometry is shared by all buildings — dispose once
+      unitBoxGeo.dispose();
+      unitEdgesGeo.dispose();
       streetGroup.traverse((obj) => {
         if (obj instanceof THREE.LineSegments || obj instanceof THREE.Line) {
           obj.geometry.dispose();
@@ -1582,6 +1807,7 @@ export function CityCanvas({
         (sp.material as THREE.SpriteMaterial).dispose();
       }
       groundGeo.dispose(); groundMat.dispose();
+      bgTexture.dispose();
       renderer.dispose();
       if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
       if (mount.contains(labelSvg)) mount.removeChild(labelSvg);
@@ -1596,6 +1822,29 @@ export function CityCanvas({
     fitCameraToBuildings(s.camera, s.controls, s.buildingMap);
   }, [fitSceneTrigger]);
 
+  // ── Return to center (street view) ────────────────────────────────────────
+  useEffect(() => {
+    if (!returnToCenterTrigger) return;
+    const s = stateRef.current;
+    if (!s || !s.fpActive) return;
+    releaseWeb(s);
+    s.webVelX = 0;
+    s.webVelZ = 0;
+    s.fpMoveVelX = 0;
+    s.fpMoveVelZ = 0;
+    s.fpVelY = 0;
+    s.fpOnGround = true;
+    s.fpBobPhase = 0;
+    s.fpBobOffset = 0;
+    s.camera.position.copy(s.fpSpawn);
+    s.fpYaw = 0;
+    s.fpPitch = 0;
+    if (s.farFromCenter) {
+      s.farFromCenter = false;
+      onFarFromCenterRef.current?.(false);
+    }
+  }, [returnToCenterTrigger]);
+
   // ── First-person toggle ──────────────────────────────────────────────────
   useEffect(() => {
     const s = stateRef.current;
@@ -1608,8 +1857,14 @@ export function CityCanvas({
 
       // Drop to street level at the current orbit target
       s.camera.position.set(s.controls.target.x, FP_HEIGHT, s.controls.target.z + 6);
+      s.fpSpawn.copy(s.camera.position);
       s.fpYaw   = 0;
       s.fpPitch = 0;
+      s.fpMoveVelX = 0;
+      s.fpMoveVelZ = 0;
+      s.fpBobPhase = 0;
+      s.fpBobOffset = 0;
+      s.lastFarCheckMs = 0;
       s.fpActive = true;
       s.controls.enabled = false;
       s.streetGroup.visible = true;
@@ -1623,11 +1878,23 @@ export function CityCanvas({
         if (result instanceof Promise) result.catch(() => {});
       } catch { /* SecurityError: will retry on next canvas click */ }
     } else {
-      // Exit first-person
+      // Exit first-person — release any active web so its line geometry
+      // can't leak across FP sessions
+      releaseWeb(s);
+      s.webVelX = 0;
+      s.webVelZ = 0;
       s.fpActive = false;
       s.fpKeys.clear();
       s.fpVelY = 0;
       s.fpOnGround = true;
+      s.fpMoveVelX = 0;
+      s.fpMoveVelZ = 0;
+      s.fpBobPhase = 0;
+      s.fpBobOffset = 0;
+      if (s.farFromCenter) {
+        s.farFromCenter = false;
+        onFarFromCenterRef.current?.(false);
+      }
       s.controls.enabled = true;
       s.streetGroup.visible = false;
 

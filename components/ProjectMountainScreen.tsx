@@ -17,6 +17,21 @@ type Props = {
   lastSyncAt?: string;
 };
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 function FitViewIcon() {
   return (
     <svg
@@ -353,7 +368,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
         className="animate-fade-up"
       >
         <button
-          type="button"
+          type="button" {...focusRing}
           onClick={handleFitScene}
           title="Fit all peaks in view"
           disabled={filteredGraph.nodes.length === 0}
@@ -393,7 +408,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
         {/* Settings button */}
         <div style={{ position: "relative" }}>
           <button
-            type="button"
+            type="button" {...focusRing}
             onClick={() => setSettingsOpen((v) => !v)}
             title="Settings"
             style={{
@@ -466,7 +481,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
                   color: "var(--text-muted)",
                 }}>Hike</span>
                 <button
-                  type="button"
+                  type="button" {...focusRing}
                   onClick={() => setShowLabelsFP((v) => !v)}
                   style={{
                     width: 32,
@@ -502,7 +517,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
                   color: "var(--text-muted)",
                 }}>Overhead view</span>
                 <button
-                  type="button"
+                  type="button" {...focusRing}
                   onClick={() => setShowLabelsOverhead((v) => !v)}
                   style={{
                     width: 32,
@@ -550,7 +565,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
                   color: "var(--text-muted)",
                 }}>Show range labels</span>
                 <button
-                  type="button"
+                  type="button" {...focusRing}
                   onClick={() => setShowRangeLabels((v) => !v)}
                   style={{
                     width: 32,
@@ -594,7 +609,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Show on click</span>
                 <button
-                  type="button"
+                  type="button" {...focusRing}
                   onClick={() => setShowClickLabels((v) => !v)}
                   style={{
                     width: 32, height: 17, borderRadius: 9, border: "none",
@@ -621,7 +636,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
                 {(['none', 'overhead', 'center'] as const).map((mode) => (
                   <button
                     key={mode}
-                    type="button"
+                    type="button" {...focusRing}
                     onClick={() => setFlyoverLabelMode(mode)}
                     style={{
                       flex: 1,
@@ -690,7 +705,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
 
         {/* Dark mode button */}
         <button
-          type="button"
+          type="button" {...focusRing}
           onClick={toggleDarkMode}
           title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           style={{
@@ -776,7 +791,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
       >
         {/* Hike toggle */}
         <button
-          type="button"
+          type="button" {...focusRing}
           onClick={() => { setFirstPerson((v) => !v); setFlyover(false); }}
           title={firstPerson ? "Exit hike" : "Enter hike"}
           style={{
@@ -811,7 +826,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
 
         {/* Flyover toggle */}
         <button
-          type="button"
+          type="button" {...focusRing}
           onClick={() => {
             if (!canToggleFlyover) return;
             setFlyover((v) => !v);
@@ -926,7 +941,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
 
       {/* Side pull-tab */}
       <button
-        type="button"
+        type="button" {...focusRing}
         onClick={() => setPanelOpen((v) => !v)}
         title={panelOpen ? "Collapse panel" : "Expand panel"}
         style={{
@@ -969,7 +984,7 @@ export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt
             points={panelOpen ? "3,2 8,8 3,14" : "7,2 2,8 7,14"}
             stroke={
               !panelOpen && selectedDetail !== null
-                ? "#f97316"
+                ? "var(--accent-warm)"
                 : "var(--text-muted)"
             }
             strokeWidth="2"

@@ -7,12 +7,27 @@ type Props = {
   onClose: () => void;
 };
 
+/**
+ * Client-side editing shape. The server never sends tokens to the browser —
+ * `notionToken` holds only what the user has typed this session, while
+ * `hasToken`/`tokenHint` report that a token is already stored server-side.
+ */
+type WorkspaceDraft = NotionWorkspace & {
+  hasToken?: boolean;
+  tokenHint?: string;
+};
+
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+function maskToken(token: string): string {
+  if (token.length <= 8) return "saved";
+  return `${token.slice(0, 3)}…${token.slice(-2)}`;
+}
+
 export function WorkspaceConfigModal({ onClose }: Props) {
-  const [workspaces, setWorkspaces] = useState<NotionWorkspace[]>([]);
+  const [workspaces, setWorkspaces] = useState<WorkspaceDraft[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -28,7 +43,19 @@ export function WorkspaceConfigModal({ onClose }: Props) {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((data) => {
-        const ws: NotionWorkspace[] = data.workspaces ?? [];
+        // The API returns sanitized workspaces (hasToken/tokenHint, no token).
+        // Legacy single-workspace configs are migrated server-side, so they
+        // arrive here as a normal workspaces array.
+        const ws: WorkspaceDraft[] = (data.workspaces ?? []).map(
+          (w: { id?: string; name?: string; rootPages?: string[]; hasToken?: boolean; tokenHint?: string }) => ({
+            id: w.id ?? generateId(),
+            name: w.name ?? "Workspace",
+            notionToken: "",
+            rootPages: Array.isArray(w.rootPages) ? w.rootPages : [],
+            hasToken: Boolean(w.hasToken),
+            tokenHint: w.tokenHint ?? "",
+          }),
+        );
         if (data.warnings?.length) setWarnings(data.warnings);
 
         if (ws.length > 0) {
@@ -36,20 +63,9 @@ export function WorkspaceConfigModal({ onClose }: Props) {
           const active = data.activeWorkspaceId ?? ws[0].id;
           setActiveWorkspaceId(active);
           setExpandedId(active);
-        } else if (data.notionToken || data.rootPages?.length) {
-          // Migrate legacy
-          const legacy: NotionWorkspace = {
-            id: "default",
-            name: "Primary Workspace",
-            notionToken: data.notionToken ?? "",
-            rootPages: data.rootPages?.length > 0 ? data.rootPages : [""],
-          };
-          setWorkspaces([legacy]);
-          setActiveWorkspaceId("default");
-          setExpandedId("default");
         } else {
           // Empty state — create a blank workspace
-          const blank: NotionWorkspace = {
+          const blank: WorkspaceDraft = {
             id: generateId(),
             name: "Primary Workspace",
             notionToken: "",
@@ -84,11 +100,13 @@ export function WorkspaceConfigModal({ onClose }: Props) {
   }, [onClose]);
 
   function addWorkspace() {
-    const newWs: NotionWorkspace = {
+    const newWs: WorkspaceDraft = {
       id: generateId(),
       name: `Workspace ${workspaces.length + 1}`,
       notionToken: "",
       rootPages: [""],
+      hasToken: false,
+      tokenHint: "",
     };
     setWorkspaces((prev) => [...prev, newWs]);
     setExpandedId(newWs.id);
@@ -101,7 +119,7 @@ export function WorkspaceConfigModal({ onClose }: Props) {
     if (expandedId === id) setExpandedId(remaining[0]?.id ?? null);
   }
 
-  function updateWorkspace(id: string, updates: Partial<NotionWorkspace>) {
+  function updateWorkspace(id: string, updates: Partial<WorkspaceDraft>) {
     setWorkspaces((prev) => prev.map((w) => (w.id === id ? { ...w, ...updates } : w)));
   }
 
@@ -123,19 +141,43 @@ export function WorkspaceConfigModal({ onClose }: Props) {
     updateWorkspace(wsId, { rootPages: ws.rootPages.map((p, i) => (i === idx ? value : p)) });
   }
 
+  // Tokens are write-only: a workspace's token is included in the payload
+  // ONLY when the user typed a new one — otherwise the server keeps the
+  // stored token for that workspace id.
+  function buildSavePayload() {
+    return workspaces.map((w) => {
+      const typed = w.notionToken.trim();
+      return {
+        id: w.id,
+        name: w.name,
+        rootPages: w.rootPages.filter((p) => p.trim()),
+        ...(typed ? { notionToken: typed } : {}),
+      };
+    });
+  }
+
+  // After a successful save, typed tokens are stored server-side — reflect
+  // that locally (clear the input, show the "saved" hint).
+  function markTypedTokensSaved() {
+    setWorkspaces((prev) =>
+      prev.map((w) => {
+        const typed = w.notionToken.trim();
+        if (!typed) return w;
+        return { ...w, notionToken: "", hasToken: true, tokenHint: maskToken(typed) };
+      }),
+    );
+  }
+
   async function handleSave() {
     setSaving(true);
     setSaveStatus("idle");
     try {
-      const cleaned = workspaces.map((w) => ({
-        ...w,
-        rootPages: w.rootPages.filter((p) => p.trim()),
-      }));
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaces: cleaned, activeWorkspaceId }),
+        body: JSON.stringify({ workspaces: buildSavePayload(), activeWorkspaceId }),
       });
+      if (res.ok) markTypedTokensSaved();
       setSaveStatus(res.ok ? "saved" : "error");
     } catch {
       setSaveStatus("error");
@@ -150,15 +192,12 @@ export function WorkspaceConfigModal({ onClose }: Props) {
     setSaving(true);
     setSaveStatus("idle");
     try {
-      const cleaned = workspaces.map((w) => ({
-        ...w,
-        rootPages: w.rootPages.filter((p) => p.trim()),
-      }));
-      await fetch("/api/settings", {
+      const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaces: cleaned, activeWorkspaceId }),
+        body: JSON.stringify({ workspaces: buildSavePayload(), activeWorkspaceId }),
       });
+      if (res.ok) markTypedTokensSaved();
     } catch {
       // ignore save error, still try sync
     } finally {
@@ -472,7 +511,7 @@ function WorkspaceCard({
   onRemoveRootPage,
   onUpdateRootPage,
 }: {
-  workspace: NotionWorkspace;
+  workspace: WorkspaceDraft;
   isActive: boolean;
   isExpanded: boolean;
   onSetActive: () => void;
@@ -604,13 +643,18 @@ function WorkspaceCard({
             onClick={(e) => e.stopPropagation()}
           />
 
-          {/* API Token */}
+          {/* API Token — write-only: stored tokens never come back from the
+              server; an empty input means "keep the saved token". */}
           <label style={{ ...cardLabelStyle, marginTop: 12 }}>API Token</label>
           <input
             type="password"
             value={workspace.notionToken}
             onChange={(e) => onUpdateToken(e.target.value)}
-            placeholder="secret_..."
+            placeholder={
+              workspace.hasToken
+                ? `${workspace.tokenHint || "token"} saved — enter to replace`
+                : "secret_..."
+            }
             style={cardInputStyle}
             onClick={(e) => e.stopPropagation()}
           />

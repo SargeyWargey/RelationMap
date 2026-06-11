@@ -16,6 +16,21 @@ type Props = {
 const MIN_WIDTH = 260;
 const MAX_WIDTH = 600;
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes = [], allEdges = [], enabledDbs, schemas = [], fieldConfig = {} }: Props) {
   const [expandedDb, setExpandedDb] = useState<string | null>(null);
   const [width, setWidth] = useState(320);
@@ -172,7 +187,7 @@ export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes
           )}
         </div>
         <button
-          type="button"
+          type="button" {...focusRing}
           onClick={onClose}
           style={{
             flexShrink: 0,
@@ -356,7 +371,7 @@ export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes
                       <div key={dbName}>
                         {/* Accordion header — clickable db row */}
                         <button
-                          type="button"
+                          type="button" {...focusRing}
                           onClick={() => toggleDb(dbName)}
                           style={{
                             width: "100%",
@@ -431,7 +446,7 @@ export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes
                             {conns.map(({ node, relationName }, i) => (
                               <button
                                 key={`${node.id}-${relationName}-${i}`}
-                                type="button"
+                                type="button" {...focusRing}
                                 onClick={() => onSelectNode?.({
                                   id: node.id,
                                   name: node.name,
@@ -517,6 +532,7 @@ export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes
             href={detail.notionUrl}
             target="_blank"
             rel="noreferrer"
+            {...focusRing}
             style={{
               display: "flex",
               alignItems: "center",
@@ -533,7 +549,7 @@ export function NodeDetailsPanel({ detail, open, onClose, onSelectNode, allNodes
               textDecoration: "none",
               letterSpacing: "0.01em",
               transition: "background 0.15s, transform 0.1s",
-              boxShadow: "0 2px 8px rgba(217, 119, 87, 0.35)",
+              boxShadow: "0 2px 8px var(--accent-warm-glow, rgba(217,119,87,0.35))",
             }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLAnchorElement).style.background = "var(--accent-rust)";

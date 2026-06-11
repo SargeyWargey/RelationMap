@@ -17,6 +17,21 @@ const SCALE_DEPTH: Record<OrreryScale, number> = {
   planet: 3,
 };
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 export function OrreryBreadcrumb({ scale, galaxyName, starName, planetName, onNavigateTo }: Props) {
   if (scale === "universe") return null;
 
@@ -56,7 +71,7 @@ export function OrreryBreadcrumb({ scale, galaxyName, starName, planetName, onNa
           )}
           {seg.targetScale !== null ? (
             <button
-              type="button"
+              type="button" {...focusRing}
               onClick={() => onNavigateTo(seg.targetScale!)}
               style={{
                 background: "none",

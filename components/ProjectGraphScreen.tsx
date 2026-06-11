@@ -393,6 +393,8 @@ export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }:
             ["scroll", "zoom"],
             ["drag", "rotate"],
             ["click", "select"],
+            ["q", "databases"],
+            ["e", "details"],
           ].map(([key, action]) => (
             <span key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{
@@ -489,7 +491,7 @@ export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }:
             points={panelOpen ? "3,2 8,8 3,14" : "7,2 2,8 7,14"}
             stroke={
               !panelOpen && selectedDetail !== null
-                ? "#f97316"
+                ? "var(--accent-warm)"
                 : "var(--text-muted)"
             }
             strokeWidth="2"

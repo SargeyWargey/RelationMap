@@ -52,6 +52,21 @@ const DATABASE_COLOR_OPTIONS = [
   "#6366F1",
 ];
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 function buildDefaultConfig(schema: DatabaseSchema, databaseColor?: string): DatabaseFieldConfig {
   const panelVisible: Record<string, boolean> = {};
   let sphereField: string | null = null;
@@ -185,7 +200,7 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
           {schema.databaseName} — Fields
         </span>
         <button
-          type="button"
+          type="button" {...focusRing}
           onClick={onClose}
           style={{
             flexShrink: 0,
@@ -231,7 +246,7 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
             return (
               <button
                 key={color}
-                type="button"
+                type="button" {...focusRing}
                 title={`Set database color to ${color}`}
                 aria-label={`Set database color to ${color}`}
                 onClick={() => setDatabaseColor(color)}
@@ -283,7 +298,7 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
           </div>
           {/* "(node title)" default option */}
           <button
-            type="button"
+            type="button" {...focusRing}
             onClick={() => setNameField(null)}
             style={{
               display: "block",
@@ -325,7 +340,7 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
             return (
               <button
                 key={field.id}
-                type="button"
+                type="button" {...focusRing}
                 onClick={() => setNameField(field.name)}
                 title={`Use "${field.name}" (${field.type}) as person name field`}
                 style={{
@@ -408,7 +423,7 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
 
           {/* "(none)" default option */}
           <button
-            type="button"
+            type="button" {...focusRing}
             onClick={() => setDetailField(null)}
             style={{
               display: "block",
@@ -449,7 +464,7 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
             return (
               <button
                 key={field.id}
-                type="button"
+                type="button" {...focusRing}
                 onClick={() => setDetailField(field.name)}
                 title={`Show "${field.name}" (${field.type}) below card title`}
                 style={{
@@ -546,7 +561,7 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
 
                 {/* Eye toggle */}
                 <button
-                  type="button"
+                  type="button" {...focusRing}
                   title={panelOn ? "Hide from side panel" : "Show in side panel"}
                   onClick={() => togglePanelVisible(field.name)}
                   style={{
@@ -571,7 +586,7 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
                 {/* Sphere radio — only for text fields */}
                 {isText ? (
                   <button
-                    type="button"
+                    type="button" {...focusRing}
                     title={isSphere ? "Remove sphere center" : "Show in sphere center"}
                     onClick={() => setSphereField(field.name)}
                     style={{
@@ -611,7 +626,7 @@ export function FieldConfigPanel({ schema, config, defaultColor, anchorLeft, anc
                     return (
                       <button
                         key={opt.id}
-                        type="button"
+                        type="button" {...focusRing}
                         onClick={() => toggleFilter(field.name, opt.name)}
                         style={{
                           padding: "2px 8px",

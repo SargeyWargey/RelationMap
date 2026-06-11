@@ -27,6 +27,7 @@ type ProjectedNode = SimNode & {
   screenX: number;
   screenY: number;
   depth: number; // 0 = back, 1 = front
+  rx: number; ry: number; rz: number; // rotated unit-sphere position (reused by edges)
 };
 
 export type ShapeLayout = "sphere" | "seven" | "horse";
@@ -49,11 +50,65 @@ const MAX_ZOOM = 5.0;
 const NODE_RADIUS = 7;
 const NODE_RADIUS_SELECTED = 10;
 const SPHERE_FILL_RATIO = 0.40;
-const EMPTY_ICON_SCALE = 0.60; // matches ProjectCityScreen empty-state image sizing
 const FOV_BASE = 2.5;
 const DRAG_SENSITIVITY = 0.006;
 const DEPTH_MIN_OPACITY = 0.18;
 const DEPTH_MIN_RADIUS = 0.38;
+
+// Intro animation: offset the sphere settles in from when the first database
+// is selected.
+const INTRO_DURATION = 3500; // ms
+const INTRO_OFFSET_YAW = Math.PI / 12;   // ~15° left
+const INTRO_OFFSET_PITCH = Math.PI / 15; // ~12° up
+
+// Dot-product threshold above which the selected node is treated as already
+// at the focus target (no rotation animation needed).
+const ROTATION_ALIGNED_DOT = 0.9999;
+
+// Wheel/button zoom easing duration
+const ZOOM_ANIM_MS = 120;
+
+function easeOutCubic(t: number) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// ─── Depth atmosphere (B4) ────────────────────────────────────────────────────
+// Back-of-sphere nodes cool down and desaturate slightly; front nodes keep
+// full warmth. Results are cached per (color, quantized depth) so the hot
+// render path only does a Map lookup.
+
+const DEPTH_TINT_STEPS = 12;
+const DEPTH_TINT_MAX = 0.45; // max desaturation/cooling at the very back
+
+const depthTintCache = new Map<string, string>();
+
+function depthTintColor(color: string, depth: number): string {
+  const step = Math.round(Math.max(0, Math.min(1, depth)) * DEPTH_TINT_STEPS);
+  if (step >= DEPTH_TINT_STEPS) return color;
+  const key = `${color}|${step}`;
+  const cached = depthTintCache.get(key);
+  if (cached) return cached;
+
+  let hex = color.startsWith("#") ? color.slice(1) : null;
+  if (hex && hex.length === 3) hex = hex.split("").map((c) => c + c).join("");
+  if (!hex || !/^[0-9a-fA-F]{6}$/.test(hex)) {
+    // Non-hex colors (css vars etc.) pass through untinted
+    depthTintCache.set(key, color);
+    return color;
+  }
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const t = (1 - step / DEPTH_TINT_STEPS) * DEPTH_TINT_MAX;
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  // Desaturate toward luminance, then nudge cooler (less red, a touch more blue)
+  const rr = Math.round((r + (lum - r) * t) * (1 - 0.10 * t));
+  const gg = Math.round(g + (lum - g) * t);
+  const bb = Math.round(Math.min(255, (b + (lum - b) * t) * (1 + 0.08 * t)));
+  const out = `rgb(${rr},${gg},${bb})`;
+  depthTintCache.set(key, out);
+  return out;
+}
 
 // ─── 3D Math ──────────────────────────────────────────────────────────────────
 
@@ -585,18 +640,17 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
       setBeanOpacity(0);
       const timer = setTimeout(() => setShowBean(false), 4000);
 
-      // Intro rotation: start ~20° offset toward top-left, settle to identity over 3.5s
-      const INTRO_DURATION = 3500;
+      // Intro rotation: start offset toward top-left, settle to identity
       const startRot = quatNorm(quatMul(
-        quatFromAxisAngle([0, -1, 0], Math.PI / 12), // ~15° left
-        quatFromAxisAngle([-1, 0, 0], Math.PI / 15), // ~12° up
+        quatFromAxisAngle([0, -1, 0], INTRO_OFFSET_YAW),
+        quatFromAxisAngle([-1, 0, 0], INTRO_OFFSET_PITCH),
       ));
       setRotation(startRot);
       const introStart = performance.now();
       let introFrame: number;
       const introStep = (now: number) => {
         const t = Math.min(1, (now - introStart) / INTRO_DURATION);
-        const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+        const ease = easeOutCubic(t);
         setRotation(quatNorm(quatSlerp(startRot, QUAT_IDENTITY, ease)));
         if (t < 1) introFrame = requestAnimationFrame(introStep);
       };
@@ -635,8 +689,8 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
     // where yOffset = -( (h/6) / sphereRadius ).
     // Since we want the node on the front (z=1 after rotation), we need to
     // find a rotation that maps node's sphere pos to (0, yTarget, 1)-normalised.
-    const sphereRadius = Math.min(size.w, size.h) * SPHERE_FILL_RATIO;
-    const yOffset = -(size.h / 6) / sphereRadius; // negative = up
+    const focusSphereRadius = Math.min(size.w, size.h) * SPHERE_FILL_RATIO;
+    const yOffset = -(size.h / 6) / focusSphereRadius; // negative = up
     const targetY = Math.max(-0.85, Math.min(0.85, yOffset));
     const targetX = 0;
     const targetZ = Math.sqrt(Math.max(0, 1 - targetX * targetX - targetY * targetY));
@@ -647,7 +701,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
     // Use the half-angle between nodePos (after current rotation) and target.
     const nodeWorld = quatRotate(rotation, [node.sx, node.sy, node.sz]);
     const dot = Math.max(-1, Math.min(1, nodeWorld[0]*target[0] + nodeWorld[1]*target[1] + nodeWorld[2]*target[2]));
-    if (dot > 0.9999) return; // already there
+    if (dot > ROTATION_ALIGNED_DOT) return; // already there
 
     const cross: Vec3 = [
       nodeWorld[1]*target[2] - nodeWorld[2]*target[1],
@@ -679,6 +733,13 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
       }
     }
     animFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animFrameRef.current !== null) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNodeId]);
 
@@ -691,31 +752,44 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
       .catch(() => onSelectNode(null));
   }, [localSelectedId, onSelectNode]);
 
+  // ── Adjacency map (rebuilt only when edges change) ──
+  const adjacency = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const edge of graph.edges) {
+      let src = map.get(edge.source);
+      if (!src) { src = []; map.set(edge.source, src); }
+      src.push(edge.target);
+      let tgt = map.get(edge.target);
+      if (!tgt) { tgt = []; map.set(edge.target, tgt); }
+      tgt.push(edge.source);
+    }
+    return map;
+  }, [graph.edges]);
+
   // ── BFS distance map from selected node ──
   // distance 0 = selected, 1 = direct neighbor, 2 = two hops, etc.
-  // In normal mode only distance 0 and 1 are "highlighted" (others dimmed).
-  // In deepHighlight mode all reachable nodes are shown with opacity decay.
+  // Always computed to full depth so toggling deepHighlight never re-runs the
+  // BFS — deep-highlight filtering is derived downstream from the flag.
   const distanceMap = useMemo(() => {
     if (!localSelectedId) return new Map<string, number>();
     const dist = new Map<string, number>();
     dist.set(localSelectedId, 0);
     const queue: string[] = [localSelectedId];
-    while (queue.length > 0) {
-      const cur = queue.shift()!;
+    let head = 0;
+    while (head < queue.length) {
+      const cur = queue[head++];
       const curDist = dist.get(cur)!;
-      if (!deepHighlight && curDist >= 1) break; // in normal mode only need 1 hop
-      for (const edge of graph.edges) {
-        let neighbor: string | null = null;
-        if (edge.source === cur) neighbor = edge.target;
-        else if (edge.target === cur) neighbor = edge.source;
-        if (neighbor && !dist.has(neighbor)) {
+      const neighbors = adjacency.get(cur);
+      if (!neighbors) continue;
+      for (const neighbor of neighbors) {
+        if (!dist.has(neighbor)) {
           dist.set(neighbor, curDist + 1);
           queue.push(neighbor);
         }
       }
     }
     return dist;
-  }, [localSelectedId, graph.edges, deepHighlight]);
+  }, [localSelectedId, adjacency]);
 
   const selectedNeighbors = useMemo(() => {
     const neighbors = new Set<string>();
@@ -737,25 +811,44 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
 
   const maxDegree = useMemo(() => Math.max(1, ...degreeMap.values()), [degreeMap]);
 
+  // ── Projection geometry — hoisted once per render ──
+  const cx = size.w / 2;
+  const cy = size.h / 2;
+  const sphereRadius = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
+
+  // Previous frame's paint order: rotation changes are incremental, so feeding
+  // the nearly-sorted list back into sort keeps it ~O(n) without changing
+  // paint-order semantics (same comparator, full sort still runs).
+  const paintOrderRef = useRef<{ source: SimNode[]; ordered: ProjectedNode[] } | null>(null);
+
   // ── Project all nodes ──
   const { projected, projectedMap } = useMemo(() => {
-    const cx = size.w / 2;
-    const cy = size.h / 2;
-    const sphereRadius = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
     const fov = FOV_BASE;
 
-    const list: ProjectedNode[] = simNodes.map((n) => {
+    const prev = paintOrderRef.current;
+    const base: readonly SimNode[] =
+      prev && prev.source === simNodes ? prev.ordered : simNodes;
+
+    const list: ProjectedNode[] = base.map((n) => {
       const rotated = quatRotate(rotation, [n.sx, n.sy, n.sz]);
       const { screenX, screenY, depth } = project(rotated, cx, cy, sphereRadius, fov);
-      return { ...n, screenX, screenY, depth };
+      return { ...n, screenX, screenY, depth, rx: rotated[0], ry: rotated[1], rz: rotated[2] };
     });
 
     // Sort back-to-front so front nodes paint over back nodes
     list.sort((a, b) => a.depth - b.depth);
+    paintOrderRef.current = { source: simNodes, ordered: list };
 
     const map = new Map<string, ProjectedNode>(list.map((n) => [n.id, n]));
     return { projected: list, projectedMap: map };
-  }, [simNodes, rotation, zoom, size]);
+  }, [simNodes, rotation, sphereRadius, cx, cy]);
+
+  // Latest rotation/zoom values, readable from stable callbacks without
+  // recreating handlers on every animation frame.
+  const rotationRef = useRef<Quat>(QUAT_IDENTITY);
+  useEffect(() => { rotationRef.current = rotation; }, [rotation]);
+  const zoomRef = useRef(1.0);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
 
   // ── Mouse handlers ──
   const onMouseDown = useCallback((e: React.MouseEvent) => {
@@ -763,6 +856,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
     isDragging.current = true;
     dragStart.current = { x: e.clientX, y: e.clientY };
     rotAtDrag.current = rotation;
+    containerRef.current?.classList.add("graph-canvas-panning");
   }, [rotation]);
 
   const onMouseMove = useCallback((e: React.MouseEvent) => {
@@ -777,14 +871,39 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
     setRotation(quatNorm(quatMul(delta, rotAtDrag.current)));
   }, []);
 
-  const stopDrag = useCallback(() => { isDragging.current = false; }, []);
+  const stopDrag = useCallback(() => {
+    isDragging.current = false;
+    containerRef.current?.classList.remove("graph-canvas-panning");
+  }, []);
 
-  // ── Wheel zoom ──
+  // ── Wheel zoom — eased toward target over ~120ms ──
+  const zoomAnimRef = useRef<number | null>(null);
+  const zoomTargetRef = useRef(1.0);
+
+  const animateZoomTo = useCallback((target: number) => {
+    const clamped = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, target));
+    zoomTargetRef.current = clamped;
+    if (zoomAnimRef.current !== null) cancelAnimationFrame(zoomAnimRef.current);
+    const from = zoomRef.current;
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / ZOOM_ANIM_MS);
+      setZoom(from + (clamped - from) * easeOutCubic(t));
+      zoomAnimRef.current = t < 1 ? requestAnimationFrame(step) : null;
+    };
+    zoomAnimRef.current = requestAnimationFrame(step);
+  }, []);
+
+  // Cancel any in-flight zoom animation on unmount
+  useEffect(() => () => {
+    if (zoomAnimRef.current !== null) cancelAnimationFrame(zoomAnimRef.current);
+  }, []);
+
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.12 : 1/1.12;
-    setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * factor)));
-  }, []);
+    animateZoomTo(zoomTargetRef.current * factor);
+  }, [animateZoomTo]);
 
   // ── Touch handlers ──
   const lastTouches = useRef<React.Touch[]>([]);
@@ -795,9 +914,9 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
     lastTouches.current = Array.from(e.touches);
     if (e.touches.length === 1) {
       touchRotStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      touchRotCapture.current = rotation;
+      touchRotCapture.current = rotationRef.current;
     }
-  }, [rotation]);
+  }, []);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     const touches = Array.from(e.touches);
@@ -814,7 +933,13 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
       const distNow  = Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
       const distPrev = Math.hypot(lastTouches.current[0].clientX - lastTouches.current[1].clientX, lastTouches.current[0].clientY - lastTouches.current[1].clientY);
       const factor = distNow / (distPrev || 1);
-      setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * factor)));
+      // Pinch is direct manipulation — apply immediately, keep eased target in sync
+      if (zoomAnimRef.current !== null) { cancelAnimationFrame(zoomAnimRef.current); zoomAnimRef.current = null; }
+      setZoom((z) => {
+        const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * factor));
+        zoomTargetRef.current = next;
+        return next;
+      });
     }
     lastTouches.current = touches;
   }, []);
@@ -822,11 +947,11 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
   return (
     <div
       ref={containerRef}
+      className="graph-canvas"
       style={{
         width: "100%", height: "100%",
         position: "relative", overflow: "hidden",
         userSelect: "none",
-        cursor: isDragging.current ? "grabbing" : "grab",
         background: "var(--bg-base)",
       }}
       onMouseDown={onMouseDown}
@@ -848,18 +973,27 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
             <feGaussianBlur stdDeviation="7" result="blur" />
             <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
           </filter>
+          {/* Edge bloom underlay — userSpaceOnUse avoids degenerate bboxes on near-straight paths */}
+          <filter
+            id="edge-glow"
+            filterUnits="userSpaceOnUse"
+            x={-100} y={-100}
+            width={size.w + 200} height={size.h + 200}
+          >
+            <feGaussianBlur stdDeviation="3" />
+          </filter>
         </defs>
 
         {/* Sphere outline hint */}
         <ellipse
-          cx={size.w / 2}
-          cy={size.h / 2}
-          rx={Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom}
-          ry={Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom}
+          cx={cx}
+          cy={cy}
+          rx={sphereRadius}
+          ry={sphereRadius}
           fill="none"
           stroke="var(--border-subtle)"
-          strokeWidth={1}
-          opacity={0.35}
+          strokeWidth={1.25}
+          opacity={0.7}
         />
 
 
@@ -868,7 +1002,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
 
         {/* Center text — rendered first so all edges and nodes paint over it */}
         {displayedCenterText && localSelectedId && (() => {
-          const sphereR = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
+          const sphereR = sphereRadius;
           const maxW = sphereR * 1.1;
           const perspective = FOV_BASE * sphereR;
           return (
@@ -925,11 +1059,8 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
           if (!src || !tgt) return null;
           const avgDepth = (src.depth + tgt.depth) / 2;
 
-          const rotSrc = quatRotate(rotation, [src.sx, src.sy, src.sz]);
-          const rotTgt = quatRotate(rotation, [tgt.sx, tgt.sy, tgt.sz]);
-          const mid3   = slerp(rotSrc, rotTgt, 0.5);
-          const sphereR = Math.min(size.w, size.h) * SPHERE_FILL_RATIO * zoom;
-          const mid2   = project(mid3, size.w / 2, size.h / 2, sphereR, FOV_BASE);
+          const mid3 = slerp([src.rx, src.ry, src.rz], [tgt.rx, tgt.ry, tgt.rz], 0.5);
+          const mid2 = project(mid3, cx, cy, sphereRadius, FOV_BASE);
 
           const isRelated = localSelectedId !== null && (edge.source === localSelectedId || edge.target === localSelectedId);
           const srcDist = distanceMap.get(edge.source) ?? Infinity;
@@ -941,15 +1072,37 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
           const edgeDepthDecay = isDeepRelated && !isRelated ? Math.max(0.3, Math.pow(0.80, edgeDist)) : 1;
           const deepEdgeColor = deepHighlight && isDeepRelated && !isRelated ? (srcDist >= tgtDist ? src.color : tgt.color) : null;
 
+          const d = `M ${src.screenX},${src.screenY} Q ${mid2.screenX},${mid2.screenY} ${tgt.screenX},${tgt.screenY}`;
+          const sharpStroke = isRelated ? "var(--accent-warm)" : deepEdgeColor ?? "var(--edge-color)";
+          const sharpWidth = isRelated ? lerp(0.6, 1.8, avgDepth) : lerp(0.3, 1.0, avgDepth);
+          const sharpOpacity = isHiddenEdge ? 0 : isDimmed ? 0.05 : lerp(0.04, isRelated ? 0.85 : 0.55, avgDepth) * edgeDepthDecay;
+
+          // Active connections bloom: blurred underlay + sharp stroke.
+          // Non-highlighted edges stay single-pass (no blur) for perf; the
+          // stable <g> wrapper keeps the sharp path's identity so its
+          // stroke/opacity transitions survive highlight changes.
           return (
-            <path key={edge.id}
-              d={`M ${src.screenX},${src.screenY} Q ${mid2.screenX},${mid2.screenY} ${tgt.screenX},${tgt.screenY}`}
-              fill="none"
-              stroke={isRelated ? "var(--accent-warm)" : deepEdgeColor ?? "var(--edge-color)"}
-              strokeWidth={isRelated ? lerp(0.6, 1.8, avgDepth) : lerp(0.3, 1.0, avgDepth)}
-              opacity={isHiddenEdge ? 0 : isDimmed ? 0.05 : lerp(0.04, isRelated ? 0.85 : 0.55, avgDepth) * edgeDepthDecay}
-              style={{ transition: "opacity 0.25s, stroke 0.25s" }}
-            />
+            <g key={edge.id}>
+              {isRelated && (
+                <path
+                  d={d}
+                  fill="none"
+                  stroke="var(--accent-warm-glow, rgba(217,119,87,0.35))"
+                  strokeWidth={lerp(1.6, 4, avgDepth)}
+                  opacity={lerp(0.25, 0.9, avgDepth)}
+                  filter="url(#edge-glow)"
+                  style={{ pointerEvents: "none" }}
+                />
+              )}
+              <path
+                d={d}
+                fill="none"
+                stroke={sharpStroke}
+                strokeWidth={sharpWidth}
+                opacity={sharpOpacity}
+                style={{ transition: "opacity 0.25s, stroke 0.25s" }}
+              />
+            </g>
           );
         })}
 
@@ -971,15 +1124,17 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
             ? Math.max(0.35, Math.pow(0.80, nodeDist - 1)) : 1;
           const opacity = isHidden ? 0 : isDimmed ? opacityBase * 0.2 : opacityBase * depthDecay;
           const showLabel = isHovered || isSelected;
+          // Depth atmosphere: back nodes cool/desaturate, front nodes full warmth
+          const nodeColor = depthTintColor(node.color, node.depth);
           return (
             <g key={node.id} data-node="true" style={{ cursor: "pointer" }}
               onClick={() => setLocalSelectedId(isSelected ? null : node.id)}
               onMouseEnter={() => setHoveredId(node.id)}
               onMouseLeave={() => setHoveredId(null)}
             >
-              {isSelected && <circle cx={node.screenX} cy={node.screenY} r={r + 7} fill="none" stroke={node.color} strokeWidth={1} opacity={0.28} />}
-              {isHovered && !isSelected && <circle cx={node.screenX} cy={node.screenY} r={r + 4} fill={node.color} opacity={0.12} />}
-              <circle cx={node.screenX} cy={node.screenY} r={r} fill={node.color}
+              {isSelected && <circle cx={node.screenX} cy={node.screenY} r={r + 7} fill="none" stroke={nodeColor} strokeWidth={1} opacity={0.28} />}
+              {isHovered && !isSelected && <circle cx={node.screenX} cy={node.screenY} r={r + 4} fill={nodeColor} opacity={0.12} />}
+              <circle cx={node.screenX} cy={node.screenY} r={r} fill={nodeColor}
                 stroke={isSelected ? "var(--bg-base)" : isHovered ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.4)"}
                 strokeWidth={isSelected ? 2.5 : 1.5} opacity={opacity}
                 filter={isSelected ? "url(#node-glow)" : isHovered ? "url(#node-glow-soft)" : undefined}
@@ -1018,7 +1173,7 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
           <button
             key={label}
             type="button"
-            onClick={() => setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z * delta)))}
+            onClick={() => animateZoomTo(zoomTargetRef.current * delta)}
             style={zoomBtnStyle}
             onMouseEnter={(e) => Object.assign((e.currentTarget as HTMLElement).style, zoomBtnHover)}
             onMouseLeave={(e) => Object.assign((e.currentTarget as HTMLElement).style, zoomBtnStyle)}
@@ -1030,7 +1185,12 @@ export function GraphCanvas({ graph, onSelectNode, selectedNodeId, shape = "sphe
         <button
           type="button"
           title="Reset view"
-          onClick={() => { setRotation(QUAT_IDENTITY); setZoom(1); }}
+          onClick={() => {
+            setRotation(QUAT_IDENTITY);
+            if (zoomAnimRef.current !== null) { cancelAnimationFrame(zoomAnimRef.current); zoomAnimRef.current = null; }
+            zoomTargetRef.current = 1;
+            setZoom(1);
+          }}
           style={{ ...zoomBtnStyle, fontSize: 13 }}
           onMouseEnter={(e) => Object.assign((e.currentTarget as HTMLElement).style, zoomBtnHover)}
           onMouseLeave={(e) => Object.assign((e.currentTarget as HTMLElement).style, { ...zoomBtnStyle, fontSize: "13px" })}

@@ -17,6 +17,21 @@ type Props = {
   lastSyncAt?: string;
 };
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 export function ProjectUserScreen({ initialGraph, databaseColors, lastSyncAt }: Props) {
   const { darkMode, toggleDarkMode } = useTheme();
 
@@ -326,7 +341,7 @@ export function ProjectUserScreen({ initialGraph, databaseColors, lastSyncAt }: 
         {/* Settings button */}
         <div style={{ position: "relative" }}>
           <button
-            type="button"
+            type="button" {...focusRing}
             onClick={() => setSettingsOpen((v) => !v)}
             title="Settings"
             style={{
@@ -396,7 +411,7 @@ export function ProjectUserScreen({ initialGraph, databaseColors, lastSyncAt }: 
                   Database labels
                 </span>
                 <button
-                  type="button"
+                  type="button" {...focusRing}
                   onClick={() => setShowDbLabels((v) => !v)}
                   style={{
                     width: 32, height: 17, borderRadius: 9, border: "none",
@@ -421,7 +436,7 @@ export function ProjectUserScreen({ initialGraph, databaseColors, lastSyncAt }: 
                   Group by database
                 </span>
                 <button
-                  type="button"
+                  type="button" {...focusRing}
                   onClick={() => setGroupByDb((v) => !v)}
                   style={{
                     width: 32, height: 17, borderRadius: 9, border: "none",
@@ -445,7 +460,7 @@ export function ProjectUserScreen({ initialGraph, databaseColors, lastSyncAt }: 
 
         {/* Dark mode button */}
         <button
-          type="button"
+          type="button" {...focusRing}
           onClick={toggleDarkMode}
           title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           style={{
@@ -490,7 +505,7 @@ export function ProjectUserScreen({ initialGraph, databaseColors, lastSyncAt }: 
         >
           {/* Toggle tab */}
           <button
-            type="button"
+            type="button" {...focusRing}
             onClick={() => setPickerOpen((v) => !v)}
             title={pickerOpen ? "Collapse person list" : "Expand person list (P)"}
             style={{
@@ -598,7 +613,7 @@ export function ProjectUserScreen({ initialGraph, databaseColors, lastSyncAt }: 
                     return (
                       <button
                         key={key}
-                        type="button"
+                        type="button" {...focusRing}
                         onClick={() => { setActivePersonKey(key); setPickerOpen(false); }}
                         style={{
                           width: "100%",
@@ -774,7 +789,7 @@ export function ProjectUserScreen({ initialGraph, databaseColors, lastSyncAt }: 
 
       {/* Side pull-tab (node details) */}
       <button
-        type="button"
+        type="button" {...focusRing}
         onClick={() => setPanelOpen((v) => !v)}
         title={panelOpen ? "Collapse panel" : "Expand panel"}
         style={{
@@ -804,7 +819,7 @@ export function ProjectUserScreen({ initialGraph, databaseColors, lastSyncAt }: 
         <svg width="10" height="16" viewBox="0 0 10 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
           <polyline
             points={panelOpen ? "3,2 8,8 3,14" : "7,2 2,8 7,14"}
-            stroke={!panelOpen && selectedDetail !== null ? "#f97316" : "var(--text-muted)"}
+            stroke={!panelOpen && selectedDetail !== null ? "var(--accent-warm)" : "var(--text-muted)"}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"

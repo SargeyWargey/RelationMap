@@ -13,6 +13,21 @@ type Props = {
   onNavigateBook:  (nodeId: string) => void;
 };
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ArchiveDirectoryKiosk({
@@ -99,6 +114,7 @@ export function ArchiveDirectoryKiosk({
               <button
                 key={b.id}
                 onClick={() => { onNavigateBook(b.id); setQuery(""); }}
+                {...focusRing}
                 style={{
                   background:    "rgba(255,213,158,0.05)",
                   border:        `1px solid ${BORDER}`,
@@ -140,6 +156,7 @@ export function ArchiveDirectoryKiosk({
             <button
               key={aisle.databaseId}
               onClick={() => onNavigateAisle(aisle)}
+              {...focusRing}
               style={{
                 display:      "flex",
                 alignItems:   "center",

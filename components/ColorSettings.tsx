@@ -6,6 +6,21 @@ type Props = {
   databaseColors: Record<string, string>;
 };
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 export function ColorSettings({ databaseColors }: Props) {
   const [expanded, setExpanded] = useState(false);
   const entries = Object.entries(databaseColors);
@@ -28,7 +43,7 @@ export function ColorSettings({ databaseColors }: Props) {
         minWidth: 200,
       }}>
         <button
-          type="button"
+          type="button" {...focusRing}
           onClick={() => setExpanded((v) => !v)}
           style={{
             display: "flex",

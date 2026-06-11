@@ -14,6 +14,21 @@ type Props = {
   onCenterTextOpacityChange: (v: number) => void;
 };
 
+// Keyboard focus ring for inline-styled controls — brand focus state
+// (2px accent outline, offset 2; applies only to :focus-visible, not mouse clicks)
+const focusRing = {
+  onFocus: (e: { currentTarget: HTMLElement }) => {
+    if (e.currentTarget.matches(":focus-visible")) {
+      e.currentTarget.style.outline = "2px solid var(--accent-warm)";
+      e.currentTarget.style.outlineOffset = "2px";
+    }
+  },
+  onBlur: (e: { currentTarget: HTMLElement }) => {
+    e.currentTarget.style.outline = "";
+    e.currentTarget.style.outlineOffset = "";
+  },
+};
+
 const SHAPES: Array<{ id: ShapeLayout; label: string; description: string }> = [
   { id: "sphere", label: "Sphere", description: "Nodes distributed across a 3D sphere surface using Fibonacci spacing." },
   { id: "seven", label: "Seven", description: "Nodes arranged along the outline of a large 3D numeral seven." },
@@ -50,7 +65,7 @@ export function SettingsPanel({
     <>
       {/* Gear trigger button */}
       <button
-        type="button"
+        type="button" {...focusRing}
         onClick={() => setOpen((v) => !v)}
         title="Settings"
         style={{
@@ -94,7 +109,7 @@ export function SettingsPanel({
             background: "var(--panel-bg)",
             backdropFilter: "blur(20px)",
             border: "1px solid var(--border-default)",
-            borderRadius: 14,
+            borderRadius: 12,
             boxShadow: "var(--shadow-lg)",
             padding: "20px 0 4px",
             display: "flex",
@@ -217,7 +232,7 @@ function ToggleRow({
 }) {
   return (
     <button
-      type="button"
+      type="button" {...focusRing}
       onClick={() => onChange(!checked)}
       style={{
         display: "flex",

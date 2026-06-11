@@ -229,14 +229,23 @@ function buildEdges(page: NotionPage): Array<{ targetId: string; relationName: s
 export async function runSync(): Promise<GraphData> {
   const config = (await readJsonFile<AppConfig>(CONFIG_FILE)) ?? { databaseColors: {} };
 
-  // Prefer token/rootPages from saved config, fall back to env vars
-  const token = (config.notionToken && config.notionToken.trim()) || (process.env.NOTION_TOKEN ?? "");
+  // Credential sourcing: active workspace → legacy top-level fields → env vars.
+  // A workspace with no stored token still syncs if NOTION_TOKEN is set.
+  const workspaceList = config.workspaces ?? [];
+  const activeWorkspace =
+    workspaceList.find((w) => w.id === config.activeWorkspaceId) ?? workspaceList[0];
+  const token =
+    (activeWorkspace?.notionToken && activeWorkspace.notionToken.trim()) ||
+    (config.notionToken && config.notionToken.trim()) ||
+    (process.env.NOTION_TOKEN ?? "");
   const rootPageEntries: string[] =
-    config.rootPages && config.rootPages.length > 0
-      ? config.rootPages
-      : process.env.NOTION_ROOT_PAGE
-        ? [process.env.NOTION_ROOT_PAGE]
-        : [];
+    activeWorkspace?.rootPages && activeWorkspace.rootPages.length > 0
+      ? activeWorkspace.rootPages
+      : config.rootPages && config.rootPages.length > 0
+        ? config.rootPages
+        : process.env.NOTION_ROOT_PAGE
+          ? [process.env.NOTION_ROOT_PAGE]
+          : [];
 
   if (!token || rootPageEntries.length === 0) {
     const warningGraph: GraphData = {
