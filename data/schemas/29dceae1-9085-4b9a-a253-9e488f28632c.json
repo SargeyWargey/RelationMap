@@ -3,6 +3,98 @@
   "databaseName": "Business Team",
   "fields": [
     {
+      "id": "%3Cu%3AO",
+      "name": "Team",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "7191221e-4748-4131-8b8b-a77cd120c28f",
+          "name": "Finance",
+          "color": "blue"
+        },
+        {
+          "id": "8cf60fa8-a825-497d-949c-fcb4f5782f55",
+          "name": "MHI",
+          "color": "gray"
+        },
+        {
+          "id": "9098e5da-1ad6-4799-b3d0-86e56746e849",
+          "name": "QA",
+          "color": "default"
+        },
+        {
+          "id": "8108ceb4-ec51-42cd-9a78-8497aa67756e",
+          "name": "Tax",
+          "color": "red"
+        },
+        {
+          "id": "8f1fa2e4-3ea0-49c6-9d32-78b584b85f10",
+          "name": "CTAR",
+          "color": "yellow"
+        },
+        {
+          "id": "a6e9fc1d-8219-47c3-ab8c-2078280ec3e2",
+          "name": "Supply Chain",
+          "color": "orange"
+        },
+        {
+          "id": "c1c7c069-795b-432a-ba84-d93508c3f80f",
+          "name": "Accounting",
+          "color": "green"
+        },
+        {
+          "id": "bd3fa86e-7083-4570-8fbf-e0b21172a83a",
+          "name": "IT",
+          "color": "pink"
+        },
+        {
+          "id": "81dcb9a6-34b4-42fe-98be-04499a312a8c",
+          "name": "AP",
+          "color": "brown"
+        },
+        {
+          "id": "054b7d30-4724-4663-a380-7dff6eb5df16",
+          "name": "AR",
+          "color": "purple"
+        },
+        {
+          "id": "d67bc32f-7ce5-49f0-8a2a-fa711f3fb78b",
+          "name": "NetSuite",
+          "color": "brown"
+        },
+        {
+          "id": "477bf1ce-c9f2-4ad0-9ed0-0ec244c02be4",
+          "name": "International",
+          "color": "blue"
+        },
+        {
+          "id": "a9244028-dcfe-4684-9385-83b51134f2da",
+          "name": "New Stand Growth",
+          "color": "brown"
+        },
+        {
+          "id": "gZae",
+          "name": "Corporate Controls",
+          "color": "yellow"
+        },
+        {
+          "id": "tIg`",
+          "name": "Corporate Accounting",
+          "color": "orange"
+        },
+        {
+          "id": "YlHL",
+          "name": "Technical Accounting",
+          "color": "pink"
+        }
+      ]
+    },
+    {
+      "id": "sa~~",
+      "name": "Supervisor",
+      "type": "relation"
+    },
+    {
       "id": "title",
       "name": "Name",
       "type": "title"

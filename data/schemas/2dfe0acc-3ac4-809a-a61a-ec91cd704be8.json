@@ -3,6 +3,11 @@
   "databaseName": "Application Documentation",
   "fields": [
     {
+      "id": "VycS",
+      "name": "Last edited time",
+      "type": "last_edited_time"
+    },
+    {
       "id": "%5BjvR",
       "name": "Expiration Date",
       "type": "date"
@@ -20,7 +25,7 @@
     {
       "id": "lSA%5B",
       "name": "Vendor/Partner",
-      "type": "rich_text"
+      "type": "relation"
     },
     {
       "id": "pAE~",
@@ -66,6 +71,46 @@
           "id": "P;<]",
           "name": "Other",
           "color": "brown"
+        },
+        {
+          "id": "CXoj",
+          "name": "SOC 1 Report",
+          "color": "blue"
+        },
+        {
+          "id": "[Y:G",
+          "name": "SOC 2 Report",
+          "color": "blue"
+        },
+        {
+          "id": "zRZK",
+          "name": "SOC 3 Report",
+          "color": "blue"
+        },
+        {
+          "id": "ik>w",
+          "name": "Bridge Letter",
+          "color": "yellow"
+        },
+        {
+          "id": "r:;G",
+          "name": "ISO Certification",
+          "color": "green"
+        },
+        {
+          "id": "uIzP",
+          "name": "BCDR Report",
+          "color": "purple"
+        },
+        {
+          "id": ";yML",
+          "name": "PCI Attestation",
+          "color": "orange"
+        },
+        {
+          "id": "d\\}@",
+          "name": "Pentest Report",
+          "color": "red"
         }
       ]
     },

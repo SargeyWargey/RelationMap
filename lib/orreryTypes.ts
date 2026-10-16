@@ -9,8 +9,8 @@ export type RingDatabaseMapping = {
 export type TierMapping = {
   galaxyDatabaseId: string;
   starDatabaseId: string;
-  planetDatabaseId: string;
-  moonDatabaseId: string;
+  planetDatabaseId: string; // "" = no planet tier
+  moonDatabaseId: string;   // "" = no moon tier (requires a planet tier)
   ringDatabases: RingDatabaseMapping[]; // empty array = no rings configured
 };
 

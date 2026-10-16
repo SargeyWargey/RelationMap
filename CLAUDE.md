@@ -7,8 +7,9 @@ This is a TypeScript/React project built on **Next.js (App Router)**. Primary la
 **Visualization modes:**
 - `/graph` — "The Sphere": 3D node graph (sphere, seven, horse shape layouts)
 - `/project-city` — "The City": walkable first-person 3D city, databases = neighborhoods, records = buildings
-- `/project-mountain` — "The Mountain": ridge/peak terrain, height = data freshness
-- `/project-timeline` — "The Line": spiral cylinder with per-person timelines indexed by date
+- `/project-mountain` — "The Mountain": a walkable island — each database is a mountain range, each record a peak (height = connections + recent activity); map view + third-person hiker
+- `/project-timeline` — "The Line": everyone on one shared timeline — one lane per person, records placed by their real dates (spans for start→end)
+- `/project-culture` — "The Culture": a living petri dish — records bud into colonies of related work as they're created (each database its own microbe species), played back over time; finished work goes dormant
 - `/project-user` — User-centric spatial layout
 
 **Key directories:**
@@ -55,13 +56,13 @@ Before editing, confirm which specific pages/components are affected. Do not ass
 
 When removing code, check that any variables declared in the removed block are not referenced elsewhere. Run a grep for the variable name before finalizing the removal.
 
-Each visualization mode is **independent** — `CityCanvas`, `GraphCanvas`, `MountainCanvas`, `TimelineCanvas`, and `UserCanvas` do not share rendering logic. Changes to one canvas do not affect others.
+Each visualization mode is **independent** — `CityCanvas`, `CultureCanvas`, `GraphCanvas`, `MountainCanvas`, `TimelineCanvas`, and `UserCanvas` do not share rendering logic. Changes to one canvas do not affect others.
 
 ## 3D & Visualization
 
 When implementing spatial/3D features, confirm the coordinate system and layout approach with the user before writing code. Do not assume how items should be distributed in space.
 
-- Each mode has its own layout algorithm in `lib/` (`cityLayout.ts`, `mountainLayout.ts`, `timelineLayout.ts`, `graph/layout.ts`). Layout logic is pure functions — keep it separate from rendering.
+- Each mode has its own layout algorithm in `lib/` (`cityLayout.ts`, `cultureWorld.ts`, `mountainWorld.ts`, `lineModel.ts`, `graph/layout.ts`). Layout logic is pure functions — keep it separate from rendering.
 - Node positions use MD5-based deterministic placement (`stablePosition()` in `lib/graph/layout.ts`) so positions are stable across reloads.
 - `CityCanvas` is the most complex component (~1000 lines): first-person camera, WASD movement, jump/gravity, collision, and web-swing mechanics.
 - `GraphCanvas` manages sphere simulation with velocity/momentum, three shape layouts, raycasting selection, and edge rendering.

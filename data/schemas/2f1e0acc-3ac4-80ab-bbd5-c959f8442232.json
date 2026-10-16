@@ -8,6 +8,11 @@
       "type": "number"
     },
     {
+      "id": "SFcW",
+      "name": "Completion",
+      "type": "rollup"
+    },
+    {
       "id": "ZzdP",
       "name": "Completed Points",
       "type": "formula"

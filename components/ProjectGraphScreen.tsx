@@ -7,10 +7,11 @@ import { GraphCanvas, type ShapeLayout } from "@/components/GraphCanvas";
 import { ParallaxMountainBg } from "@/components/ParallaxMountainBg";
 import { DatabaseTogglePanel } from "@/components/DatabaseTogglePanel";
 import { NodeDetailsPanel } from "@/components/NodeDetailsPanel";
+import { NodeSearch, nodeToDetail } from "@/components/NodeSearch";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { useTheme } from "@/components/ThemeProvider";
 import { useLastSyncLabel } from "@/lib/useLastSyncLabel";
-import type { DatabaseFieldConfig, DatabaseSchema, GraphData, NodeDetail } from "@/lib/types";
+import type { DatabaseFieldConfig, DatabaseSchema, GraphData, GraphNode, NodeDetail } from "@/lib/types";
 
 type Props = {
   initialGraph: GraphData;
@@ -48,6 +49,16 @@ export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }:
 
   // Deep highlight mode — shows full connection web with opacity decay
   const [deepHighlight, setDeepHighlight] = useState(false);
+
+  // Idle auto-rotation (persisted per browser)
+  const [autoRotate, setAutoRotate] = useState(true);
+  useEffect(() => {
+    try { if (localStorage.getItem("sphere_auto_rotate") === "false") setAutoRotate(false); } catch { /* ignore */ }
+  }, []);
+  const handleAutoRotateChange = useCallback((v: boolean) => {
+    setAutoRotate(v);
+    try { localStorage.setItem("sphere_auto_rotate", String(v)); } catch { /* ignore */ }
+  }, []);
 
   // Center text visibility + opacity
   const [showCenterText, setShowCenterText] = useState(true);
@@ -130,6 +141,10 @@ export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }:
     setSelectedDetail(detail);
   }, []);
 
+  const handleSearchPick = useCallback((node: GraphNode) => {
+    setSelectedDetail(nodeToDetail(node));
+  }, []);
+
   const handleClose = useCallback(() => {
     setPanelOpen(false);
     setTimeout(() => setSelectedDetail(null), 350);
@@ -208,6 +223,7 @@ export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }:
           shape={shape}
           deepHighlight={deepHighlight}
           panelOpen={panelOpen}
+          autoRotate={autoRotate}
         />
       </div>
 
@@ -274,6 +290,10 @@ export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }:
         }}
         className="animate-fade-up"
       >
+        {filteredGraph.nodes.length > 0 && (
+          <NodeSearch nodes={filteredGraph.nodes} onPick={handleSearchPick} />
+        )}
+
         {/* Dark mode toggle */}
         <button
           type="button"
@@ -375,6 +395,8 @@ export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }:
           onShowCenterTextChange={setShowCenterText}
           centerTextOpacity={centerTextOpacity}
           onCenterTextOpacityChange={setCenterTextOpacity}
+          autoRotate={autoRotate}
+          onAutoRotateChange={handleAutoRotateChange}
         />
 
         {/* Controls hint bar */}
@@ -393,6 +415,7 @@ export function ProjectGraphScreen({ initialGraph, databaseColors, lastSyncAt }:
             ["scroll", "zoom"],
             ["drag", "rotate"],
             ["click", "select"],
+            ["/", "search"],
           ].map(([key, action]) => (
             <span key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{

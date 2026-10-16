@@ -1,0 +1,83 @@
+{
+  "databaseId": "365e0acc-3ac4-80fe-83d2-fd79acda9451",
+  "databaseName": "Architecture Documents",
+  "fields": [
+    {
+      "id": "A%3Fb%3E",
+      "name": "Owner",
+      "type": "people"
+    },
+    {
+      "id": "Mw%3F%5B",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "VCEF",
+          "name": "Draft",
+          "color": "gray"
+        },
+        {
+          "id": "jcEl",
+          "name": "In Review",
+          "color": "yellow"
+        },
+        {
+          "id": "UJ<<",
+          "name": "Ready for Review",
+          "color": "purple"
+        },
+        {
+          "id": "uV[^",
+          "name": "Revisions Needed",
+          "color": "orange"
+        },
+        {
+          "id": "D?p>",
+          "name": "Approved",
+          "color": "green"
+        },
+        {
+          "id": "piz[",
+          "name": "Published",
+          "color": "blue"
+        },
+        {
+          "id": "KHqd",
+          "name": "Archived",
+          "color": "brown"
+        }
+      ]
+    },
+    {
+      "id": "SnGv",
+      "name": "Signed Off By",
+      "type": "people"
+    },
+    {
+      "id": "Z_FW",
+      "name": "Version",
+      "type": "rich_text"
+    },
+    {
+      "id": "_jIb",
+      "name": "Related Project",
+      "type": "relation"
+    },
+    {
+      "id": "aHrM",
+      "name": "Sign-Off Date",
+      "type": "date"
+    },
+    {
+      "id": "jDn%3F",
+      "name": "Related Applications",
+      "type": "relation"
+    },
+    {
+      "id": "title",
+      "name": "Document",
+      "type": "title"
+    }
+  ]
+}

@@ -87,7 +87,7 @@ export type NotionWorkspace = {
 };
 
 export type CultureConfig = {
-  playbackSpeed: number;   // months per second (default: 1)
+  playbackSpeed: number;   // speed multiplier; 1× plays 10 days of history per second
   showRelations: boolean;  // default: true
   nodeSizeScale: number;   // multiplier (default: 1)
 };

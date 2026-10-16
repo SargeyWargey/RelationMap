@@ -3,18 +3,8 @@
   "databaseName": "Dev-Jira Issues",
   "fields": [
     {
-      "id": "ZB%3FI",
-      "name": "Meeting Notes",
-      "type": "relation"
-    },
-    {
       "id": "ltBQ",
       "name": "Documentation",
-      "type": "relation"
-    },
-    {
-      "id": "%7CG%3AI",
-      "name": "Projects",
       "type": "relation"
     },
     {
@@ -103,6 +93,31 @@
           "id": "[tnT",
           "name": "In QA",
           "color": "blue"
+        },
+        {
+          "id": "EP?K",
+          "name": "Marketing Testing",
+          "color": "blue"
+        },
+        {
+          "id": "m|A@",
+          "name": "Hold",
+          "color": "blue"
+        },
+        {
+          "id": "nvUW",
+          "name": "Dev Testing",
+          "color": "blue"
+        },
+        {
+          "id": "egGe",
+          "name": "QA Complete - Ready to deploy",
+          "color": "blue"
+        },
+        {
+          "id": "EO[o",
+          "name": "MOVED TO NEW BOARD",
+          "color": "gray"
         }
       ]
     },
@@ -172,6 +187,21 @@
           "id": "1c0698bd-d965-4455-b55d-97c190c06438",
           "name": "Green",
           "color": "default"
+        },
+        {
+          "id": "87b73626-57af-4f41-8bcd-a2ffc7be1d2f",
+          "name": "form",
+          "color": "default"
+        },
+        {
+          "id": "71d3b0f3-48c9-4d6c-80a2-08ab318f3c20",
+          "name": "form-101",
+          "color": "default"
+        },
+        {
+          "id": "ed319310-6455-46dc-8907-1aacb9f8830c",
+          "name": "form-135",
+          "color": "default"
         }
       ]
     },
@@ -182,12 +212,12 @@
     },
     {
       "id": "6959a5fb-ebd7-4469-8b13-bca9c048fbde",
-      "name": "Project 2",
+      "name": "Project 1",
       "type": "rich_text"
     },
     {
       "id": "750653f9-0eec-4578-9f44-0c03d5b37d63",
-      "name": "Linked Issues",
+      "name": "Linked work items",
       "type": "relation"
     },
     {
@@ -309,6 +339,76 @@
           "id": "6b160655-601f-4a36-bf44-ecb9b1ed4d69",
           "name": "WEB Sprint 7",
           "color": "default"
+        },
+        {
+          "id": "e8da0d9e-da5e-4d96-ba62-033017034165",
+          "name": "DNA Sprint 6",
+          "color": "default"
+        },
+        {
+          "id": "b489108b-ff52-4a85-9e17-342acdc000f1",
+          "name": "SF Sprint 7",
+          "color": "default"
+        },
+        {
+          "id": "aa79f74c-d862-4a01-a17a-520c2a94b451",
+          "name": "WEB Sprint 8",
+          "color": "default"
+        },
+        {
+          "id": "3a80881c-8700-40a2-9ceb-48847c2650d6",
+          "name": "DNA Sprint 7",
+          "color": "default"
+        },
+        {
+          "id": "c6ed6fe2-4816-46ea-8423-ae87ec2dff4d",
+          "name": "SF Sprint 8",
+          "color": "default"
+        },
+        {
+          "id": "cc0b7083-e4e3-4b8d-a75e-c95153e060f9",
+          "name": "DNA Sprint 8",
+          "color": "default"
+        },
+        {
+          "id": "0d7cf00c-e990-4cc2-a0b9-1537400bd4dc",
+          "name": "DNA Sprint 9",
+          "color": "default"
+        },
+        {
+          "id": "d0dba737-3adc-4299-b5b8-e49daecd8062",
+          "name": "DNA Sprint 10",
+          "color": "default"
+        },
+        {
+          "id": "86f74971-555b-4160-b0d6-6c3362715752",
+          "name": "SF Sprint 9",
+          "color": "default"
+        },
+        {
+          "id": "8c1a8ecc-92b6-4ec1-8423-239cb07fa931",
+          "name": "SF Sprint 10",
+          "color": "default"
+        },
+        {
+          "id": "17892f1a-83b8-4c43-b23f-271dd04c0fa9",
+          "name": "WEB Sprint 9",
+          "color": "default"
+        },
+        {
+          "id": "4b4c40d1-5358-493f-b0b7-6fdbc311fa37",
+          "name": "WEB Sprint 10",
+          "color": "default"
+        },
+        {
+          "id": "56e5e39a-da79-40cc-b3ed-5e55bda338f0",
+          "name": "WEB Sprint 11",
+          "color": "default"
+        },
+        {
+          "id": "26b253da-6ff1-4e0b-8910-b961bfdbcc8c",
+          "name": "WEB Sprint 12",
+          "color": "default"
         }
       ]
     },
@@ -392,6 +492,11 @@
         {
           "id": "0c334209-4ec1-4246-b2e5-8bddd803bc8b",
           "name": "Spike",
+          "color": "default"
+        },
+        {
+          "id": "eadb49d0-3a86-4415-b5c4-9eb9f0b35445",
+          "name": "Mobile Request",
           "color": "default"
         }
       ]

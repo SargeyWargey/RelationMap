@@ -1,0 +1,147 @@
+{
+  "databaseId": "c0382316-1edc-4e4f-90c3-e7faba80fb59",
+  "databaseName": "Cyber Review Findings Log",
+  "fields": [
+    {
+      "id": "%3B%60mM",
+      "name": "Report(s) Reviewed",
+      "type": "rich_text"
+    },
+    {
+      "id": "%3B%7Co%3C",
+      "name": "Final Disposition",
+      "type": "select",
+      "options": [
+        {
+          "id": "16e5264e-f11c-4fee-b5d6-0a1914469e4e",
+          "name": "Approved",
+          "color": "green"
+        },
+        {
+          "id": "4cf3b6ea-4370-4fd4-9830-1b608d0317a9",
+          "name": "Approved with Conditions",
+          "color": "yellow"
+        },
+        {
+          "id": "1b3d4a5d-7464-4acf-aea1-79961b2dbc86",
+          "name": "Pending",
+          "color": "gray"
+        },
+        {
+          "id": "09277d9a-9200-4fa3-915e-541ce5376ab2",
+          "name": "On Hold",
+          "color": "orange"
+        },
+        {
+          "id": "8e54997d-ec85-4b0d-a117-6cf991db81d0",
+          "name": "Rejected",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "%3DeRy",
+      "name": "Review Date",
+      "type": "date"
+    },
+    {
+      "id": "H%5E%7CP",
+      "name": "Related Documentation",
+      "type": "url"
+    },
+    {
+      "id": "JxMv",
+      "name": "Product / Service",
+      "type": "rich_text"
+    },
+    {
+      "id": "KNAo",
+      "name": "Follow-ups / Open Items",
+      "type": "rich_text"
+    },
+    {
+      "id": "%5BwzO",
+      "name": "Business Outcome",
+      "type": "select",
+      "options": [
+        {
+          "id": "9041524b-a466-4e0c-a22e-068f50a83464",
+          "name": "Evaluating",
+          "color": "blue"
+        },
+        {
+          "id": "f25353ee-e2c7-434e-b647-7d2d9808c49a",
+          "name": "Moving Forward",
+          "color": "yellow"
+        },
+        {
+          "id": "b270652e-a016-48b1-93df-a780a9aa8414",
+          "name": "Contracted / Live",
+          "color": "green"
+        },
+        {
+          "id": "51a8567e-529a-47e0-b895-9d33992f5944",
+          "name": "Not Pursued",
+          "color": "gray"
+        },
+        {
+          "id": "da036581-3c3a-4dbb-8b8d-d312c7861324",
+          "name": "Unknown",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "%5EBms",
+      "name": "Key Findings / Exceptions",
+      "type": "rich_text"
+    },
+    {
+      "id": "dT~f",
+      "name": "Notes",
+      "type": "rich_text"
+    },
+    {
+      "id": "fUPq",
+      "name": "Reviewer",
+      "type": "people"
+    },
+    {
+      "id": "tFsA",
+      "name": "Legal Flag",
+      "type": "checkbox"
+    },
+    {
+      "id": "t%5DId",
+      "name": "Risk Rating",
+      "type": "select",
+      "options": [
+        {
+          "id": "55b7fcfa-df55-4ffd-a437-ca558743fecf",
+          "name": "Low",
+          "color": "green"
+        },
+        {
+          "id": "8877d372-d798-49eb-a893-3ae8d3772d59",
+          "name": "Medium",
+          "color": "yellow"
+        },
+        {
+          "id": "8cdaa11a-8be3-42d8-9228-2475b1ca2ce3",
+          "name": "High",
+          "color": "orange"
+        },
+        {
+          "id": "1769b055-96e7-4b81-bb80-a345dd283540",
+          "name": "Critical",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "name": "Vendor",
+      "type": "title"
+    }
+  ]
+}

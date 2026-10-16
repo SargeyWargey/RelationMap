@@ -1,19 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+
+import { TierGlyph } from "@/components/OrreryAtlas";
 import type { GraphData } from "@/lib/types";
-import type { OrreryConfig, RingDatabaseMapping, RingSubType } from "@/lib/orreryTypes";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type DbInfo = {
-  id: string;
-  name: string;
-  color: string;
-  count: number;
-};
+import type { OrreryConfig, RingDatabaseMapping, RingSubType, TierMapping } from "@/lib/orreryTypes";
+import { analyzeMapping, linkCoverage, suggestMapping } from "@/lib/orreryUniverse";
 
 type Props = {
   graphData: GraphData | null;
@@ -23,353 +15,95 @@ type Props = {
   onClose?: () => void;
 };
 
-// ---------------------------------------------------------------------------
-// Styles — shared primitives
-// ---------------------------------------------------------------------------
+type DbInfo = { id: string; name: string; color: string; count: number };
+type TierKey = "galaxy" | "star" | "planet" | "moon";
 
-const MONO: React.CSSProperties = {
-  fontFamily: "'DM Mono', monospace",
-};
+const TIERS: Array<{ key: TierKey; field: keyof Omit<TierMapping, "ringDatabases">; title: string; one: string; blurb: string; optional: boolean }> = [
+  { key: "galaxy", field: "galaxyDatabaseId", title: "Galaxies", one: "galaxy", blurb: "The broadest grouping — each record becomes a galaxy.", optional: false },
+  { key: "star", field: "starDatabaseId", title: "Stars", one: "star", blurb: "Each record becomes a star system inside the galaxy it relates to.", optional: false },
+  { key: "planet", field: "planetDatabaseId", title: "Planets", one: "planet", blurb: "Each record orbits the star it relates to.", optional: true },
+  { key: "moon", field: "moonDatabaseId", title: "Moons", one: "moon", blurb: "Each record orbits the planet it relates to.", optional: true },
+];
 
-const GEIST: React.CSSProperties = {
-  fontFamily: "'Geist', sans-serif",
-};
+const MONO: React.CSSProperties = { fontFamily: "'DM Mono', monospace" };
+const GEIST: React.CSSProperties = { fontFamily: "'Geist', sans-serif" };
 
-const LORA: React.CSSProperties = {
-  fontFamily: "'Lora', Georgia, serif",
-};
-
-function labelStyle(required = false): React.CSSProperties {
-  return {
-    ...MONO,
-    fontSize: 11,
-    fontWeight: 500,
-    color: required ? "var(--accent-warm)" : "var(--text-muted)",
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 6,
-  };
+function pct(n: number, d: number) {
+  return d === 0 ? 0 : Math.round((n / d) * 100);
 }
 
-function selectStyle(hasValue: boolean, error = false): React.CSSProperties {
-  return {
-    ...MONO,
-    width: "100%",
-    padding: "8px 12px",
-    background: "var(--bg-overlay)",
-    border: `1px solid ${error ? "var(--accent-warm)" : hasValue ? "var(--border-strong)" : "var(--border-default)"}`,
-    borderRadius: 8,
-    color: hasValue ? "var(--text-primary)" : "var(--text-muted)",
-    fontSize: 13,
-    cursor: "pointer",
-    outline: "none",
-    appearance: "auto",
-    transition: "border-color 0.15s",
-  };
+function healthColor(ratio: number) {
+  if (ratio >= 0.6) return "var(--accent-sage)";
+  if (ratio >= 0.25) return "var(--accent-gold)";
+  return "var(--accent-rust)";
 }
 
-function btnPrimary(disabled: boolean): React.CSSProperties {
-  return {
-    ...GEIST,
-    height: 40,
-    padding: "0 24px",
-    borderRadius: 8,
-    border: "none",
-    background: disabled ? "var(--bg-overlay)" : "var(--accent-warm)",
-    color: disabled ? "var(--text-faint)" : "#fff",
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: disabled ? "not-allowed" : "pointer",
-    letterSpacing: "-0.01em",
-    transition: "background 0.15s, color 0.15s",
-    flexShrink: 0,
-  };
-}
-
-function btnSecondary(): React.CSSProperties {
-  return {
-    ...GEIST,
-    height: 36,
-    padding: "0 16px",
-    borderRadius: 8,
-    border: "1px solid var(--border-default)",
-    background: "transparent",
-    color: "var(--text-muted)",
-    fontSize: 12,
-    fontWeight: 500,
-    cursor: "pointer",
-    transition: "border-color 0.15s, color 0.15s",
-    flexShrink: 0,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// TierRow — one mandatory tier selector
-// ---------------------------------------------------------------------------
-
-function TierRow({
-  index,
-  label,
-  description,
-  value,
-  databases,
-  usedIds,
-  error,
-  onChange,
-}: {
-  index: number;
-  label: string;
-  description: string;
-  value: string;
-  databases: DbInfo[];
-  usedIds: Set<string>;
-  error: boolean;
-  onChange: (id: string) => void;
-}) {
-  const selected = databases.find((d) => d.id === value);
-
+function HealthBar({ placed, count, label }: { placed: number; count: number; label: string }) {
+  const ratio = count ? placed / count : 0;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      <div style={labelStyle(true)}>
-        <span style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 18,
-          height: 18,
-          borderRadius: 4,
-          background: "var(--accent-warm)",
-          color: "#fff",
-          fontSize: 10,
-          fontWeight: 700,
-          flexShrink: 0,
-        }}>
-          {index}
-        </span>
-        {label}
-        <span style={{ color: "var(--text-faint)", fontWeight: 300, textTransform: "none", fontSize: 10 }}>
-          — {description}
-        </span>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0 2px 15px", padding: "8px 0 8px 22px", borderLeft: "1px dashed var(--border-strong)" }}>
+      <div style={{ width: 80, height: 4, borderRadius: 2, background: "var(--bg-overlay)", overflow: "hidden", flexShrink: 0 }}>
+        <div style={{ width: `${Math.max(2, ratio * 100)}%`, height: "100%", background: healthColor(ratio), transition: "width 0.3s ease" }} />
       </div>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={selectStyle(!!value, error)}
-      >
-        <option value="">— select a database —</option>
-        {databases.map((db) => (
-          <option
-            key={db.id}
-            value={db.id}
-            disabled={usedIds.has(db.id) && db.id !== value}
-          >
-            {db.name} ({db.count} record{db.count !== 1 ? "s" : ""})
-            {usedIds.has(db.id) && db.id !== value ? " [in use]" : ""}
-          </option>
-        ))}
-      </select>
-      {error && (
-        <span style={{ ...MONO, fontSize: 10, color: "var(--accent-warm)", marginTop: 4 }}>
-          Required — select a database to continue.
-        </span>
-      )}
-      {selected && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
-          <div style={{
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            background: selected.color,
-            flexShrink: 0,
-          }} />
-          <span style={{ ...MONO, fontSize: 10, color: "var(--text-faint)" }}>
-            {selected.count} record{selected.count !== 1 ? "s" : ""} will become {label.toLowerCase()}s
-          </span>
-        </div>
-      )}
+      <span style={{ ...MONO, fontSize: 10.5, color: "var(--text-muted)" }}>
+        <span style={{ color: healthColor(ratio), fontWeight: 500 }}>{placed.toLocaleString()}</span> of {count.toLocaleString()} {label}
+        {count - placed > 0 && <span style={{ color: "var(--text-faint)" }}> · {(count - placed).toLocaleString()} drift to deep space</span>}
+      </span>
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// RingRow — one optional ring/belt database entry
-// ---------------------------------------------------------------------------
-
-function RingRow({
-  mapping,
-  databases,
-  onChange,
-  onRemove,
-}: {
-  mapping: RingDatabaseMapping;
-  databases: DbInfo[];
-  onChange: (next: RingDatabaseMapping) => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div style={{
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      padding: "8px 10px",
-      background: "var(--bg-overlay)",
-      borderRadius: 8,
-      border: "1px solid var(--border-subtle)",
-    }}>
-      <select
-        value={mapping.databaseId}
-        onChange={(e) => onChange({ ...mapping, databaseId: e.target.value })}
-        style={{
-          ...MONO,
-          flex: 1,
-          padding: "5px 8px",
-          background: "var(--bg-base)",
-          border: "1px solid var(--border-default)",
-          borderRadius: 6,
-          color: mapping.databaseId ? "var(--text-primary)" : "var(--text-muted)",
-          fontSize: 12,
-          cursor: "pointer",
-          outline: "none",
-          appearance: "auto",
-        }}
-      >
-        <option value="">— database —</option>
-        {databases.map((db) => (
-          <option key={db.id} value={db.id}>
-            {db.name} ({db.count})
-          </option>
-        ))}
-      </select>
-
-      {/* Sub-type toggle */}
-      <div style={{ display: "flex", borderRadius: 6, border: "1px solid var(--border-default)", overflow: "hidden", flexShrink: 0 }}>
-        {(["planet-rings", "star-belt"] as RingSubType[]).map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => onChange({ ...mapping, subType: type })}
-            style={{
-              ...MONO,
-              padding: "4px 10px",
-              fontSize: 10,
-              fontWeight: 500,
-              background: mapping.subType === type ? "var(--accent-warm)" : "transparent",
-              color: mapping.subType === type ? "#fff" : "var(--text-muted)",
-              border: "none",
-              cursor: "pointer",
-              letterSpacing: "0.04em",
-              transition: "background 0.12s, color 0.12s",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {type === "planet-rings" ? "Planet rings" : "Star belt"}
-          </button>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        onClick={onRemove}
-        title="Remove"
-        style={{
-          width: 26,
-          height: 26,
-          borderRadius: 6,
-          border: "1px solid var(--border-default)",
-          background: "transparent",
-          color: "var(--text-faint)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 14,
-          flexShrink: 0,
-        }}
-      >
-        ×
-      </button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// OrreryUniverseBuilder
-// ---------------------------------------------------------------------------
 
 export function OrreryUniverseBuilder({ graphData, initialConfig, onLaunch, onClose }: Props) {
-  // Derive available databases from graph data
   const databases = useMemo<DbInfo[]>(() => {
     if (!graphData) return [];
     const map = new Map<string, DbInfo>();
     for (const node of graphData.nodes) {
       const existing = map.get(node.databaseId);
-      if (existing) {
-        existing.count++;
-      } else {
-        map.set(node.databaseId, {
-          id: node.databaseId,
-          name: node.databaseName,
-          color: node.color,
-          count: 1,
-        });
-      }
+      if (existing) existing.count++;
+      else map.set(node.databaseId, { id: node.databaseId, name: node.databaseName, color: node.color, count: 1 });
     }
     return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [graphData]);
+  const dbById = useMemo(() => new Map(databases.map((d) => [d.id, d])), [databases]);
+  const coverage = useMemo(() => (graphData ? linkCoverage(graphData) : () => 0), [graphData]);
+  const suggestion = useMemo(() => (graphData ? suggestMapping(graphData) : null), [graphData]);
 
-  // Form state — pre-fill from initialConfig
-  const [galaxyDb, setGalaxyDb] = useState(initialConfig?.tierMapping.galaxyDatabaseId ?? "");
-  const [starDb, setStarDb] = useState(initialConfig?.tierMapping.starDatabaseId ?? "");
-  const [planetDb, setPlanetDb] = useState(initialConfig?.tierMapping.planetDatabaseId ?? "");
-  const [moonDb, setMoonDb] = useState(initialConfig?.tierMapping.moonDatabaseId ?? "");
-  const [ringDbs, setRingDbs] = useState<RingDatabaseMapping[]>(
-    () => initialConfig?.tierMapping.ringDatabases ?? [],
-  );
-
-  const [touched, setTouched] = useState(false);
+  const [mapping, setMapping] = useState<TierMapping>(() => initialConfig?.tierMapping ?? suggestion ?? {
+    galaxyDatabaseId: "", starDatabaseId: "", planetDatabaseId: "", moonDatabaseId: "", ringDatabases: [],
+  });
+  const [ringsOpen, setRingsOpen] = useState(() => (initialConfig?.tierMapping.ringDatabases.length ?? 0) > 0);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const isValid = !!galaxyDb && !!starDb && !!planetDb && !!moonDb;
-  const isReconfigure = !!initialConfig;
+  const health = useMemo(() => (graphData ? analyzeMapping(graphData, mapping) : null), [graphData, mapping]);
 
-  // Collect IDs already used in mandatory tiers so we can mark them as in-use
-  const usedMandatory = useMemo(() => new Set([galaxyDb, starDb, planetDb, moonDb].filter(Boolean)), [galaxyDb, starDb, planetDb, moonDb]);
+  const used = [mapping.galaxyDatabaseId, mapping.starDatabaseId, mapping.planetDatabaseId, mapping.moonDatabaseId].filter(Boolean);
+  const duplicate = new Set(used).size !== used.length;
+  const isValid = !!mapping.galaxyDatabaseId && !!mapping.starDatabaseId && !duplicate && (!mapping.moonDatabaseId || !!mapping.planetDatabaseId);
+  const isSuggested = !!suggestion && (["galaxyDatabaseId", "starDatabaseId", "planetDatabaseId", "moonDatabaseId"] as const)
+    .every((k) => suggestion[k] === mapping[k]);
 
-  function addRingDb() {
-    setRingDbs((prev) => [...prev, { databaseId: "", subType: "planet-rings" }]);
+  function setTier(field: keyof Omit<TierMapping, "ringDatabases">, value: string) {
+    setMapping((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "planetDatabaseId" && !value) next.moonDatabaseId = "";
+      return next;
+    });
   }
 
-  function updateRingDb(index: number, next: RingDatabaseMapping) {
-    setRingDbs((prev) => prev.map((r, i) => (i === index ? next : r)));
-  }
-
-  function removeRingDb(index: number) {
-    setRingDbs((prev) => prev.filter((_, i) => i !== index));
+  function updateRing(index: number, next: RingDatabaseMapping) {
+    setMapping((prev) => ({ ...prev, ringDatabases: prev.ringDatabases.map((r, i) => (i === index ? next : r)) }));
   }
 
   async function handleSubmit() {
-    setTouched(true);
     if (!isValid) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const body = {
-        tierMapping: {
-          galaxyDatabaseId: galaxyDb,
-          starDatabaseId: starDb,
-          planetDatabaseId: planetDb,
-          moonDatabaseId: moonDb,
-          ringDatabases: ringDbs.filter((r) => r.databaseId),
-        },
-      };
       const resp = await fetch("/api/orrery-config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ tierMapping: { ...mapping, ringDatabases: mapping.ringDatabases.filter((r) => r.databaseId) } }),
       });
       const data = await resp.json() as { ok?: boolean; orreryConfig?: OrreryConfig; error?: string };
       if (!resp.ok || !data.orreryConfig) {
@@ -384,297 +118,271 @@ export function OrreryUniverseBuilder({ graphData, initialConfig, onLaunch, onCl
     }
   }
 
-  const mandatoryTiers = [
-    { index: 1, label: "Galaxy",  description: "each record becomes a galaxy",          value: galaxyDb, set: setGalaxyDb },
-    { index: 2, label: "Star",    description: "each record becomes a star",             value: starDb,   set: setStarDb },
-    { index: 3, label: "Planet",  description: "each record becomes a planet",           value: planetDb, set: setPlanetDb },
-    { index: 4, label: "Moon",    description: "each record becomes a moon",             value: moonDb,   set: setMoonDb },
-  ];
+  // Parent tier for coverage ranking
+  const parentOf: Record<TierKey, string> = {
+    galaxy: "",
+    star: mapping.galaxyDatabaseId,
+    planet: mapping.starDatabaseId,
+    moon: mapping.planetDatabaseId,
+  };
+
+  function optionsFor(key: TierKey) {
+    const parent = parentOf[key];
+    const list = databases.map((d) => ({ ...d, cov: parent ? coverage(d.id, parent) : 0 }));
+    if (parent) list.sort((a, b) => b.cov / b.count - a.cov / a.count || b.cov - a.cov || a.name.localeCompare(b.name));
+    return { list, parent };
+  }
+
+  const placedTotal = health
+    ? health.galaxy.count + (health.star?.placed ?? 0) + (health.planet?.placed ?? 0) + (health.moon?.placed ?? 0)
+    : 0;
+  const recordTotal = health
+    ? health.galaxy.count + (health.star?.count ?? 0) + (health.planet?.count ?? 0) + (health.moon?.count ?? 0)
+    : 0;
 
   return (
     <div
       style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(5, 6, 13, 0.88)",
-        backdropFilter: "blur(8px)",
-        padding: 24,
+        position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center",
+        background: "radial-gradient(ellipse at 50% 40%, rgba(40,30,70,0.55), rgba(5,6,13,0.9) 70%)",
+        backdropFilter: "blur(6px)", padding: 24,
       }}
+      onKeyDown={(e) => { if (e.key === "Escape" && onClose) onClose(); }}
     >
-      {/* Card */}
       <div
+        className="animate-fade-up"
         style={{
-          position: "relative",
-          width: "100%",
-          maxWidth: 560,
-          maxHeight: "90vh",
-          overflowY: "auto",
-          background: "var(--bg-raised)",
-          border: "1px solid var(--border-default)",
-          borderRadius: 16,
-          boxShadow: "var(--shadow-panel)",
-          display: "flex",
-          flexDirection: "column",
+          position: "relative", width: "100%", maxWidth: 660, maxHeight: "92vh", overflowY: "auto",
+          background: "var(--bg-raised)", border: "1px solid var(--border-default)", borderRadius: 16,
+          boxShadow: "var(--shadow-panel)", display: "flex", flexDirection: "column",
         }}
       >
         {/* Header */}
-        <div style={{
-          padding: "28px 32px 20px",
-          borderBottom: "1px solid var(--border-subtle)",
-          flexShrink: 0,
-        }}>
+        <div style={{ padding: "26px 30px 18px", borderBottom: "1px solid var(--border-subtle)" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
             <div>
-              <h2 style={{
-                ...LORA,
-                margin: 0,
-                fontSize: 22,
-                fontWeight: 600,
-                color: "var(--text-primary)",
-                letterSpacing: "-0.02em",
-                lineHeight: 1.2,
-              }}>
-                Universe Builder
+              <h2 style={{ fontFamily: "'Lora', Georgia, serif", margin: 0, fontSize: 22, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+                Build your universe
               </h2>
-              <p style={{
-                ...GEIST,
-                margin: "6px 0 0",
-                fontSize: 13,
-                color: "var(--text-muted)",
-                fontWeight: 300,
-                lineHeight: 1.5,
-              }}>
-                Map your Notion databases to cosmic tiers to generate your living universe.
+              <p style={{ ...GEIST, margin: "6px 0 0", fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5, maxWidth: 480 }}>
+                Each tier is one of your Notion databases. Records orbit whatever they&apos;re related to one tier up —
+                anything without a link drifts into Deep Space so nothing is lost.
               </p>
             </div>
             {onClose && (
               <button
-                type="button"
-                onClick={onClose}
-                title="Close"
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
-                  border: "1px solid var(--border-default)",
-                  background: "transparent",
-                  color: "var(--text-faint)",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 16,
-                  flexShrink: 0,
-                }}
+                type="button" onClick={onClose} title="Close"
+                style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid var(--border-default)", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 16, flexShrink: 0 }}
               >
                 ×
               </button>
             )}
           </div>
 
-          {databases.length === 0 && (
+          {suggestion && (
             <div style={{
-              marginTop: 12,
-              padding: "8px 12px",
-              background: "var(--bg-overlay)",
-              borderRadius: 8,
-              border: "1px solid var(--border-subtle)",
+              marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+              padding: "10px 12px", borderRadius: 10, background: "var(--bg-overlay)", border: "1px solid var(--border-subtle)",
             }}>
-              <span style={{ ...MONO, fontSize: 11, color: "var(--text-faint)" }}>
-                No graph data loaded. Run{" "}
-                <code style={{ background: "var(--bg-base)", padding: "1px 4px", borderRadius: 3 }}>
-                  npm run sync
-                </code>{" "}
-                to pull your Notion data.
-              </span>
+              <div style={{ ...MONO, fontSize: 10.5, color: "var(--text-muted)", lineHeight: 1.5, minWidth: 0 }}>
+                <span style={{ color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Best fit from your relations</span>
+                <div style={{ color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {[suggestion.galaxyDatabaseId, suggestion.starDatabaseId, suggestion.planetDatabaseId, suggestion.moonDatabaseId]
+                    .filter(Boolean).map((id) => dbById.get(id)?.name ?? "?").join("  →  ")}
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isSuggested}
+                onClick={() => setMapping((prev) => ({ ...suggestion, ringDatabases: prev.ringDatabases }))}
+                style={{
+                  ...GEIST, height: 30, padding: "0 12px", borderRadius: 8, flexShrink: 0,
+                  border: `1px solid ${isSuggested ? "var(--border-subtle)" : "var(--accent-warm)"}`,
+                  background: isSuggested ? "transparent" : "color-mix(in srgb, var(--accent-warm) 12%, transparent)",
+                  color: isSuggested ? "var(--text-faint)" : "var(--accent-warm)",
+                  fontSize: 12, fontWeight: 500, cursor: isSuggested ? "default" : "pointer",
+                }}
+              >
+                {isSuggested ? "✓ In use" : "✦ Use this"}
+              </button>
             </div>
           )}
         </div>
 
-        {/* Body */}
-        <div style={{ padding: "24px 32px", display: "flex", flexDirection: "column", gap: 20 }}>
-
-          {/* Mandatory tiers */}
-          <div>
-            <div style={{ ...MONO, fontSize: 10, color: "var(--text-faint)", letterSpacing: "0.10em", textTransform: "uppercase", marginBottom: 14 }}>
-              Required — four cosmic tiers
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {mandatoryTiers.map((tier) => (
-                <TierRow
-                  key={tier.label}
-                  index={tier.index}
-                  label={tier.label}
-                  description={tier.description}
-                  value={tier.value}
-                  databases={databases}
-                  usedIds={usedMandatory}
-                  error={touched && !tier.value}
-                  onChange={tier.set}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div style={{ height: 1, background: "var(--border-subtle)" }} />
-
-          {/* Optional rings section */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <div style={labelStyle(false)}>
-                <span style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 18,
-                  height: 18,
-                  borderRadius: 4,
-                  background: "var(--bg-overlay)",
-                  border: "1px solid var(--border-default)",
-                  color: "var(--text-muted)",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  flexShrink: 0,
-                }}>
-                  5
-                </span>
-                Ring / Asteroid Databases
-                <span style={{ color: "var(--text-faint)", fontWeight: 300, textTransform: "none", fontSize: 10 }}>
-                  — optional, multi-select
-                </span>
+        {/* Tier chain */}
+        <div style={{ padding: "20px 30px 8px" }}>
+          {TIERS.map((tier, idx) => {
+            const value = mapping[tier.field];
+            const { list, parent } = optionsFor(tier.key);
+            const disabled = tier.key === "moon" && !mapping.planetDatabaseId;
+            const h = health?.[tier.key];
+            const db = value ? dbById.get(value) : undefined;
+            const conflict = !!value && used.filter((u) => u === value).length > 1;
+            return (
+              <div key={tier.key}>
+                {idx > 0 && h && value && parent && (
+                  <HealthBar placed={h.placed} count={h.count} label={`${tier.title.toLowerCase()} link to a ${TIERS[idx - 1].one}`} />
+                )}
+                {idx > 0 && (!value || !parent) && <div style={{ height: 14, marginLeft: 15, borderLeft: "1px dashed var(--border-default)" }} />}
+                <div style={{ display: "flex", alignItems: "center", gap: 14, opacity: disabled ? 0.45 : 1 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: value ? "color-mix(in srgb, var(--accent-warm) 14%, transparent)" : "var(--bg-overlay)",
+                    border: `1px solid ${value ? "color-mix(in srgb, var(--accent-warm) 45%, transparent)" : "var(--border-default)"}`,
+                    color: value ? "var(--accent-warm)" : "var(--text-faint)",
+                  }}>
+                    <TierGlyph tier={tier.key} size={16} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={{ ...GEIST, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{tier.title}</span>
+                      <span style={{ ...MONO, fontSize: 9.5, letterSpacing: "0.08em", textTransform: "uppercase", color: tier.optional ? "var(--text-faint)" : "var(--accent-warm)" }}>
+                        {tier.optional ? "optional" : "required"}
+                      </span>
+                    </div>
+                    <div style={{ ...GEIST, fontSize: 11.5, color: "var(--text-faint)", marginTop: 2 }}>{tier.blurb}</div>
+                  </div>
+                  <div style={{ width: 268, flexShrink: 0 }}>
+                    <select
+                      value={value}
+                      disabled={disabled}
+                      onChange={(e) => setTier(tier.field, e.target.value)}
+                      style={{
+                        ...MONO, width: "100%", height: 34, padding: "0 8px", borderRadius: 8, fontSize: 11.5,
+                        background: "var(--bg-overlay)", color: value ? "var(--text-primary)" : "var(--text-muted)",
+                        border: `1px solid ${conflict ? "var(--accent-rust)" : value ? "var(--border-strong)" : "var(--border-default)"}`,
+                        cursor: disabled ? "not-allowed" : "pointer", outline: "none",
+                      }}
+                    >
+                      <option value="">{tier.optional ? "— none —" : "— choose a database —"}</option>
+                      {list.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {parent ? `${pct(d.cov, d.count)}% · ` : ""}{d.name} ({d.count.toLocaleString()})
+                        </option>
+                      ))}
+                    </select>
+                    {db && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", background: db.color }} />
+                        <span style={{ ...MONO, fontSize: 10, color: conflict ? "var(--accent-rust)" : "var(--text-faint)" }}>
+                          {conflict ? "already used by another tier" : `${db.count.toLocaleString()} ${tier.title.toLowerCase()}`}
+                          {!conflict && tier.key === "galaxy" && health ? ` · ${health.galaxy.withStars} hold stars` : ""}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
+            );
+          })}
+        </div>
+
+        {/* Rings */}
+        <div style={{ padding: "12px 30px 20px" }}>
+          <button
+            type="button"
+            onClick={() => setRingsOpen((v) => !v)}
+            style={{ ...MONO, display: "flex", alignItems: "center", gap: 8, padding: 0, border: "none", background: "transparent", cursor: "pointer", fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-faint)" }}
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" style={{ transform: ringsOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }}>
+              <path d="M2.5 1 5.5 4 2.5 7" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+            </svg>
+            Rings &amp; asteroid belts · optional
+            {mapping.ringDatabases.filter((r) => r.databaseId).length > 0 && (
+              <span style={{ color: "var(--accent-warm)" }}>{mapping.ringDatabases.filter((r) => r.databaseId).length}</span>
+            )}
+          </button>
+          {ringsOpen && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+              <p style={{ ...GEIST, margin: 0, fontSize: 11.5, color: "var(--text-faint)", lineHeight: 1.5 }}>
+                Records from these databases become particles — rings around the planet they relate to, or a belt around their star.
+              </p>
+              {mapping.ringDatabases.map((r, i) => {
+                const rh = health?.ring.find((x) => x.dbId === r.databaseId && x.subType === r.subType);
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, background: "var(--bg-overlay)", border: "1px solid var(--border-subtle)" }}>
+                    <select
+                      value={r.databaseId}
+                      onChange={(e) => updateRing(i, { ...r, databaseId: e.target.value })}
+                      style={{ ...MONO, flex: 1, minWidth: 0, height: 28, padding: "0 8px", borderRadius: 6, fontSize: 11.5, background: "var(--bg-base)", color: "var(--text-primary)", border: "1px solid var(--border-default)", outline: "none" }}
+                    >
+                      <option value="">— database —</option>
+                      {databases.map((d) => <option key={d.id} value={d.id}>{d.name} · {d.count}</option>)}
+                    </select>
+                    <div style={{ display: "flex", borderRadius: 6, border: "1px solid var(--border-default)", overflow: "hidden", flexShrink: 0 }}>
+                      {(["planet-rings", "star-belt"] as RingSubType[]).map((type) => (
+                        <button
+                          key={type} type="button" onClick={() => updateRing(i, { ...r, subType: type })}
+                          style={{ ...MONO, padding: "4px 9px", fontSize: 10, border: "none", cursor: "pointer", background: r.subType === type ? "var(--accent-warm)" : "transparent", color: r.subType === type ? "#fff" : "var(--text-muted)" }}
+                        >
+                          {type === "planet-rings" ? "planet rings" : "star belt"}
+                        </button>
+                      ))}
+                    </div>
+                    <span style={{ ...MONO, fontSize: 10, color: "var(--text-faint)", width: 74, textAlign: "right", flexShrink: 0 }}>
+                      {rh ? `${rh.placed} attach` : ""}
+                    </span>
+                    <button
+                      type="button" title="Remove"
+                      onClick={() => setMapping((prev) => ({ ...prev, ringDatabases: prev.ringDatabases.filter((_, k) => k !== i) }))}
+                      style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid var(--border-default)", background: "transparent", color: "var(--text-faint)", cursor: "pointer", flexShrink: 0 }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
               <button
                 type="button"
-                onClick={addRingDb}
-                style={{
-                  ...GEIST,
-                  height: 28,
-                  padding: "0 12px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border-default)",
-                  background: "transparent",
-                  color: "var(--text-muted)",
-                  fontSize: 11,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  transition: "border-color 0.12s, color 0.12s",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "var(--accent-warm)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--accent-warm)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "var(--border-default)";
-                  (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
-                }}
+                onClick={() => setMapping((prev) => ({ ...prev, ringDatabases: [...prev.ringDatabases, { databaseId: "", subType: "planet-rings" }] }))}
+                style={{ ...GEIST, alignSelf: "flex-start", height: 28, padding: "0 12px", borderRadius: 7, border: "1px dashed var(--border-strong)", background: "transparent", color: "var(--text-muted)", fontSize: 11.5, cursor: "pointer" }}
               >
-                <span style={{ fontSize: 14, lineHeight: 1 }}>+</span>
-                Add database
+                + Add ring database
               </button>
             </div>
-
-            {ringDbs.length === 0 ? (
-              <div style={{
-                padding: "12px 14px",
-                background: "var(--bg-overlay)",
-                borderRadius: 8,
-                border: "1px dashed var(--border-subtle)",
-                textAlign: "center",
-              }}>
-                <span style={{ ...MONO, fontSize: 11, color: "var(--text-faint)" }}>
-                  No ring databases — universe will launch without rings or asteroid belts.
-                </span>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {ringDbs.map((mapping, i) => (
-                  <RingRow
-                    key={i}
-                    mapping={mapping}
-                    databases={databases}
-                    onChange={(next) => updateRingDb(i, next)}
-                    onRemove={() => removeRingDb(i)}
-                  />
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setRingDbs([])}
-                  style={{
-                    ...GEIST,
-                    alignSelf: "flex-start",
-                    background: "none",
-                    border: "none",
-                    color: "var(--text-faint)",
-                    fontSize: 11,
-                    cursor: "pointer",
-                    padding: "2px 0",
-                    textDecoration: "underline",
-                    textUnderlineOffset: 3,
-                  }}
-                >
-                  Skip — no rings
-                </button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Footer */}
         <div style={{
-          padding: "16px 32px 24px",
-          borderTop: "1px solid var(--border-subtle)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          flexShrink: 0,
+          padding: "14px 30px 22px", borderTop: "1px solid var(--border-subtle)",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          position: "sticky", bottom: 0, background: "var(--bg-raised)",
         }}>
-          <div style={{ flex: 1 }}>
-            {submitError && (
-              <span style={{ ...MONO, fontSize: 11, color: "var(--accent-warm)" }}>
-                {submitError}
+          <div style={{ ...MONO, fontSize: 10.5, color: "var(--text-muted)", lineHeight: 1.5 }}>
+            {submitError ? (
+              <span style={{ color: "var(--accent-rust)" }}>{submitError}</span>
+            ) : !isValid ? (
+              <span style={{ color: "var(--accent-rust)" }}>
+                {duplicate ? "Each tier needs a different database." : "Choose a Galaxy and a Star database to begin."}
               </span>
-            )}
-            {touched && !isValid && !submitError && (
-              <span style={{ ...MONO, fontSize: 11, color: "var(--accent-warm)" }}>
-                Select all four required databases to continue.
-              </span>
-            )}
-            {isValid && !submitError && (
-              <span style={{ ...MONO, fontSize: 10, color: "var(--text-faint)" }}>
-                {databases.length} database{databases.length !== 1 ? "s" : ""} available
-                {ringDbs.filter((r) => r.databaseId).length > 0
-                  ? ` · ${ringDbs.filter((r) => r.databaseId).length} ring database${ringDbs.filter((r) => r.databaseId).length !== 1 ? "s" : ""} configured`
-                  : ""}
-              </span>
+            ) : (
+              <>
+                <span style={{ color: "var(--text-primary)" }}>{placedTotal.toLocaleString()}</span> of {recordTotal.toLocaleString()} records find an orbit
+                <br />
+                <span style={{ color: "var(--text-faint)" }}>{(recordTotal - placedTotal).toLocaleString()} will drift in Deep Space</span>
+              </>
             )}
           </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
             {onClose && (
-              <button type="button" onClick={onClose} style={btnSecondary()}>
+              <button type="button" onClick={onClose} style={{ ...GEIST, height: 38, padding: "0 16px", borderRadius: 8, border: "1px solid var(--border-default)", background: "transparent", color: "var(--text-muted)", fontSize: 12.5, cursor: "pointer" }}>
                 Cancel
               </button>
             )}
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={submitting || (touched && !isValid)}
-              style={btnPrimary(submitting || (touched && !isValid))}
+              disabled={!isValid || submitting}
+              style={{
+                ...GEIST, height: 38, padding: "0 22px", borderRadius: 8, border: "none", fontSize: 13.5, fontWeight: 600,
+                background: !isValid || submitting ? "var(--bg-overlay)" : "var(--accent-warm)",
+                color: !isValid || submitting ? "var(--text-faint)" : "#fff",
+                cursor: !isValid || submitting ? "not-allowed" : "pointer",
+              }}
             >
-              {submitting
-                ? "Saving…"
-                : isReconfigure
-                ? "Enter Universe"
-                : "Launch Universe"}
+              {submitting ? "Saving…" : initialConfig ? "Rebuild universe" : "Launch universe"}
             </button>
           </div>
         </div>

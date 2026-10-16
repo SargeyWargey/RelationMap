@@ -17,7 +17,7 @@ export default async function ProjectMountainPage() {
       <ProjectMountainScreen
         initialGraph={graph}
         databaseColors={config.databaseColors}
-        lastSyncAt={config.lastSyncAt}
+        fieldConfig={config.fieldConfig ?? {}}
       />
     </main>
   );

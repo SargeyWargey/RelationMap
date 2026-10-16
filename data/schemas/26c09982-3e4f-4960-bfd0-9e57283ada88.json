@@ -3,9 +3,19 @@
   "databaseName": "Sprint Backlog",
   "fields": [
     {
+      "id": "%3BZMm",
+      "name": "CRB Approved By",
+      "type": "people"
+    },
+    {
       "id": "%3CYI~",
       "name": "Requester",
       "type": "people"
+    },
+    {
+      "id": "%3CvDm",
+      "name": "Gate Progress",
+      "type": "formula"
     },
     {
       "id": "%3E%3EES",
@@ -50,9 +60,19 @@
       "type": "date"
     },
     {
+      "id": "A%5E%5Bz",
+      "name": "Ready for Production",
+      "type": "checkbox"
+    },
+    {
       "id": "HfB%60",
       "name": "ID",
       "type": "unique_id"
+    },
+    {
+      "id": "JfbO",
+      "name": "Gate Violations",
+      "type": "formula"
     },
     {
       "id": "N%3BD%5D",
@@ -98,30 +118,92 @@
       "options": [
         {
           "id": "9e3f2db8-bdf9-44f5-b765-85bf55b150fb",
-          "name": "Small",
+          "name": "Small - 2w",
           "color": "yellow"
         },
         {
           "id": "641a40d0-4109-4577-bb38-c477b3a4e0ed",
-          "name": "Medium",
+          "name": "Medium - 4w",
           "color": "green"
         },
         {
           "id": "a4cfdc7b-eb12-47c4-b5cf-1bf4605f9876",
-          "name": "Large",
+          "name": "Large - 4w",
           "color": "blue"
         },
         {
-          "id": "bed567a6-9b7f-45fb-94a6-8c2e0d682705",
-          "name": "Pending",
-          "color": "pink"
-        },
-        {
           "id": "MGlG",
-          "name": "X-Large",
+          "name": "X-Large - 8w+",
           "color": "red"
         }
       ]
+    },
+    {
+      "id": "UfSK",
+      "name": "Emergency Approval Log",
+      "type": "rich_text"
+    },
+    {
+      "id": "W%3DK%3E",
+      "name": "Test Cases Created",
+      "type": "checkbox"
+    },
+    {
+      "id": "XY%7BZ",
+      "name": "Supporting Teams",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "KBNG",
+          "name": "People Team",
+          "color": "yellow"
+        },
+        {
+          "id": "lqk{",
+          "name": "IT",
+          "color": "gray"
+        },
+        {
+          "id": "wS~Q",
+          "name": "Commit Consulting",
+          "color": "green"
+        },
+        {
+          "id": "?<j\\",
+          "name": "Workday",
+          "color": "orange"
+        },
+        {
+          "id": "YehV",
+          "name": "Phenom",
+          "color": "purple"
+        },
+        {
+          "id": "}M^=",
+          "name": "Finance / Accounting",
+          "color": "blue"
+        },
+        {
+          "id": "RzcY",
+          "name": "Operations",
+          "color": "pink"
+        },
+        {
+          "id": "@S:J",
+          "name": "Genius POS",
+          "color": "red"
+        },
+        {
+          "id": "59b1e253-8eab-4549-9868-5f810f5ab98c",
+          "name": "PWC",
+          "color": "default"
+        }
+      ]
+    },
+    {
+      "id": "Y%3APV",
+      "name": "Deployed Date",
+      "type": "date"
     },
     {
       "id": "YRia",
@@ -129,9 +211,19 @@
       "type": "formula"
     },
     {
+      "id": "ZDu%5C",
+      "name": "Related Changes",
+      "type": "relation"
+    },
+    {
       "id": "%5CQ%5B%5B",
       "name": "Actual Points",
       "type": "number"
+    },
+    {
+      "id": "%5DSzd",
+      "name": "Spec Complete",
+      "type": "checkbox"
     },
     {
       "id": "%5DY%3FP",
@@ -140,13 +232,18 @@
     },
     {
       "id": "_jrm",
-      "name": "Story points",
+      "name": "IT Story points",
       "type": "number"
     },
     {
       "id": "%60G%5EK",
       "name": "Cleanup",
       "type": "formula"
+    },
+    {
+      "id": "%60Ms%5E",
+      "name": "Parent Change",
+      "type": "relation"
     },
     {
       "id": "eS_A",
@@ -159,13 +256,28 @@
           "color": "gray"
         },
         {
+          "id": "{kBL",
+          "name": "1-Spec in Progress",
+          "color": "default"
+        },
+        {
           "id": "sXpb",
-          "name": "Pending Sizing",
+          "name": "2-Pending Sizing",
           "color": "yellow"
         },
         {
+          "id": "`YjI",
+          "name": "3-Pending Prioritization",
+          "color": "orange"
+        },
+        {
+          "id": "x<yQ",
+          "name": "4-Ready for Sprint",
+          "color": "green"
+        },
+        {
           "id": "=UcC",
-          "name": "To Do",
+          "name": "5-To Do",
           "color": "purple"
         },
         {
@@ -175,17 +287,37 @@
         },
         {
           "id": "}Qo]",
-          "name": "In Progress",
+          "name": "6-In Progress",
           "color": "blue"
         },
         {
           "id": ":JUg",
-          "name": "Testing",
+          "name": "7-Testing",
           "color": "pink"
         },
         {
+          "id": "rBia",
+          "name": "8-Pending CRB",
+          "color": "red"
+        },
+        {
+          "id": "z;TW",
+          "name": "9-Approved for Deploy",
+          "color": "yellow"
+        },
+        {
+          "id": "w~CY",
+          "name": "10-Deployed",
+          "color": "green"
+        },
+        {
+          "id": "~\\nC",
+          "name": "Cancelled",
+          "color": "default"
+        },
+        {
           "id": "bUnF",
-          "name": "Complete",
+          "name": "11-Complete",
           "color": "green"
         }
       ]
@@ -204,6 +336,28 @@
       "id": "hR_%5C",
       "name": "Assigned To",
       "type": "people"
+    },
+    {
+      "id": "iYSc",
+      "name": "Change Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "E=?O",
+          "name": "Standard",
+          "color": "blue"
+        },
+        {
+          "id": "wiXj",
+          "name": "Emergency",
+          "color": "red"
+        },
+        {
+          "id": "Rf>e",
+          "name": "Expedited Config",
+          "color": "yellow"
+        }
+      ]
     },
     {
       "id": "lECz",
@@ -294,6 +448,11 @@
           "id": "?Kij",
           "name": "Avalara",
           "color": "yellow"
+        },
+        {
+          "id": "ffbdff98-9445-47ae-8622-c89738318ae7",
+          "name": "Paytronix",
+          "color": "red"
         }
       ]
     },
@@ -338,6 +497,11 @@
           "color": "brown"
         }
       ]
+    },
+    {
+      "id": "nbjM",
+      "name": "Target Deploy Date",
+      "type": "date"
     },
     {
       "id": "oM%3DM",
@@ -387,6 +551,21 @@
         {
           "id": "807f2de4-8b0d-4e9e-9845-d0e110a0a82c",
           "name": "Acuity",
+          "color": "red"
+        },
+        {
+          "id": "2ff7eb74-72bd-4382-9cf6-3af7b5d953e0",
+          "name": "Commit Consulting",
+          "color": "green"
+        },
+        {
+          "id": "05ee46d7-0a72-44d4-93a8-4e97e9ede87f",
+          "name": "People Team",
+          "color": "yellow"
+        },
+        {
+          "id": "bb546063-1fcc-4589-bb00-eafdefb87dd6",
+          "name": "Paytronix",
           "color": "red"
         }
       ]
@@ -616,9 +795,9 @@
       ]
     },
     {
-      "id": "qfvi",
-      "name": "Meeting Notes",
-      "type": "relation"
+      "id": "tGDk",
+      "name": "Code Review Complete",
+      "type": "checkbox"
     },
     {
       "id": "vCyL",
@@ -629,6 +808,11 @@
       "id": "wmvx",
       "name": "Completed Date",
       "type": "date"
+    },
+    {
+      "id": "yXWV",
+      "name": "Business Testing Complete",
+      "type": "checkbox"
     },
     {
       "id": "zee%5B",
@@ -654,6 +838,11 @@
       "id": "notion%3A%2F%2Ftasks%2Ftask_sprint_relation",
       "name": "Sprints",
       "type": "relation"
+    },
+    {
+      "id": "%60%5E%7Cp",
+      "name": "Approved for Development",
+      "type": "checkbox"
     }
   ]
 }

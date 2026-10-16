@@ -23,6 +23,58 @@
       "type": "unique_id"
     },
     {
+      "id": "GVU%5D",
+      "name": "Impact Area",
+      "type": "select",
+      "options": [
+        {
+          "id": "CWyN",
+          "name": "Order-to-cash",
+          "color": "blue"
+        },
+        {
+          "id": "p~w~",
+          "name": "Procure-to-pay",
+          "color": "green"
+        },
+        {
+          "id": "?S}M",
+          "name": "Supply chain structure",
+          "color": "orange"
+        },
+        {
+          "id": "NHHK",
+          "name": "Inventory",
+          "color": "yellow"
+        },
+        {
+          "id": ";L}<",
+          "name": "Intercompany & consolidation",
+          "color": "purple"
+        },
+        {
+          "id": "Y\\<u",
+          "name": "Rebates & revenue recognition",
+          "color": "pink"
+        },
+        {
+          "id": "JINI",
+          "name": "Tax",
+          "color": "red"
+        },
+        {
+          "id": "nIo^",
+          "name": "Legal / Entity",
+          "color": "brown"
+        },
+        {
+          "id": "njuV",
+          "name": "Technology",
+          "color": "gray"
+        }
+      ]
+    },
+    {
       "id": "Y%3Ecu",
       "name": "Status",
       "type": "status",
@@ -36,6 +88,11 @@
           "id": ";]EK",
           "name": "To do",
           "color": "purple"
+        },
+        {
+          "id": "<elU",
+          "name": "Pending Decision",
+          "color": "yellow"
         },
         {
           "id": "gdS?",
@@ -86,25 +143,25 @@
       "options": [
         {
           "id": "_GtV",
-          "name": "Low",
+          "name": "3-Low",
           "color": "green"
         },
         {
           "id": "InJI",
-          "name": "Medium",
+          "name": "2-Medium",
           "color": "yellow"
         },
         {
           "id": "h]Pd",
-          "name": "High",
+          "name": "1-High",
           "color": "red"
+        },
+        {
+          "id": "99a8e15e-59fc-4a7d-ad4f-fedf3db44741",
+          "name": "0-Critical",
+          "color": "purple"
         }
       ]
-    },
-    {
-      "id": "yfka",
-      "name": "Stories",
-      "type": "relation"
     },
     {
       "id": "title",

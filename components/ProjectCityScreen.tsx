@@ -7,9 +7,10 @@ import { CityCanvas } from "@/components/CityCanvas";
 import { ParallaxMountainBg } from "@/components/ParallaxMountainBg";
 import { DatabaseTogglePanel } from "@/components/DatabaseTogglePanel";
 import { NodeDetailsPanel } from "@/components/NodeDetailsPanel";
+import { NodeSearch, nodeToDetail } from "@/components/NodeSearch";
 import { useTheme } from "@/components/ThemeProvider";
 import { useLastSyncLabel } from "@/lib/useLastSyncLabel";
-import type { DatabaseFieldConfig, DatabaseSchema, GraphData, NodeDetail } from "@/lib/types";
+import type { DatabaseFieldConfig, DatabaseSchema, GraphData, GraphNode, NodeDetail } from "@/lib/types";
 
 type Props = {
   initialGraph: GraphData;
@@ -109,6 +110,13 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
     }
     return true;
   });
+  const [glow, setGlow] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('city_glow') !== 'false';
+    }
+    return true;
+  });
+  const [focusRequest, setFocusRequest] = useState<{ id: string; seq: number } | null>(null);
 
   // Schemas + field config
   const [schemas, setSchemas] = useState<DatabaseSchema[]>([]);
@@ -126,6 +134,7 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
   useEffect(() => { localStorage.setItem('city_jump_enabled', String(jumpEnabled)); }, [jumpEnabled]);
   useEffect(() => { localStorage.setItem('city_web_enabled', String(webEnabled)); }, [webEnabled]);
   useEffect(() => { localStorage.setItem('city_show_connectors', String(showConnectors)); }, [showConnectors]);
+  useEffect(() => { localStorage.setItem('city_glow', String(glow)); }, [glow]);
 
   function handleFieldConfigChange(dbId: string, cfg: DatabaseFieldConfig) {
     const next = { ...fieldConfig, [dbId]: cfg };
@@ -231,6 +240,11 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
     setTimeout(() => setSelectedDetail(null), 350);
   }, []);
 
+  const handleSearchPick = useCallback((node: GraphNode) => {
+    setSelectedDetail(nodeToDetail(node));
+    setFocusRequest((prev) => ({ id: node.id, seq: (prev?.seq ?? 0) + 1 }));
+  }, []);
+
   const handleFitScene = useCallback(() => {
     setFirstPerson(false);
     setFlyover(false);
@@ -307,6 +321,9 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
           jumpEnabled={jumpEnabled}
           webEnabled={webEnabled}
           showConnectors={showConnectors}
+          glow={glow}
+          focusRequest={focusRequest}
+          panelOpen={panelOpen}
         />
       </div>
 
@@ -369,6 +386,10 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
         }}
         className="animate-fade-up"
       >
+        {filteredGraph.nodes.length > 0 && (
+          <NodeSearch nodes={filteredGraph.nodes} onPick={handleSearchPick} shortcutsDisabled={firstPerson} />
+        )}
+
         <button
           type="button"
           onClick={handleFitScene}
@@ -471,6 +492,39 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
                 fontWeight: 400,
                 textTransform: "uppercase",
                 letterSpacing: "0.08em",
+              }}>
+                Visuals
+              </span>
+
+              {/* Glow toggle */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Glow (dark mode)</span>
+                <button
+                  type="button"
+                  onClick={() => setGlow((v) => !v)}
+                  style={{
+                    width: 32, height: 17, borderRadius: 9, border: "none",
+                    background: glow ? "var(--text-faint)" : "var(--border-default)",
+                    cursor: "pointer", position: "relative", transition: "background 0.15s", flexShrink: 0, padding: 0,
+                  }}
+                >
+                  <div style={{
+                    position: "absolute", top: 2, left: glow ? 17 : 3,
+                    width: 13, height: 13, borderRadius: "50%",
+                    background: glow ? "var(--text-primary)" : "var(--text-faint)",
+                    transition: "left 0.15s, background 0.15s",
+                  }} />
+                </button>
+              </div>
+
+              <span style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: 10,
+                color: "var(--text-faint)",
+                fontWeight: 400,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                marginTop: 2,
               }}>
                 Street View
               </span>
@@ -905,10 +959,10 @@ export function ProjectCityScreen({ initialGraph, databaseColors, lastSyncAt }: 
           boxShadow: "var(--shadow-sm)",
         }}>
           {(firstPerson
-            ? [["W A S D", "move"], ["mouse", "look"], ["shift", "sprint"]]
+            ? [["W A S D", "move"], ["mouse", "look"], ["shift", "sprint"], ["esc", "exit"]]
             : flyover
               ? [["esc", "exit flyover"], ["click", "select & restart"]]
-              : [["drag", "orbit"], ["right-drag", "pan"], ["scroll", "zoom"], ["click", "select"]]
+              : [["drag", "orbit"], ["right-drag", "pan"], ["scroll", "zoom"], ["click", "select"], ["/", "search"]]
           ).map(([key, label]) => (
             <span key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{

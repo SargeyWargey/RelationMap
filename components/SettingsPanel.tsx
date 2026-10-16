@@ -12,6 +12,8 @@ type Props = {
   onShowCenterTextChange: (v: boolean) => void;
   centerTextOpacity: number;
   onCenterTextOpacityChange: (v: number) => void;
+  autoRotate?: boolean;
+  onAutoRotateChange?: (v: boolean) => void;
 };
 
 const SHAPES: Array<{ id: ShapeLayout; label: string; description: string }> = [
@@ -29,6 +31,8 @@ export function SettingsPanel({
   onShowCenterTextChange,
   centerTextOpacity,
   onCenterTextOpacityChange,
+  autoRotate,
+  onAutoRotateChange,
 }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -143,6 +147,14 @@ export function SettingsPanel({
                 checked={deepHighlight}
                 onChange={(v) => onDeepHighlightChange(v)}
               />
+              {onAutoRotateChange && (
+                <ToggleRow
+                  label="Auto-Rotate"
+                  description="Slowly spin the graph when idle. Pauses while you interact or have a node selected."
+                  checked={!!autoRotate}
+                  onChange={(v) => onAutoRotateChange(v)}
+                />
+              )}
               <ToggleRow
                 label="Center Text"
                 description="Show selected node text in the center of the sphere."

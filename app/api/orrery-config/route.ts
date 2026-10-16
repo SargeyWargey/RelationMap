@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
       tierMapping: {
         galaxyDatabaseId: body.tierMapping.galaxyDatabaseId!,
         starDatabaseId: body.tierMapping.starDatabaseId!,
-        planetDatabaseId: body.tierMapping.planetDatabaseId!,
-        moonDatabaseId: body.tierMapping.moonDatabaseId!,
+        planetDatabaseId: body.tierMapping.planetDatabaseId ?? "",
+        moonDatabaseId: body.tierMapping.moonDatabaseId ?? "",
         ringDatabases: body.tierMapping.ringDatabases ?? [],
       },
       configuredAt: new Date().toISOString(),

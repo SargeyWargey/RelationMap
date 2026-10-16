@@ -172,6 +172,11 @@
           "id": "0e17fb59-ec12-4a4b-92c5-e1899afa1690",
           "name": "Phenom",
           "color": "yellow"
+        },
+        {
+          "id": "427d02e2-3e23-456b-9c13-b090a6cb13f9",
+          "name": "SPS Commerce",
+          "color": "green"
         }
       ]
     },
@@ -204,6 +209,16 @@
       "id": "title",
       "name": "Question",
       "type": "title"
+    },
+    {
+      "id": "5976e6de-6e3c-47ce-891c-2e8aab87b9be",
+      "name": "Due",
+      "type": "date"
+    },
+    {
+      "id": "b415838d-b6f0-4ffb-ade0-f426cb661087",
+      "name": "Owner",
+      "type": "people"
     }
   ]
 }

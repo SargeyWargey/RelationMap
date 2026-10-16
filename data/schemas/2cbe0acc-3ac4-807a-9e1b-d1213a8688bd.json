@@ -8,29 +8,93 @@
       "type": "relation"
     },
     {
+      "id": "%3ATt_",
+      "name": "Blackstone Scorecard",
+      "type": "rich_text"
+    },
+    {
+      "id": "%3A%5DSo",
+      "name": "Roadmap Timeline",
+      "type": "date"
+    },
+    {
       "id": "%40TO%5E",
       "name": "Sprint Backlog",
       "type": "relation"
     },
     {
-      "id": "B%3Bv%60",
-      "name": "Nick Ops Tasks",
-      "type": "relation"
-    },
-    {
-      "id": "Dplc",
-      "name": "R-Hours Total",
-      "type": "rollup"
-    },
-    {
-      "id": "Fue%3F",
-      "name": "Hours Total - Adjusted",
-      "type": "formula"
+      "id": "BF%3C%7D",
+      "name": "Roadmap Tier",
+      "type": "select",
+      "options": [
+        {
+          "id": "kzTy",
+          "name": "Tier 1 - Critical",
+          "color": "red"
+        },
+        {
+          "id": "[Feh",
+          "name": "Tier 2 - In-flight",
+          "color": "blue"
+        },
+        {
+          "id": "Y^Y@",
+          "name": "Tier 3 - Strategic",
+          "color": "gray"
+        },
+        {
+          "id": "@y`w",
+          "name": "Ongoing",
+          "color": "green"
+        },
+        {
+          "id": "=cAd",
+          "name": "Excluded",
+          "color": "gray"
+        }
+      ]
     },
     {
       "id": "Gqe%3B",
       "name": "End date",
       "type": "date"
+    },
+    {
+      "id": "HOfC",
+      "name": "NIST CSF 2.0",
+      "type": "multi_select",
+      "options": [
+        {
+          "id": "qeXY",
+          "name": "GV",
+          "color": "purple"
+        },
+        {
+          "id": "hYxJ",
+          "name": "ID",
+          "color": "blue"
+        },
+        {
+          "id": "x\\V]",
+          "name": "PR",
+          "color": "green"
+        },
+        {
+          "id": "F__U",
+          "name": "DE",
+          "color": "yellow"
+        },
+        {
+          "id": "?JVb",
+          "name": "RS",
+          "color": "orange"
+        },
+        {
+          "id": "e`_R",
+          "name": "RC",
+          "color": "red"
+        }
+      ]
     },
     {
       "id": "HU~E",
@@ -58,9 +122,36 @@
           "color": "red"
         },
         {
+          "id": ";jeM",
+          "name": "Hold",
+          "color": "brown"
+        },
+        {
           "id": "2150867b-0a8d-4a4e-9135-850e487ebad7",
           "name": "Done",
           "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "JHIC",
+      "name": "Roadmap Section",
+      "type": "select",
+      "options": [
+        {
+          "id": "kzTy",
+          "name": "New Initiative",
+          "color": "blue"
+        },
+        {
+          "id": "[Feh",
+          "name": "Ongoing",
+          "color": "green"
+        },
+        {
+          "id": "Y^Y@",
+          "name": "Excluded / Parked",
+          "color": "gray"
         }
       ]
     },
@@ -75,14 +166,24 @@
       "type": "relation"
     },
     {
-      "id": "TzPF",
-      "name": "Dev-Jira Issues",
+      "id": "NPqq",
+      "name": "Created time",
+      "type": "created_time"
+    },
+    {
+      "id": "Ve~R",
+      "name": "Stories",
       "type": "relation"
     },
     {
       "id": "WQcx",
       "name": "Weekly Update",
       "type": "rich_text"
+    },
+    {
+      "id": "ZKGQ",
+      "name": "Key Dates",
+      "type": "relation"
     },
     {
       "id": "Z%60fu",
@@ -143,6 +244,11 @@
           "id": "7aa5e893-0156-4c92-bb1b-02e5d4b29442",
           "name": "Stand Technology",
           "color": "gray"
+        },
+        {
+          "id": "638dbe6f-e4b2-412e-b8bc-11d87f11826e",
+          "name": "International",
+          "color": "red"
         }
       ]
     },
@@ -174,8 +280,13 @@
       "type": "relation"
     },
     {
+      "id": "%5EUg%3B",
+      "name": "Roadmap Blocked / Pending",
+      "type": "checkbox"
+    },
+    {
       "id": "d%60%5EN",
-      "name": "Owner(s)",
+      "name": "Owner",
       "type": "people"
     },
     {
@@ -199,14 +310,9 @@
       "type": "unique_id"
     },
     {
-      "id": "mw%7DY",
-      "name": "Hours Total",
-      "type": "formula"
-    },
-    {
-      "id": "pCPC",
-      "name": "Meeting Notes",
-      "type": "relation"
+      "id": "ss%3A%3C",
+      "name": "Roadmap Note",
+      "type": "rich_text"
     },
     {
       "id": "tjtc",
@@ -217,6 +323,11 @@
       "id": "u%3DDk",
       "name": "Project Summary",
       "type": "rich_text"
+    },
+    {
+      "id": "xzP%7B",
+      "name": "IT Support Wiki",
+      "type": "relation"
     },
     {
       "id": "yFce",
@@ -273,19 +384,9 @@
       ]
     },
     {
-      "id": "%7Bw%3B%60",
-      "name": "Hours",
-      "type": "relation"
-    },
-    {
       "id": "%7C%5CbC",
       "name": "Blocking",
       "type": "relation"
-    },
-    {
-      "id": "%7DRyH",
-      "name": "Cleanup",
-      "type": "formula"
     },
     {
       "id": "title",

@@ -1,95 +1,69 @@
 "use client";
 
-import type { OrreryScale } from "@/components/OrreryCanvas";
+import { TierGlyph, bodyUiColor } from "@/components/OrreryAtlas";
+import type { Universe } from "@/lib/orreryUniverse";
 
 type Props = {
-  scale: OrreryScale;
-  galaxyName?: string;
-  starName?: string;
-  planetName?: string;
-  onNavigateTo: (targetScale: OrreryScale) => void;
+  universe: Universe;
+  /** Currently focused body (-1 = whole universe). */
+  focusIndex: number;
+  onNavigate: (index: number) => void;
 };
 
-const SCALE_DEPTH: Record<OrreryScale, number> = {
-  universe: 0,
-  galaxy: 1,
-  "solar-system": 2,
-  planet: 3,
-};
+/** Universe › Galaxy › Star › Planet — every segment flies back to that level. */
+export function OrreryBreadcrumb({ universe: u, focusIndex, onNavigate }: Props) {
+  const path: number[] = [];
+  let p = focusIndex;
+  while (p >= 0) { path.unshift(p); p = u.bodies[p].parent; }
 
-export function OrreryBreadcrumb({ scale, galaxyName, starName, planetName, onNavigateTo }: Props) {
-  if (scale === "universe") return null;
-
-  type Segment = { label: string; targetScale: OrreryScale | null };
-
-  const segments: Segment[] = [{ label: "Universe", targetScale: "universe" }];
-
-  if (SCALE_DEPTH[scale] >= 1) {
-    segments.push({ label: galaxyName ?? "Galaxy", targetScale: SCALE_DEPTH[scale] > 1 ? "galaxy" : null });
-  }
-  if (SCALE_DEPTH[scale] >= 2) {
-    segments.push({ label: starName ?? "Star", targetScale: SCALE_DEPTH[scale] > 2 ? "solar-system" : null });
-  }
-  if (SCALE_DEPTH[scale] >= 3) {
-    segments.push({ label: planetName ?? "Planet", targetScale: null });
-  }
+  const segments = [{ index: -1, label: "Universe" }, ...path.map((i) => ({ index: i, label: u.bodies[i].name }))];
 
   return (
-    <div
+    <nav
+      aria-label="Location"
       style={{
-        position: "absolute",
-        top: 20,
-        left: 24,
-        zIndex: 20,
-        display: "flex",
-        alignItems: "center",
-        gap: 2,
-        fontFamily: "'DM Mono', monospace",
-        fontSize: 10,
-        letterSpacing: "0.05em",
+        display: "flex", alignItems: "center", gap: 2, height: 30, padding: "0 6px",
+        maxWidth: "min(720px, calc(100vw - 420px))",
+        background: "var(--panel-bg)", backdropFilter: "blur(14px)",
+        border: "1px solid var(--border-default)", borderRadius: 10, boxShadow: "var(--shadow-sm)",
+        overflow: "hidden",
       }}
     >
-      {segments.map((seg, i) => (
-        <span key={i} style={{ display: "flex", alignItems: "center", gap: 2 }}>
-          {i > 0 && (
-            <span style={{ color: "rgba(255,255,255,0.18)", fontSize: 9, padding: "0 2px" }}>→</span>
-          )}
-          {seg.targetScale !== null ? (
+      {segments.map((seg, k) => {
+        const last = k === segments.length - 1;
+        const body = seg.index >= 0 ? u.bodies[seg.index] : null;
+        return (
+          <div key={seg.index} style={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0, flexShrink: last ? 1 : 2 }}>
+            {k > 0 && <span style={{ color: "var(--text-faint)", fontSize: 11, padding: "0 2px", flexShrink: 0 }}>›</span>}
             <button
               type="button"
-              onClick={() => onNavigateTo(seg.targetScale!)}
+              onClick={() => onNavigate(seg.index)}
+              disabled={last}
+              title={last ? seg.label : `Fly to ${seg.label}`}
               style={{
-                background: "none",
-                border: "none",
-                padding: "2px 5px",
-                cursor: "pointer",
-                fontFamily: "inherit",
-                fontSize: "inherit",
-                letterSpacing: "inherit",
-                color: "rgba(255,255,255,0.38)",
-                borderRadius: 4,
-                transition: "color 0.15s, background 0.15s",
+                display: "flex", alignItems: "center", gap: 6, minWidth: 0, height: 22, padding: "0 7px",
+                borderRadius: 6, border: "none", cursor: last ? "default" : "pointer",
+                background: last ? "var(--bg-overlay)" : "transparent",
+                color: last ? "var(--text-primary)" : "var(--text-muted)",
+                fontFamily: "'Geist', sans-serif", fontSize: 12, fontWeight: last ? 500 : 400,
+                transition: "background 0.12s, color 0.12s",
               }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.color = "rgba(255,255,255,0.85)";
-                el.style.background = "rgba(255,255,255,0.07)";
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.color = "rgba(255,255,255,0.38)";
-                el.style.background = "none";
-              }}
+              onMouseEnter={(e) => { if (!last) { (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)"; (e.currentTarget as HTMLElement).style.color = "var(--text-primary)"; } }}
+              onMouseLeave={(e) => { if (!last) { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; } }}
             >
-              {seg.label}
+              <span style={{ display: "flex", flexShrink: 0 }}>
+                <TierGlyph
+                  tier={body ? body.tier : "universe"}
+                  region={!!body?.region}
+                  color={body ? bodyUiColor(body) : "var(--accent-warm)"}
+                  size={11}
+                />
+              </span>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{seg.label}</span>
             </button>
-          ) : (
-            <span style={{ color: "rgba(255,255,255,0.72)", padding: "2px 5px" }}>
-              {seg.label}
-            </span>
-          )}
-        </span>
-      ))}
-    </div>
+          </div>
+        );
+      })}
+    </nav>
   );
 }

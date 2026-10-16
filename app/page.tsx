@@ -187,7 +187,7 @@ const MODES: ModeEntry[] = [
     iconNode:  <img src="/Culture.png" alt="" style={{ width: 36, height: 36, objectFit: "contain", marginBottom: 2 }} />,
     title:     "The Culture",
     subtitle:  "growth over time",
-    description: "Watch your Notion data grow like a living culture — nodes bloom from the center as records are created, pushing outward over time.",
+    description: "Watch your Notion data grow like a living culture — records bud into colonies of related work as they're created, and finished work goes dormant.",
   },
   {
     href:      "/project-orrery",

@@ -1,0 +1,184 @@
+{
+  "databaseId": "10559f50-d680-49dd-b597-33d734e0ed4f",
+  "databaseName": "Project Timeline - Archive DNU",
+  "fields": [
+    {
+      "id": "DipU",
+      "name": "Wave",
+      "type": "select",
+      "options": [
+        {
+          "id": "?UgG",
+          "name": "Wave 1",
+          "color": "blue"
+        },
+        {
+          "id": "S>^T",
+          "name": "Wave 2",
+          "color": "orange"
+        },
+        {
+          "id": "`e=P",
+          "name": "Wave 3",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "HCo%5B",
+      "name": "End Date",
+      "type": "date"
+    },
+    {
+      "id": "Nr%7B%3B",
+      "name": "Project",
+      "type": "relation"
+    },
+    {
+      "id": "PfZo",
+      "name": "Parent item",
+      "type": "relation"
+    },
+    {
+      "id": "Yi%60%5E",
+      "name": "Sub-item",
+      "type": "relation"
+    },
+    {
+      "id": "%5BHCZ",
+      "name": "Start Date",
+      "type": "date"
+    },
+    {
+      "id": "cUWs",
+      "name": "Ref ID",
+      "type": "rich_text"
+    },
+    {
+      "id": "fMhT",
+      "name": "Phase",
+      "type": "select",
+      "options": [
+        {
+          "id": "?UgG",
+          "name": "Phase 1: Discovery & Requirements",
+          "color": "blue"
+        },
+        {
+          "id": "S>^T",
+          "name": "Phase 2: Vendor Outreach",
+          "color": "orange"
+        },
+        {
+          "id": "`e=P",
+          "name": "Phase 3: Demos & Evaluation",
+          "color": "green"
+        },
+        {
+          "id": "Voxe",
+          "name": "Phase 4: Selection",
+          "color": "purple"
+        },
+        {
+          "id": "f{LI",
+          "name": "Phase 1: Kick Off & Adapter Setup",
+          "color": "blue"
+        },
+        {
+          "id": "=OhV",
+          "name": "Phase 2: Expert Design",
+          "color": "orange"
+        },
+        {
+          "id": "GoXh",
+          "name": "Phase 3: Finalize Solution",
+          "color": "green"
+        },
+        {
+          "id": "D^Of",
+          "name": "Phase 4: Configure & Test",
+          "color": "purple"
+        },
+        {
+          "id": "jLm]",
+          "name": "Phase 5: Production Rollout",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "fPhC",
+      "name": "Type",
+      "type": "select",
+      "options": [
+        {
+          "id": "?UgG",
+          "name": "Phase",
+          "color": "blue"
+        },
+        {
+          "id": "S>^T",
+          "name": "Milestone",
+          "color": "purple"
+        },
+        {
+          "id": "`e=P",
+          "name": "Deliverable",
+          "color": "green"
+        },
+        {
+          "id": "Voxe",
+          "name": "Project",
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": "iIT%3E",
+      "name": "Owner",
+      "type": "people"
+    },
+    {
+      "id": "n%3FOT",
+      "name": "Blocked by",
+      "type": "relation"
+    },
+    {
+      "id": "rh_%7D",
+      "name": "Blocking",
+      "type": "relation"
+    },
+    {
+      "id": "y%3FwW",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "qnL=",
+          "name": "Not Started",
+          "color": "default"
+        },
+        {
+          "id": "cs|O",
+          "name": "In Progress",
+          "color": "blue"
+        },
+        {
+          "id": "fK{~",
+          "name": "Draft",
+          "color": "yellow"
+        },
+        {
+          "id": "M?Kf",
+          "name": "Complete",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "name": "Item",
+      "type": "title"
+    }
+  ]
+}

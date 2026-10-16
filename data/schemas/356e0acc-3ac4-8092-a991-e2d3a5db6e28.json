@@ -1,0 +1,41 @@
+{
+  "databaseId": "356e0acc-3ac4-8092-a991-e2d3a5db6e28",
+  "databaseName": "Project Weeks",
+  "fields": [
+    {
+      "id": "AlM%5C",
+      "name": "Rollup",
+      "type": "rollup"
+    },
+    {
+      "id": "CIqE",
+      "name": "Project Timelines",
+      "type": "relation"
+    },
+    {
+      "id": "HfrW",
+      "name": "Start Date",
+      "type": "date"
+    },
+    {
+      "id": "Nj%7DO",
+      "name": "End-Date",
+      "type": "date"
+    },
+    {
+      "id": "W%7Cih",
+      "name": "Rollup 2",
+      "type": "rollup"
+    },
+    {
+      "id": "%5Ef%3DS",
+      "name": "Rollup 1",
+      "type": "rollup"
+    },
+    {
+      "id": "title",
+      "name": "Weeks",
+      "type": "title"
+    }
+  ]
+}

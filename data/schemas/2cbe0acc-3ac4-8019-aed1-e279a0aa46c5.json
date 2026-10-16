@@ -23,11 +23,6 @@
       "type": "relation"
     },
     {
-      "id": "EB%7Bw",
-      "name": "R-Total Adjusted Hours",
-      "type": "rollup"
-    },
-    {
       "id": "JNxw",
       "name": "Billing Cycle",
       "type": "select",
@@ -105,6 +100,11 @@
       "id": "WKbN",
       "name": "Up for Renewal Date",
       "type": "date"
+    },
+    {
+      "id": "X%3Af%5D",
+      "name": "IT Support Wiki",
+      "type": "relation"
     },
     {
       "id": "YdaG",

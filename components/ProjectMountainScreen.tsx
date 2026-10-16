@@ -1,997 +1,524 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
-import { MountainCanvas } from "@/components/MountainCanvas";
-import { ParallaxMountainBg } from "@/components/ParallaxMountainBg";
-import { DatabaseTogglePanel } from "@/components/DatabaseTogglePanel";
+import { MountainCanvas, type MountainApi, type MountainMode } from "@/components/MountainCanvas";
+import { MountainMinimap } from "@/components/MountainMinimap";
+import { MountainRangesPanel, type RangeSource } from "@/components/MountainRangesPanel";
+import { MountainTimeControl } from "@/components/MountainTimeControl";
 import { NodeDetailsPanel } from "@/components/NodeDetailsPanel";
+import { NodeSearch, nodeToDetail } from "@/components/NodeSearch";
 import { useTheme } from "@/components/ThemeProvider";
-import { useLastSyncLabel } from "@/lib/useLastSyncLabel";
-import type { DatabaseFieldConfig, DatabaseSchema, GraphData, NodeDetail } from "@/lib/types";
+import { toMeters, type World } from "@/lib/mountainWorld";
+import { setCodec, useStoredState } from "@/lib/useStoredState";
+import type { DatabaseFieldConfig, GraphData, GraphNode, NodeDetail } from "@/lib/types";
 
 type Props = {
   initialGraph: GraphData;
   databaseColors: Record<string, string>;
-  lastSyncAt?: string;
+  fieldConfig: Record<string, DatabaseFieldConfig>;
 };
 
-function FitViewIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M6 2H2V6M10 2H14V6M14 10V14H10M6 14H2V10"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M2 6L5 3M14 6L11 3M14 10L11 13M2 10L5 13"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+const chromeButton: React.CSSProperties = {
+  height: 28, borderRadius: 8, border: "1px solid var(--border-default)", background: "var(--panel-bg)",
+  backdropFilter: "blur(12px)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+  gap: 6, color: "var(--text-muted)", boxShadow: "var(--shadow-sm)", transition: "background 0.15s, color 0.15s",
+  fontFamily: "'Geist', sans-serif", fontSize: 11.5, fontWeight: 500, padding: "0 10px",
+};
+function hoverIn(e: React.MouseEvent) {
+  (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
+  (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
+}
+function hoverOut(e: React.MouseEvent) {
+  (e.currentTarget as HTMLElement).style.background = "var(--panel-bg)";
+  (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
 }
 
-export function ProjectMountainScreen({ initialGraph, databaseColors, lastSyncAt }: Props) {
+function displayName(n: GraphNode) {
+  const s = n.name?.trim();
+  if (!s || /^[0-9a-f]{32}$/i.test(s) || s.replace(/-/g, "") === n.id.replace(/-/g, "")) return "Untitled";
+  return s;
+}
+
+function Key({ k }: { k: string }) {
+  return <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--text-primary)", background: "var(--bg-overlay)", border: "1px solid var(--border-default)", borderRadius: 4, padding: "1px 5px" }}>{k}</span>;
+}
+
+export function ProjectMountainScreen({ initialGraph, databaseColors, fieldConfig }: Props) {
   const { darkMode, toggleDarkMode } = useTheme();
+  const apiRef = useRef<MountainApi | null>(null);
 
-  // Icon / canvas fade state
-  const [showIcon, setShowIcon] = useState(true);
-  const [iconOpacity, setIconOpacity] = useState(1);
-  const [canvasOpacity, setCanvasOpacity] = useState(0);
-  const wasEmptyRef = useRef(true);
+  // ── Sources (databases → ranges) ──
+  const sources = useMemo<RangeSource[]>(() => {
+    const by = new Map<string, RangeSource>();
+    for (const n of initialGraph.nodes) {
+      let s = by.get(n.databaseId);
+      if (!s) {
+        s = { databaseId: n.databaseId, name: n.databaseName, color: fieldConfig[n.databaseId]?.databaseColor ?? databaseColors[n.databaseId] ?? n.color, count: 0 };
+        by.set(n.databaseId, s);
+      }
+      s.count++;
+    }
+    return [...by.values()].sort((a, b) => b.count - a.count);
+  }, [initialGraph.nodes, fieldConfig, databaseColors]);
 
-  const [selectedDetail, setSelectedDetail] = useState<NodeDetail | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [firstPerson, setFirstPerson] = useState(false);
-  const [flyover, setFlyover] = useState(false);
-  const [fitSceneTrigger, setFitSceneTrigger] = useState(0);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [showLabelsFP, setShowLabelsFP] = useState(true);
-  const [showLabelsOverhead, setShowLabelsOverhead] = useState(false);
-  const [showClickLabels, setShowClickLabels] = useState(true);
-  const [showRangeLabels, setShowRangeLabels] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const v = localStorage.getItem('mountain_range_labels');
-      if (v === 'false') return false;
-    }
-    return true;
-  });
-  const [flyoverLabelMode, setFlyoverLabelMode] = useState<'none' | 'overhead' | 'center'>(() => {
-    if (typeof window !== 'undefined') {
-      const v = localStorage.getItem('mountain_flyover_label_mode');
-      if (v === 'overhead' || v === 'center') return v;
-    }
-    return 'none';
-  });
-  const [flyoverSpeedMult, setFlyoverSpeedMult] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const v = parseFloat(localStorage.getItem('mountain_flyover_speed') ?? '');
-      if (!isNaN(v)) return v;
-    }
-    return 1.0;
-  });
-  const [flyoverArcHeightMult, setFlyoverArcHeightMult] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const v = parseFloat(localStorage.getItem('mountain_flyover_arc') ?? '');
-      if (!isNaN(v)) return v;
-    }
-    return 1.0;
-  });
-  const [flyoverCameraHeightOffset, setFlyoverCameraHeightOffset] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const v = parseFloat(localStorage.getItem('mountain_flyover_cam_height') ?? '');
-      if (!isNaN(v)) return v;
-    }
-    return 1.5;
-  });
+  // Databases with no relations at all would only be flat noise — hidden by default
+  const defaultDisabled = useMemo(() => {
+    const linked = new Set<string>();
+    for (const e of initialGraph.edges) { linked.add(e.source); linked.add(e.target); }
+    const out = new Set<string>();
+    const any = new Map<string, boolean>();
+    for (const n of initialGraph.nodes) if (linked.has(n.id)) any.set(n.databaseId, true);
+    for (const s of sources) if (!any.get(s.databaseId) && s.count > 50) out.add(s.databaseId);
+    return out;
+  }, [initialGraph, sources]);
 
-  // Schemas + field config
-  const [schemas, setSchemas] = useState<DatabaseSchema[]>([]);
-  const [fieldConfig, setFieldConfig] = useState<Record<string, DatabaseFieldConfig>>({});
+  const [disabled, setDisabled, disabledLoaded] = useStoredState("mountain_disabled_dbs", defaultDisabled, setCodec.parse, setCodec.serialize);
+  // Draft selection in the Ranges panel — applied (and the land regenerated) in one go
+  const [pending, setPending] = useState<Set<string>>(disabled);
+  useEffect(() => { setPending(new Set(disabled)); }, [disabled]);
+  const pendingChanges = useMemo(() => {
+    let n = 0;
+    for (const s of sources) if (pending.has(s.databaseId) !== disabled.has(s.databaseId)) n++;
+    return n;
+  }, [sources, pending, disabled]);
 
+  const graph = useMemo(() => {
+    const nodes = initialGraph.nodes
+      .filter((n) => !disabled.has(n.databaseId))
+      .filter((n) => {
+        const cfg = fieldConfig[n.databaseId];
+        if (!cfg) return true;
+        for (const [field, opts] of Object.entries(cfg.activeFilters ?? {})) {
+          if (!opts || opts.length === 0) continue;
+          const val = n.fieldValues?.[field];
+          if (val === null || val === undefined || val === "") return false;
+          const vals = Array.isArray(val) ? val : [val];
+          if (!opts.some((o) => vals.includes(o))) return false;
+        }
+        return true;
+      })
+      .map((n) => ({ ...n, color: fieldConfig[n.databaseId]?.databaseColor ?? databaseColors[n.databaseId] ?? n.color }));
+    const ids = new Set(nodes.map((n) => n.id));
+    return { ...initialGraph, nodes, edges: initialGraph.edges.filter((e) => ids.has(e.source) && ids.has(e.target)) };
+  }, [initialGraph, disabled, fieldConfig, databaseColors]);
+
+  // ── World generation (Web Worker) ──
+  const [world, setWorld] = useState<World | null>(null);
+  const [building, setBuilding] = useState(true);
+  const workerRef = useRef<Worker | null>(null);
+  const seqRef = useRef(0);
   useEffect(() => {
-    fetch("/api/schemas").then((r) => r.json()).then(setSchemas).catch(() => {});
-    fetch("/api/field-config").then((r) => r.json()).then(setFieldConfig).catch(() => {});
+    const worker = new Worker(new URL("../lib/mountainWorld.worker.ts", import.meta.url));
+    workerRef.current = worker;
+    worker.onmessage = (e: MessageEvent<{ seq: number; world: World }>) => {
+      if (e.data.seq !== seqRef.current) return;
+      setWorld(e.data.world);
+      setBuilding(false);
+    };
+    return () => { worker.terminate(); workerRef.current = null; };
+  }, []);
+  useEffect(() => {
+    const worker = workerRef.current;
+    if (!worker || !disabledLoaded) return;   // wait for the saved range selection
+    const seq = ++seqRef.current;
+    setBuilding(true);
+    worker.postMessage({ seq, graph, edges: initialGraph.edges, resolution: 1025 });
+  }, [graph, initialGraph.edges, disabledLoaded]);
+
+  // ── Mode, selection, location ──
+  const [mode, setMode] = useState<MountainMode>("map");
+  const [selected, setSelected] = useState<number | null>(null);
+  const [detail, setDetail] = useState<NodeDetail | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [location, setLocation] = useState<{ range: number; altitude: number; swimming: boolean; gliding: boolean }>({ range: -1, altitude: 0, swimming: false, gliding: false });
+  const [rangesCollapsed, setRangesCollapsed] = useState(false);
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const [toast, setToast] = useState<{ peak: number; key: number } | null>(null);
+  const [tod, setTod] = useState(darkMode ? 0.955 : 0.54);
+  const [cycle, setCycle] = useStoredState<{ auto: boolean; secondsPerDay: number }>("mountain_cycle", { auto: false, secondsPerDay: 180 }, JSON.parse, JSON.stringify);
+  const setTimeOfDay = useCallback((t: number, animate: boolean) => {
+    setCycle((c) => (c.auto ? { ...c, auto: false } : c));
+    apiRef.current?.setTime(t, animate);
+  }, []);
+  const toggleDayNight = useCallback(() => {
+    setCycle((c) => (c.auto ? { ...c, auto: false } : c));
+    toggleDarkMode();
+  }, [toggleDarkMode]);
+  const [visited, setVisited] = useStoredState("mountain_summits", new Set<string>(), setCodec.parse, setCodec.serialize);
+
+  // Keep the selection across world rebuilds
+  const worldRef = useRef<World | null>(null);
+  useEffect(() => {
+    const prev = worldRef.current;
+    worldRef.current = world;
+    if (!prev || !world || selected === null) return;
+    const id = prev.peaks[selected]?.node.id;
+    setSelected(id ? world.byNodeId.get(id) ?? null : null);
+  }, [world]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const related = useMemo(() => (world && selected !== null ? world.neighbors[selected] ?? [] : []), [world, selected]);
+
+  const select = useCallback((peak: number | null) => {
+    setSelected(peak);
+    const node = peak !== null ? worldRef.current?.peaks[peak]?.node : null;
+    if (!node) { setDetail(null); return; }
+    setDetail(nodeToDetail(node));
+    void fetch(`/api/node/${node.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((full: NodeDetail | null) => { if (full) setDetail((cur) => (cur?.id === full.id ? { ...cur, ...full } : cur)); })
+      .catch(() => {});
   }, []);
 
-  useEffect(() => { localStorage.setItem('mountain_range_labels', String(showRangeLabels)); }, [showRangeLabels]);
-  useEffect(() => { localStorage.setItem('mountain_flyover_label_mode', flyoverLabelMode); }, [flyoverLabelMode]);
-  useEffect(() => { localStorage.setItem('mountain_flyover_speed', String(flyoverSpeedMult)); }, [flyoverSpeedMult]);
-  useEffect(() => { localStorage.setItem('mountain_flyover_arc', String(flyoverArcHeightMult)); }, [flyoverArcHeightMult]);
-  useEffect(() => { localStorage.setItem('mountain_flyover_cam_height', String(flyoverCameraHeightOffset)); }, [flyoverCameraHeightOffset]);
+  const pickPeak = useCallback((peak: number) => {
+    select(peak);
+    apiRef.current?.focusPeak(peak);
+  }, [select]);
 
-  function handleFieldConfigChange(dbId: string, cfg: DatabaseFieldConfig) {
-    const next = { ...fieldConfig, [dbId]: cfg };
-    setFieldConfig(next);
-    fetch("/api/field-config", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(next),
-    }).catch(() => {});
-  }
-
-  // Database toggles — all off by default
-  const allDatabaseIds = useMemo(
-    () => Array.from(new Set(initialGraph.nodes.map((n) => n.databaseId))),
-    [initialGraph.nodes],
-  );
-  const [enabledDbs, setEnabledDbs] = useState<Set<string>>(() => new Set());
-
-  function toggleDb(id: string) {
-    setEnabledDbs((prev) => {
+  const onSummit = useCallback((peak: number) => {
+    const node = worldRef.current?.peaks[peak]?.node;
+    if (!node) return;
+    setVisited((prev) => {
+      if (prev.has(node.id)) return prev;
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.add(node.id);
       return next;
     });
-  }
-
-  const coloredGraph = useMemo(() => {
-    const nodes = initialGraph.nodes.map((node) => ({
-      ...node,
-      color: fieldConfig[node.databaseId]?.databaseColor ?? databaseColors[node.databaseId] ?? node.color,
-    }));
-    return { ...initialGraph, nodes };
-  }, [initialGraph, fieldConfig, databaseColors]);
-
-  // Filtered graph
-  const filteredGraph = useMemo(() => {
-    if (enabledDbs.size === 0) return { ...coloredGraph, nodes: [], edges: [] };
-    const nodes = coloredGraph.nodes.filter((n) => {
-      if (!enabledDbs.has(n.databaseId)) return false;
-      const cfg = fieldConfig[n.databaseId];
-      if (!cfg) return true;
-      for (const [fieldName, selectedOptions] of Object.entries(cfg.activeFilters)) {
-        if (!selectedOptions || selectedOptions.length === 0) continue;
-        const val = n.fieldValues?.[fieldName];
-        if (val === null || val === undefined || val === "") return false;
-        const nodeValues = Array.isArray(val) ? val : [val];
-        const hasMatch = selectedOptions.some((opt) => nodeValues.includes(opt));
-        if (!hasMatch) return false;
-      }
-      return true;
-    });
-    const nodeIds = new Set(nodes.map((n) => n.id));
-    const edges = initialGraph.edges.filter(
-      (e) => nodeIds.has(e.source) && nodeIds.has(e.target),
-    );
-    return { ...coloredGraph, nodes, edges };
-  }, [coloredGraph, initialGraph.edges, enabledDbs, fieldConfig]);
-
-  const dbIdToName = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const node of initialGraph.nodes) {
-      if (!map[node.databaseId]) map[node.databaseId] = node.databaseName;
-    }
-    return map;
-  }, [initialGraph.nodes]);
-
-  const dbIdToColor = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const node of coloredGraph.nodes) {
-      if (!map[node.databaseId]) map[node.databaseId] = node.color;
-    }
-    return map;
-  }, [coloredGraph.nodes]);
-
-  // Fade icon out / canvas in when databases are toggled
+    setToast({ peak, key: Date.now() });
+  }, []);
   useEffect(() => {
-    const isEmpty = enabledDbs.size === 0;
-    if (wasEmptyRef.current && !isEmpty) {
-      wasEmptyRef.current = false;
-      setCanvasOpacity(1);
-      setIconOpacity(0);
-      const timer = setTimeout(() => setShowIcon(false), 2000);
-      return () => clearTimeout(timer);
-    }
-    if (!wasEmptyRef.current && isEmpty) {
-      wasEmptyRef.current = true;
-      setCanvasOpacity(0);
-      setIconOpacity(0);
-      setShowIcon(true);
-      requestAnimationFrame(() => setIconOpacity(1));
-    }
-  }, [enabledDbs.size]);
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
-  const handleSelectNode = useCallback((detail: NodeDetail | null) => {
-    setSelectedDetail(detail);
-  }, []);
-
-  const handleClose = useCallback(() => {
-    setPanelOpen(false);
-    setTimeout(() => setSelectedDetail(null), 350);
-  }, []);
-
-  const handleFitScene = useCallback(() => {
-    setFirstPerson(false);
-    setFlyover(false);
-    setFitSceneTrigger((v) => v + 1);
-  }, []);
-
-  const canToggleFlyover = !!selectedDetail || flyover;
-
-  // Database panel collapsed state
-  const [dbPanelCollapsed, setDbPanelCollapsed] = useState(false);
-
-  // Flash trigger for database panel glow
-  const [dbPanelFlashTrigger, setDbPanelFlashTrigger] = useState(0);
-  const handleBackgroundClick = useCallback(() => {
-    if (enabledDbs.size === 0) setDbPanelFlashTrigger((v) => v + 1);
-  }, [enabledDbs.size]);
-
-  // Refs for stale-closure-free keyboard shortcuts
-  const panelOpenRef = useRef(panelOpen);
-  const selectedDetailRef = useRef(selectedDetail);
-  useEffect(() => { panelOpenRef.current = panelOpen; }, [panelOpen]);
-  useEffect(() => { selectedDetailRef.current = selectedDetail; }, [selectedDetail]);
-
-  // Global keyboard shortcuts: Q = toggle database panel, E = toggle details panel
+  // ── Keyboard ──
+  const stateRef = useRef({ mode, selected, panelOpen });
+  stateRef.current = { mode, selected, panelOpen };
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
-      if (e.key.toLowerCase() === "q") {
-        setDbPanelCollapsed((v) => !v);
-      } else if (e.key.toLowerCase() === "e") {
-        if (panelOpenRef.current) {
-          handleClose();
-        } else if (selectedDetailRef.current) {
-          setPanelOpen(true);
-        }
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const s = stateRef.current;
+      const k = e.key.toLowerCase();
+      if (e.key === "Escape") {
+        if (s.panelOpen) setPanelOpen(false);
+        else if (s.selected !== null) select(null);
+        else if (s.mode === "hike") apiRef.current?.setMode("map");
+      } else if (k === "h") {
+        apiRef.current?.setMode(s.mode === "hike" ? "map" : "hike");
+      } else if (k === "m") {
+        setMapExpanded((v) => !v);
+      } else if (k === "q") {
+        setRangesCollapsed((v) => !v);
+      } else if (k === "e") {
+        if (s.panelOpen) setPanelOpen(false);
+        else if (s.selected !== null) setPanelOpen(true);
+      } else if (k === "f" && s.mode === "map") {
+        apiRef.current?.fitAll();
+      } else if (k === "t" && s.selected !== null) {
+        apiRef.current?.hikeFrom(s.selected);
       }
     };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [handleClose]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [select]);
 
-  const syncLabel = useLastSyncLabel(lastSyncAt);
+  // ── Search ──
+  const searchNodes = useMemo(() => world?.peaks.map((p) => p.node) ?? [], [world]);
+  const onSearch = useCallback((node: GraphNode) => {
+    const idx = world?.byNodeId.get(node.id);
+    if (idx !== undefined) pickPeak(idx);
+  }, [world, pickPeak]);
+  const onPanelSelect = useCallback((d: NodeDetail) => {
+    const idx = world?.byNodeId.get(d.id);
+    if (idx !== undefined) pickPeak(idx);
+    else { setSelected(null); setDetail(d); }
+  }, [world, pickPeak]);
+
+  const toggleSource = useCallback((id: string) => {
+    setPending((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+  const setAllSources = useCallback((on: boolean) => {
+    setPending(on ? new Set() : new Set(sources.map((s) => s.databaseId)));
+  }, [sources]);
+  const applySources = useCallback(() => setDisabled(new Set(pending)), [pending]);
+  const resetSources = useCallback(() => setPending(new Set(disabled)), [disabled]);
+
+  const sel = world && selected !== null ? world.peaks[selected] : null;
+  const selRange = sel && world ? world.ranges[sel.range] : null;
+  const here = world && location.range >= 0 ? world.ranges[location.range] : null;
+  const leftInset = rangesCollapsed ? 0 : 284;
+  const rightInset = panelOpen ? 320 : 0;
+  const rightOffset = panelOpen ? 332 : 24;
+  const toastPeak = toast && world ? world.peaks[toast.peak] : null;
 
   return (
-    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden" }}>
-
-      {/* Parallax mountain background — visible when no database is selected */}
-      <ParallaxMountainBg
-        visible={enabledDbs.size === 0}
-        showPrompt={enabledDbs.size === 0}
-        onBackgroundClick={enabledDbs.size === 0 ? handleBackgroundClick : undefined}
+    <div style={{ width: "100%", height: "100%", position: "relative", overflow: "clip", background: darkMode ? "#02040b" : "#c3d6e4" }}>
+      <MountainCanvas
+        world={world}
+        darkMode={darkMode}
+        selectedPeak={selected}
+        relatedPeaks={related}
+        visited={visited}
+        leftInset={leftInset}
+        rightInset={rightInset}
+        cycle={cycle}
+        apiRef={apiRef}
+        onTime={setTod}
+        onSelect={select}
+        onMode={setMode}
+        onLocation={setLocation}
+        onSummit={onSummit}
       />
 
-      {/* Full-screen 3D mountain */}
-      <div style={{ position: "absolute", inset: 0, opacity: canvasOpacity, transition: "opacity 2s ease", pointerEvents: canvasOpacity === 0 ? "none" : "auto" }}>
-        <MountainCanvas
-          graph={filteredGraph}
-          onSelectNode={handleSelectNode}
-          selectedNodeId={selectedDetail?.id ?? null}
-          darkMode={darkMode}
-          firstPerson={firstPerson}
-          onExitFirstPerson={() => setFirstPerson(false)}
-          showLabelsFP={showLabelsFP}
-          showLabelsOverhead={showLabelsOverhead}
-          showClickLabels={showClickLabels}
-          showRangeLabels={showRangeLabels}
-          flyover={flyover}
-          flyoverLabelMode={flyoverLabelMode}
-          flyoverSpeedMult={flyoverSpeedMult}
-          flyoverArcHeightMult={flyoverArcHeightMult}
-          flyoverCameraHeightOffset={flyoverCameraHeightOffset}
-          onExitFlyover={() => setFlyover(false)}
-          fitSceneTrigger={fitSceneTrigger}
-        />
+      {/* Building overlay */}
+      <div
+        style={{
+          position: "absolute", inset: 0, zIndex: 30, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none",
+          opacity: building ? 1 : 0, transition: "opacity 0.6s ease",
+          background: world ? "transparent" : darkMode ? "radial-gradient(ellipse at 50% 60%, #141c33, #02040b)" : "radial-gradient(ellipse at 50% 60%, #e6eef4, #b9cfe0)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", borderRadius: 999, background: "var(--panel-bg)", border: "1px solid var(--border-default)", boxShadow: "var(--shadow-md)", backdropFilter: "blur(14px)" }}>
+          <span style={{ width: 10, height: 10, borderRadius: "50%", border: "2px solid var(--accent-warm)", borderTopColor: "transparent", animation: "spin 0.9s linear infinite" }} />
+          <span style={{ fontFamily: "'Geist', sans-serif", fontSize: 12.5, color: "var(--text-secondary)" }}>{world ? "Reshaping the land…" : "Raising mountains…"}</span>
+        </div>
+        <style>{"@keyframes spin { to { transform: rotate(360deg); } }"}</style>
       </div>
 
-      {/* Top-left wordmark */}
-      <div
-        style={{ position: "absolute", top: 20, left: 24, zIndex: 20 }}
-        className="animate-fade-up"
-      >
+      {/* ── Top-left: wordmark + location ── */}
+      <div style={{ position: "absolute", top: 20, left: 24, zIndex: 21, display: "flex", alignItems: "center", gap: 8 }} className="animate-fade-up">
         <Link href="/" style={{ textDecoration: "none" }}>
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 2,
-              cursor: "pointer",
-              opacity: 1,
-              transition: "opacity 0.15s",
+              display: "flex", alignItems: "center", gap: 8, height: 34, padding: "0 12px 0 10px",
+              background: "var(--panel-bg)", backdropFilter: "blur(14px)", border: "1px solid var(--border-default)",
+              borderRadius: 10, boxShadow: "var(--shadow-sm)", transition: "opacity 0.15s",
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.7"; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0.8"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
           >
-            <span style={{
-              fontFamily: "'Lora', Georgia, serif",
-              fontSize: 20,
-              fontWeight: 600,
-              color: "var(--text-primary)",
-              letterSpacing: "-0.01em",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/mountain.png" alt="Mountain" style={{ width: 24, height: 24, objectFit: "contain" }} />
-              The Mountain
-            </span>
-            <span style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 11,
-              color: "var(--text-faint)",
-              fontWeight: 300,
-            }}>
-              explore your terrain
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/mountain.png" alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />
+            <span style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 16, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>The Mountain</span>
           </div>
         </Link>
-      </div>
-
-      {/* Top-right controls: settings + dark mode */}
-      <div
-        style={{
-          position: "absolute",
-          top: 20,
-          right: panelOpen ? 332 : 24,
-          zIndex: 20,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1)",
-        }}
-        className="animate-fade-up"
-      >
-        <button
-          type="button"
-          onClick={handleFitScene}
-          title="Fit all peaks in view"
-          disabled={filteredGraph.nodes.length === 0}
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: filteredGraph.nodes.length === 0 ? "var(--text-faint)" : "var(--text-muted)",
-            background: "var(--panel-bg)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid var(--border-default)",
-            cursor: filteredGraph.nodes.length === 0 ? "default" : "pointer",
-            boxShadow: "var(--shadow-sm)",
-            opacity: filteredGraph.nodes.length === 0 ? 0.5 : 1,
-            transition: "background 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s",
-            padding: 0,
-          }}
-          onMouseEnter={(e) => {
-            if (filteredGraph.nodes.length === 0) return;
-            (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
-            (e.currentTarget as HTMLElement).style.color = "var(--accent-warm)";
-            (e.currentTarget as HTMLElement).style.borderColor = "var(--accent-warm)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "var(--panel-bg)";
-            (e.currentTarget as HTMLElement).style.color = filteredGraph.nodes.length === 0 ? "var(--text-faint)" : "var(--text-muted)";
-            (e.currentTarget as HTMLElement).style.borderColor = "var(--border-default)";
-          }}
-          aria-label="Fit all peaks in view"
-        >
-          <FitViewIcon />
-        </button>
-
-        {/* Settings button */}
-        <div style={{ position: "relative" }}>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen((v) => !v)}
-            title="Settings"
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              border: `1px solid ${settingsOpen ? "var(--text-faint)" : "var(--border-default)"}`,
-              background: settingsOpen ? "var(--bg-overlay)" : "var(--panel-bg)",
-              backdropFilter: "blur(12px)",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 14,
-              color: settingsOpen ? "var(--text-primary)" : "var(--text-muted)",
-              transition: "background 0.15s, color 0.15s, border-color 0.15s",
-              boxShadow: "var(--shadow-sm)",
-            }}
-            onMouseEnter={(e) => {
-              if (!settingsOpen) {
-                (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
-                (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!settingsOpen) {
-                (e.currentTarget as HTMLElement).style.background = "var(--panel-bg)";
-                (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
-              }
-            }}
-          >
-            ⚙
-          </button>
-
-          {/* Settings dropdown */}
-          {settingsOpen && (
-            <div
-              style={{
-                position: "absolute",
-                top: 36,
-                right: 0,
-                width: 230,
-                background: "var(--panel-bg)",
-                backdropFilter: "blur(20px) saturate(1.4)",
-                border: "1px solid var(--border-default)",
-                borderRadius: 10,
-                boxShadow: "var(--shadow-sm)",
-                padding: "10px 14px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-              }}
-            >
-              <span style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 10,
-                color: "var(--text-faint)",
-                fontWeight: 400,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-              }}>
-                Peak Labels
-              </span>
-
-              {/* Hike labels toggle */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 11,
-                  color: "var(--text-muted)",
-                }}>Hike</span>
-                <button
-                  type="button"
-                  onClick={() => setShowLabelsFP((v) => !v)}
-                  style={{
-                    width: 32,
-                    height: 17,
-                    borderRadius: 9,
-                    border: "none",
-                    background: showLabelsFP ? "var(--text-faint)" : "var(--border-default)",
-                    cursor: "pointer",
-                    position: "relative",
-                    transition: "background 0.15s",
-                    flexShrink: 0,
-                    padding: 0,
-                  }}
-                >
-                  <div style={{
-                    position: "absolute",
-                    top: 2,
-                    left: showLabelsFP ? 17 : 3,
-                    width: 13,
-                    height: 13,
-                    borderRadius: "50%",
-                    background: showLabelsFP ? "var(--text-primary)" : "var(--text-faint)",
-                    transition: "left 0.15s, background 0.15s",
-                  }} />
-                </button>
-              </div>
-
-              {/* Overhead labels toggle */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 11,
-                  color: "var(--text-muted)",
-                }}>Overhead view</span>
-                <button
-                  type="button"
-                  onClick={() => setShowLabelsOverhead((v) => !v)}
-                  style={{
-                    width: 32,
-                    height: 17,
-                    borderRadius: 9,
-                    border: "none",
-                    background: showLabelsOverhead ? "var(--text-faint)" : "var(--border-default)",
-                    cursor: "pointer",
-                    position: "relative",
-                    transition: "background 0.15s",
-                    flexShrink: 0,
-                    padding: 0,
-                  }}
-                >
-                  <div style={{
-                    position: "absolute",
-                    top: 2,
-                    left: showLabelsOverhead ? 17 : 3,
-                    width: 13,
-                    height: 13,
-                    borderRadius: "50%",
-                    background: showLabelsOverhead ? "var(--text-primary)" : "var(--text-faint)",
-                    transition: "left 0.15s, background 0.15s",
-                  }} />
-                </button>
-              </div>
-
-              {/* Range Labels section */}
-              <span style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 10,
-                color: "var(--text-faint)",
-                fontWeight: 400,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                marginTop: 2,
-              }}>
-                Range Labels
-              </span>
-
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 11,
-                  color: "var(--text-muted)",
-                }}>Show range labels</span>
-                <button
-                  type="button"
-                  onClick={() => setShowRangeLabels((v) => !v)}
-                  style={{
-                    width: 32,
-                    height: 17,
-                    borderRadius: 9,
-                    border: "none",
-                    background: showRangeLabels ? "var(--text-faint)" : "var(--border-default)",
-                    cursor: "pointer",
-                    position: "relative",
-                    transition: "background 0.15s",
-                    flexShrink: 0,
-                    padding: 0,
-                  }}
-                >
-                  <div style={{
-                    position: "absolute",
-                    top: 2,
-                    left: showRangeLabels ? 17 : 3,
-                    width: 13,
-                    height: 13,
-                    borderRadius: "50%",
-                    background: showRangeLabels ? "var(--text-primary)" : "var(--text-faint)",
-                    transition: "left 0.15s, background 0.15s",
-                  }} />
-                </button>
-              </div>
-
-              <span style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 10,
-                color: "var(--text-faint)",
-                fontWeight: 400,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                marginTop: 2,
-              }}>
-                Click Labels
-              </span>
-
-              {/* Click-to-label toggle */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Show on click</span>
-                <button
-                  type="button"
-                  onClick={() => setShowClickLabels((v) => !v)}
-                  style={{
-                    width: 32, height: 17, borderRadius: 9, border: "none",
-                    background: showClickLabels ? "var(--text-faint)" : "var(--border-default)",
-                    cursor: "pointer", position: "relative", transition: "background 0.15s", flexShrink: 0, padding: 0,
-                  }}
-                >
-                  <div style={{
-                    position: "absolute", top: 2, left: showClickLabels ? 17 : 3,
-                    width: 13, height: 13, borderRadius: "50%",
-                    background: showClickLabels ? "var(--text-primary)" : "var(--text-faint)",
-                    transition: "left 0.15s, background 0.15s",
-                  }} />
-                </button>
-              </div>
-
-              <span style={{
-                fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--text-faint)",
-                fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2,
-              }}>Flyover Labels</span>
-
-              {/* Flyover label mode — three-way selector */}
-              <div style={{ display: "flex", gap: 4 }}>
-                {(['none', 'overhead', 'center'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setFlyoverLabelMode(mode)}
-                    style={{
-                      flex: 1,
-                      fontFamily: "'DM Mono', monospace",
-                      fontSize: 10,
-                      padding: "3px 0",
-                      borderRadius: 5,
-                      border: `1px solid ${flyoverLabelMode === mode ? "var(--text-faint)" : "var(--border-default)"}`,
-                      background: flyoverLabelMode === mode ? "var(--bg-overlay)" : "transparent",
-                      color: flyoverLabelMode === mode ? "var(--text-primary)" : "var(--text-faint)",
-                      cursor: "pointer",
-                      transition: "background 0.15s, color 0.15s, border-color 0.15s",
-                      letterSpacing: "0.03em",
-                    }}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-
-              <span style={{
-                fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--text-faint)",
-                fontWeight: 400, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2,
-              }}>Flyover Speed</span>
-
-              {/* Flight speed */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Camera speed</span>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-faint)" }}>{flyoverSpeedMult.toFixed(2)}×</span>
-                </div>
-                <input type="range" min="0.25" max="3.0" step="0.05" value={flyoverSpeedMult}
-                  onChange={(e) => setFlyoverSpeedMult(parseFloat(e.target.value))}
-                  style={{ width: "100%", accentColor: "var(--text-faint)" }}
-                />
-              </div>
-
-              {/* Orbit radius */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Orbit radius</span>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-faint)" }}>{flyoverArcHeightMult.toFixed(2)}×</span>
-                </div>
-                <input type="range" min="0.25" max="2.5" step="0.05" value={flyoverArcHeightMult}
-                  onChange={(e) => setFlyoverArcHeightMult(parseFloat(e.target.value))}
-                  style={{ width: "100%", accentColor: "var(--text-faint)" }}
-                />
-              </div>
-
-              {/* Camera height */}
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-muted)" }}>Camera height</span>
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--text-faint)" }}>
-                    {flyoverCameraHeightOffset >= 0 ? "+" : ""}{flyoverCameraHeightOffset.toFixed(2)}×
-                  </span>
-                </div>
-                <input type="range" min="-0.8" max="3.0" step="0.05" value={flyoverCameraHeightOffset}
-                  onChange={(e) => setFlyoverCameraHeightOffset(parseFloat(e.target.value))}
-                  style={{ width: "100%", accentColor: "var(--text-faint)" }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Dark mode button */}
-        <button
-          type="button"
-          onClick={toggleDarkMode}
-          title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            border: "1px solid var(--border-default)",
-            background: "var(--panel-bg)",
-            backdropFilter: "blur(12px)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 14,
-            color: "var(--text-muted)",
-            transition: "background 0.15s, color 0.15s, border-color 0.15s",
-            boxShadow: "var(--shadow-sm)",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
-            (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "var(--panel-bg)";
-            (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
-          }}
-        >
-          {darkMode ? "☀" : "◑"}
-        </button>
-      </div>
-
-      {/* Bottom-left stats bar */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 20,
-          left: 24,
-          zIndex: 20,
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          background: "var(--panel-bg)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid var(--border-default)",
-          borderRadius: 10,
-          padding: "6px 14px",
-          boxShadow: "var(--shadow-sm)",
-        }}
-        className="animate-fade-up"
-      >
-        <span style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: 11,
-          color: "var(--text-muted)",
-          fontWeight: 400,
-        }}>
-          {filteredGraph.nodes.length} / {initialGraph.nodes.length} nodes · {filteredGraph.edges.length} edges
-        </span>
-        <span style={{ width: 1, height: 12, background: "var(--border-default)", display: "inline-block" }} />
-        <span style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: 11,
-          color: "var(--text-faint)",
-          fontWeight: 300,
-        }}>
-          synced {syncLabel}
-        </span>
-      </div>
-
-      {/* Bottom-right: hike toggle + controls hint */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 20,
-          right: panelOpen ? 332 : 24,
-          zIndex: 20,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1)",
-        }}
-        className="animate-fade-up"
-      >
-        {/* Hike toggle */}
-        <button
-          type="button"
-          onClick={() => { setFirstPerson((v) => !v); setFlyover(false); }}
-          title={firstPerson ? "Exit hike" : "Enter hike"}
-          style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 11,
-            color: firstPerson ? "var(--accent-warm)" : "var(--text-muted)",
-            background: firstPerson ? "var(--bg-overlay)" : "var(--panel-bg)",
-            backdropFilter: "blur(12px)",
-            border: `1px solid ${firstPerson ? "var(--accent-warm)" : "var(--border-default)"}`,
-            borderRadius: 8,
-            padding: "5px 10px",
-            cursor: "pointer",
-            boxShadow: "var(--shadow-sm)",
-            display: "flex",
-            alignItems: "center",
-            letterSpacing: "0.03em",
-            transition: "background 0.2s, color 0.2s, border-color 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            if (firstPerson) return;
-            (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
-            (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            if (firstPerson) return;
-            (e.currentTarget as HTMLElement).style.background = "var(--panel-bg)";
-            (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
-          }}
-        >
-          hike
-        </button>
-
-        {/* Flyover toggle */}
-        <button
-          type="button"
-          onClick={() => {
-            if (!canToggleFlyover) return;
-            setFlyover((v) => !v);
-            setFirstPerson(false);
-          }}
-          title={flyover ? "Exit flyover" : selectedDetail ? "Start flyover from selected node" : "Select a node to begin flyover"}
-          style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 11,
-            color: flyover ? "var(--accent-warm)" : "var(--text-muted)",
-            background: flyover ? "var(--bg-overlay)" : "var(--panel-bg)",
-            backdropFilter: "blur(12px)",
-            border: `1px solid ${flyover ? "var(--accent-warm)" : "var(--border-default)"}`,
-            borderRadius: 8,
-            padding: "5px 10px",
-            cursor: canToggleFlyover ? "pointer" : "default",
-            boxShadow: "var(--shadow-sm)",
-            display: "flex",
-            alignItems: "center",
-            letterSpacing: "0.03em",
-            opacity: canToggleFlyover ? 1 : 0.5,
-            transition: "opacity 0.15s, background 0.2s, color 0.2s, border-color 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            if (flyover || !canToggleFlyover) return;
-            (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
-            (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
-          }}
-          onMouseLeave={(e) => {
-            if (flyover) return;
-            (e.currentTarget as HTMLElement).style.background = "var(--panel-bg)";
-            (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
-          }}
-        >
-          flyover
-        </button>
-
-        {/* Controls hint — changes based on mode */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          background: "var(--panel-bg)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid var(--border-default)",
-          borderRadius: 10,
-          padding: "6px 14px",
-          boxShadow: "var(--shadow-sm)",
-        }}>
-          {(firstPerson
-            ? [["W A S D", "move"], ["mouse", "look"], ["shift", "sprint"]]
-            : flyover
-              ? [["esc", "exit flyover"], ["click", "select & restart"]]
-              : [["drag", "orbit"], ["right-drag", "pan"], ["scroll", "zoom"], ["click", "select"]]
-          ).map(([key, label]) => (
-            <span key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 10,
-                color: "var(--text-faint)",
-                background: "var(--bg-overlay)",
-                border: "1px solid var(--border-default)",
-                borderRadius: 4,
-                padding: "1px 5px",
-              }}>{key}</span>
-              <span style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 10,
-                color: "var(--text-faint)",
-                fontWeight: 300,
-              }}>{label}</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* First-person HUD hint */}
-      {firstPerson && (
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          pointerEvents: "none",
-          zIndex: 10,
-        }}>
-          {/* Crosshair */}
+        {world && (
           <div style={{
-            width: 16, height: 16,
-            position: "relative",
+            display: "flex", alignItems: "center", gap: 8, height: 30, padding: "0 11px",
+            background: "var(--panel-bg)", backdropFilter: "blur(14px)", border: "1px solid var(--border-default)", borderRadius: 9, boxShadow: "var(--shadow-sm)",
           }}>
-            <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "rgba(255,255,255,0.5)", transform: "translateY(-50%)" }} />
-            <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(255,255,255,0.5)", transform: "translateX(-50%)" }} />
+            {here ? (
+              <>
+                <span style={{ width: 8, height: 8, borderRadius: 2, transform: "rotate(45deg)", background: here.color }} />
+                <span style={{ fontFamily: "'Geist', sans-serif", fontSize: 12, fontWeight: 500, color: "var(--text-primary)" }}>{here.name} Range</span>
+              </>
+            ) : (
+              <span style={{ fontFamily: "'Geist', sans-serif", fontSize: 12, color: "var(--text-secondary)" }}>{location.altitude < 2 ? "The coast" : "The valleys"}</span>
+            )}
+            {mode === "hike" && (
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10.5, color: "var(--text-muted)" }}>
+                ▲ {location.altitude.toLocaleString()} m{location.swimming ? " · swimming" : location.gliding ? " · gliding" : ""}
+              </span>
+            )}
           </div>
+        )}
+      </div>
+
+      {/* ── Ranges ── */}
+      <MountainRangesPanel
+        world={world}
+        sources={sources}
+        disabled={pending}
+        pendingChanges={pendingChanges}
+        onApply={applySources}
+        onReset={resetSources}
+        onSetAll={setAllSources}
+        onToggleSource={toggleSource}
+        onFocusRange={(r) => apiRef.current?.focusRange(r)}
+        onPickPeak={pickPeak}
+        selectedPeak={selected}
+        currentRange={location.range}
+        visitedCount={world ? world.peaks.filter((p) => visited.has(p.node.id)).length : 0}
+        collapsed={rangesCollapsed}
+        onToggleCollapsed={() => setRangesCollapsed((v) => !v)}
+        building={building}
+      />
+
+      {/* ── Minimap ── */}
+      {world && (
+        <div style={{ position: "absolute", left: 24, bottom: 20, zIndex: 21 }}>
+          <MountainMinimap world={world} apiRef={apiRef} selectedPeak={selected} expanded={mapExpanded} onToggleExpanded={() => setMapExpanded((v) => !v)} />
         </div>
       )}
 
-      {/* Database toggle panel */}
-      <DatabaseTogglePanel
-        allDatabaseIds={allDatabaseIds}
-        dbIdToName={dbIdToName}
-        databaseColors={dbIdToColor}
-        enabledDbs={enabledDbs}
-        onToggle={toggleDb}
-        schemas={schemas}
-        fieldConfig={fieldConfig}
-        onFieldConfigChange={handleFieldConfigChange}
-        collapsed={dbPanelCollapsed}
-        onToggleCollapsed={() => setDbPanelCollapsed((v) => !v)}
-        flashTrigger={dbPanelFlashTrigger}
-      />
+      {/* ── Top-right controls ── */}
+      <div style={{ position: "absolute", top: 20, right: rightOffset, zIndex: 22, display: "flex", alignItems: "center", gap: 8, transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1)" }} className="animate-fade-up">
+        {world && <NodeSearch nodes={searchNodes} onPick={onSearch} />}
+        <div style={{ display: "flex", padding: 2, gap: 2, borderRadius: 9, background: "var(--panel-bg)", border: "1px solid var(--border-default)", boxShadow: "var(--shadow-sm)", backdropFilter: "blur(12px)" }}>
+          {(["map", "hike"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => apiRef.current?.setMode(m)}
+              title={m === "map" ? "Map view (H)" : "Hike on foot (H)"}
+              style={{
+                height: 24, padding: "0 10px", borderRadius: 7, border: "none", cursor: "pointer",
+                background: mode === m ? "var(--accent-warm)" : "transparent",
+                color: mode === m ? "#fff" : "var(--text-muted)",
+                fontFamily: "'Geist', sans-serif", fontSize: 11.5, fontWeight: 600,
+              }}
+            >
+              {m === "map" ? "Map" : "Hike"}
+            </button>
+          ))}
+        </div>
+        <MountainTimeControl
+          tod={tod}
+          auto={cycle.auto}
+          secondsPerDay={cycle.secondsPerDay}
+          onAutoChange={(auto) => setCycle((c) => ({ ...c, auto }))}
+          onSpeedChange={(secondsPerDay) => setCycle((c) => ({ ...c, secondsPerDay }))}
+          onSetTime={setTimeOfDay}
+        />
+        <button
+          type="button"
+          onClick={toggleDayNight}
+          title={darkMode ? "Sunrise — switch to day" : "Sunset — switch to night"}
+          style={{ ...chromeButton, width: 28, padding: 0, fontSize: 14 }}
+          onMouseEnter={hoverIn}
+          onMouseLeave={hoverOut}
+        >
+          {darkMode ? "☀" : "☾"}
+        </button>
+      </div>
 
-      {/* Side pull-tab */}
+      {/* ── Selection card ── */}
+      {sel && selRange && (
+        <div
+          key={sel.index}
+          className="animate-fade-up"
+          style={{
+            position: "absolute", top: 64, right: rightOffset, zIndex: 20, width: 290,
+            background: "var(--panel-bg)", backdropFilter: "blur(16px)", border: "1px solid var(--border-default)",
+            borderRadius: 12, boxShadow: "var(--shadow-md)", padding: "12px 14px", transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, transform: "rotate(45deg)", background: selRange.color, flexShrink: 0 }} />
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9.5, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" }}>
+              {selRange.name} range · {sel.rank === 0 ? "highest summit" : `#${sel.rank + 1} of ${selRange.peaks.length}`}
+            </span>
+            <button type="button" onClick={() => select(null)} title="Clear (Esc)" style={{ marginLeft: "auto", width: 20, height: 20, padding: 0, borderRadius: 5, border: "none", background: "transparent", color: "var(--text-faint)", cursor: "pointer", fontSize: 14 }}>×</button>
+          </div>
+          <div style={{ marginTop: 6, fontFamily: "'Lora', Georgia, serif", fontSize: 15, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.3 }}>
+            {displayName(sel.node)}
+          </div>
+          <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+            {[
+              ["Altitude", `${toMeters(sel.sy).toLocaleString()} m`],
+              ["Connections", String(sel.degree)],
+              ["Activity", sel.freshness > 0.6 ? "Active" : sel.freshness > 0.3 ? "Steady" : "Quiet"],
+            ].map(([label, value]) => (
+              <div key={label} style={{ padding: "5px 7px", borderRadius: 7, background: "var(--bg-overlay)" }}>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 8.5, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-faint)" }}>{label}</div>
+                <div style={{ fontFamily: "'Geist', sans-serif", fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{value}</div>
+              </div>
+            ))}
+          </div>
+          {visited.has(sel.node.id) && (
+            <div style={{ marginTop: 7, fontFamily: "'Geist', sans-serif", fontSize: 11, color: "#3fb771" }}>✓ You&apos;ve stood on this summit</div>
+          )}
+          <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+            <button type="button" onClick={() => setPanelOpen(true)} style={{ ...chromeButton, height: 26, boxShadow: "none", flex: 1 }} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+              Details <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9.5, color: "var(--text-faint)" }}>E</span>
+            </button>
+            <button type="button" onClick={() => apiRef.current?.hikeFrom(sel.index)} style={{ ...chromeButton, height: 26, boxShadow: "none", flex: 1, color: "var(--accent-warm)" }} onMouseEnter={hoverIn} onMouseLeave={(e) => { hoverOut(e); (e.currentTarget as HTMLElement).style.color = "var(--accent-warm)"; }}>
+              Hike it <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9.5, color: "var(--text-faint)" }}>T</span>
+            </button>
+          </div>
+          {related.length > 0 && (
+            <div style={{ marginTop: 8, fontFamily: "'DM Mono', monospace", fontSize: 10, color: "var(--text-faint)" }}>
+              {related.length} linked summit{related.length === 1 ? "" : "s"} · arcs show the way
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Summit toast ── */}
+      {toastPeak && world && (
+        <div
+          key={toast!.key}
+          className="animate-fade-up"
+          style={{
+            position: "absolute", top: 70, left: "50%", transform: "translateX(-50%)", zIndex: 25,
+            display: "flex", alignItems: "center", gap: 12, padding: "10px 16px 10px 12px", borderRadius: 14,
+            background: "var(--panel-bg)", backdropFilter: "blur(16px)", border: "1px solid var(--border-default)", boxShadow: "var(--shadow-lg)",
+          }}
+        >
+          <span style={{ fontSize: 22 }}>⛰</span>
+          <div>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 9.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--accent-warm)" }}>Summit reached · {toMeters(toastPeak.sy).toLocaleString()} m</div>
+            <div style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>{displayName(toastPeak.node)}</div>
+          </div>
+          <button type="button" onClick={() => { select(toastPeak.index); setPanelOpen(true); }} style={{ ...chromeButton, height: 26, boxShadow: "none" }} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>View</button>
+        </div>
+      )}
+
+      {/* ── Hints ── */}
+      {world && (
+        <div
+          style={{
+            position: "absolute", bottom: 20, right: rightOffset, zIndex: 20, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 640,
+            background: "var(--panel-bg)", backdropFilter: "blur(12px)", border: "1px solid var(--border-default)",
+            borderRadius: 10, padding: "6px 12px", boxShadow: "var(--shadow-sm)", transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1)",
+          }}
+          className="animate-fade-up"
+        >
+          {(mode === "hike"
+            ? [["W A S D", "walk"], ["drag", "look"], ["shift", "run"], ["space", "jump · hold to glide"], ["H", "map"]]
+            : [["drag", "rotate"], ["right-drag", "pan"], ["scroll", "zoom"], ["double-click", "drop in & hike"], ["H", "hike"]]
+          ).map(([k, label]) => (
+            <span key={k} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <Key k={k} />
+              <span style={{ fontFamily: "'Geist', sans-serif", fontSize: 11, color: "var(--text-faint)" }}>{label}</span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* ── Details ── */}
+      <NodeDetailsPanel
+        detail={detail}
+        open={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        onSelectNode={onPanelSelect}
+        allNodes={graph.nodes}
+        allEdges={initialGraph.edges}
+      />
       <button
         type="button"
         onClick={() => setPanelOpen((v) => !v)}
-        title={panelOpen ? "Collapse panel" : "Expand panel"}
+        title={panelOpen ? "Collapse panel (E)" : "Expand panel (E)"}
         style={{
-          position: "absolute",
-          top: "50%",
-          right: panelOpen ? 320 : 0,
-          transform: "translateY(-50%)",
-          zIndex: 50,
-          width: 20,
-          height: 56,
-          background: "var(--panel-bg)",
-          backdropFilter: "blur(12px)",
-          border: "1px solid var(--panel-border)",
-          borderRight: "none",
-          borderRadius: "6px 0 0 6px",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "var(--shadow-panel)",
-          transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1), background 0.15s",
-          padding: 0,
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.background = "var(--bg-overlay)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.background = "var(--panel-bg)";
+          position: "absolute", top: "50%", right: panelOpen ? 320 : 0, transform: "translateY(-50%)", zIndex: 50,
+          width: 20, height: 56, background: "var(--panel-bg)", backdropFilter: "blur(12px)",
+          border: "1px solid var(--panel-border)", borderRight: "none", borderRadius: "6px 0 0 6px", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "var(--shadow-panel)",
+          transition: "right 0.35s cubic-bezier(0.32, 0, 0.15, 1), background 0.15s", padding: 0,
         }}
       >
-        <svg
-          width="10"
-          height="16"
-          viewBox="0 0 10 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ flexShrink: 0 }}
-        >
-          <polyline
-            points={panelOpen ? "3,2 8,8 3,14" : "7,2 2,8 7,14"}
-            stroke={
-              !panelOpen && selectedDetail !== null
-                ? "#f97316"
-                : "var(--text-muted)"
-            }
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ transition: "stroke 0.2s" }}
-          />
+        <svg width="10" height="16" viewBox="0 0 10 16" fill="none">
+          <polyline points={panelOpen ? "3,2 8,8 3,14" : "7,2 2,8 7,14"} stroke={!panelOpen && detail ? "var(--accent-warm)" : "var(--text-muted)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-
-      {/* Node details panel */}
-      <NodeDetailsPanel
-        detail={selectedDetail}
-        open={panelOpen}
-        onClose={handleClose}
-        onSelectNode={handleSelectNode}
-        allNodes={filteredGraph.nodes}
-        allEdges={filteredGraph.edges}
-        enabledDbs={enabledDbs}
-        schemas={schemas}
-        fieldConfig={fieldConfig}
-      />
     </div>
   );
 }

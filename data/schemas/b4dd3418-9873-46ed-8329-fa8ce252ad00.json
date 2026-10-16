@@ -216,6 +216,36 @@
           "id": "45933578-7352-4487-95bb-17b98dd70cdd",
           "name": "NDA",
           "color": "gray"
+        },
+        {
+          "id": "4e897009-8029-49d4-aab0-17e2be4bf7f8",
+          "name": "IT Support",
+          "color": "green"
+        },
+        {
+          "id": "6db1f41f-2c06-42ae-8be3-be2217a41079",
+          "name": "Subscription Fees",
+          "color": "gray"
+        },
+        {
+          "id": "d1ccbe4b-b828-4a4c-b84c-e55983cc5898",
+          "name": "NetSuite",
+          "color": "orange"
+        },
+        {
+          "id": "6e06da6a-2fad-4c4b-9ffb-dc6ded737c2e",
+          "name": "SPS Commerce",
+          "color": "gray"
+        },
+        {
+          "id": "04b4d01b-35a2-4ec0-938a-3f60f83755cb",
+          "name": "PCI",
+          "color": "green"
+        },
+        {
+          "id": "2cc43026-767c-4993-9fba-3d3ae48537c8",
+          "name": "Cloud Assessment",
+          "color": "green"
         }
       ]
     },
@@ -252,6 +282,11 @@
       "type": "last_edited_time"
     },
     {
+      "id": "GJjf",
+      "name": "SOC 2 Next Due",
+      "type": "date"
+    },
+    {
       "id": "Kl%5BH",
       "name": "Author",
       "type": "people"
@@ -260,6 +295,21 @@
       "id": "LxLD",
       "name": "Related Applications",
       "type": "relation"
+    },
+    {
+      "id": "PGf%3F",
+      "name": "AOC / PCI Next Due",
+      "type": "date"
+    },
+    {
+      "id": "R%3CO%60",
+      "name": "Compliance Notes",
+      "type": "rich_text"
+    },
+    {
+      "id": "Shp%60",
+      "name": "SOC 2 Report Date",
+      "type": "date"
     },
     {
       "id": "YN%7C%3B",
@@ -350,6 +400,16 @@
           "id": "0b515165-952e-46a7-aad9-03dc7680c487",
           "name": "MSA",
           "color": "pink"
+        },
+        {
+          "id": "514dfd49-eb14-41c5-9bac-67a942de38cc",
+          "name": "SOW",
+          "color": "gray"
+        },
+        {
+          "id": "d9871cc7-f8c3-4011-917c-24d0c84e6b73",
+          "name": "Testing",
+          "color": "green"
         }
       ]
     },

@@ -7,100 +7,58 @@ type Props = {
   onPausedChange: (paused: boolean) => void;
 };
 
+const SPEEDS = [0.25, 1, 4, 16];
+
+/** Pause + time-warp control for all orbital motion. */
 export function OrrerySpeedControl({ speed, paused, onSpeedChange, onPausedChange }: Props) {
   return (
     <div
       style={{
-        position: "absolute",
-        bottom: 20,
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 20,
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        background: "rgba(5,6,13,0.78)",
-        backdropFilter: "blur(14px)",
-        border: "1px solid rgba(255,255,255,0.10)",
-        borderRadius: 10,
-        padding: "5px 14px",
-        userSelect: "none",
+        display: "flex", alignItems: "center", gap: 4, height: 32, padding: "0 4px",
+        background: "var(--panel-bg)", backdropFilter: "blur(14px)",
+        border: "1px solid var(--border-default)", borderRadius: 10, boxShadow: "var(--shadow-sm)",
       }}
     >
-      {/* Pause / play toggle */}
       <button
         type="button"
         onClick={() => onPausedChange(!paused)}
-        title={paused ? "Resume orbital motion" : "Pause orbital motion"}
+        title={paused ? "Resume orbits (space)" : "Pause orbits (space)"}
+        aria-label={paused ? "Resume" : "Pause"}
         style={{
-          width: 22,
-          height: 22,
-          borderRadius: 6,
-          border: `1px solid ${paused ? "rgba(224,122,53,0.5)" : "rgba(255,255,255,0.13)"}`,
-          background: paused ? "rgba(224,122,53,0.18)" : "rgba(255,255,255,0.05)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 9,
-          color: paused ? "rgba(224,122,53,0.9)" : "rgba(255,255,255,0.45)",
-          transition: "background 0.15s, color 0.15s, border-color 0.15s",
-          flexShrink: 0,
-          padding: 0,
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.10)";
-          (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.85)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.background = paused ? "rgba(224,122,53,0.18)" : "rgba(255,255,255,0.05)";
-          (e.currentTarget as HTMLElement).style.color = paused ? "rgba(224,122,53,0.9)" : "rgba(255,255,255,0.45)";
+          width: 26, height: 24, borderRadius: 7, border: "none", cursor: "pointer",
+          background: paused ? "var(--accent-warm)" : "var(--bg-overlay)",
+          color: paused ? "#fff" : "var(--text-muted)",
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+          transition: "background 0.15s, color 0.15s",
         }}
       >
-        {paused ? "▶" : "⏸"}
+        {paused ? (
+          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2.5 1.2v7.6L8.6 5Z" fill="currentColor" /></svg>
+        ) : (
+          <svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="1.5" width="2" height="7" rx="0.6" fill="currentColor" /><rect x="6" y="1.5" width="2" height="7" rx="0.6" fill="currentColor" /></svg>
+        )}
       </button>
-
-      {/* Speed slider */}
-      <input
-        type="range"
-        min={0.1}
-        max={5}
-        step={0.1}
-        value={speed}
-        onChange={(e) => onSpeedChange(Number(e.target.value))}
-        style={{
-          width: 76,
-          accentColor: "rgba(224,122,53,0.75)",
-          cursor: "pointer",
-        }}
-      />
-
-      {/* Speed readout */}
-      <span
-        style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: 9,
-          color: "rgba(255,255,255,0.28)",
-          letterSpacing: "0.05em",
-          whiteSpace: "nowrap",
-          minWidth: 24,
-        }}
-      >
-        {speed.toFixed(1)}×
-      </span>
-
-      {/* Label */}
-      <span
-        style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: 9,
-          color: "rgba(255,255,255,0.18)",
-          letterSpacing: "0.04em",
-          whiteSpace: "nowrap",
-        }}
-      >
-        orbital speed
-      </span>
+      <span style={{ width: 1, height: 14, background: "var(--border-default)", margin: "0 3px" }} />
+      {SPEEDS.map((s) => {
+        const active = !paused && Math.abs(speed - s) < 1e-6;
+        return (
+          <button
+            key={s}
+            type="button"
+            onClick={() => { onSpeedChange(s); onPausedChange(false); }}
+            title={`Time ×${s}`}
+            style={{
+              height: 24, minWidth: 38, padding: "0 7px", borderRadius: 7, border: "none", cursor: "pointer",
+              background: active ? "var(--bg-overlay)" : "transparent",
+              color: active ? "var(--text-primary)" : "var(--text-faint)",
+              fontFamily: "'DM Mono', monospace", fontSize: 11, fontWeight: active ? 500 : 400,
+              transition: "background 0.12s, color 0.12s",
+            }}
+          >
+            {s < 1 ? "¼" : s}×
+          </button>
+        );
+      })}
     </div>
   );
 }

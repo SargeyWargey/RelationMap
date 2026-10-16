@@ -196,9 +196,34 @@ export function computeCityLayout(data: GraphData): CityNode[] {
   });
 
   // ── Overlap prevention — push apart buildings that are too close ───────────
+  // Spatial hash so each building only checks nearby candidates (O(n) instead
+  // of O(n²)). Candidates are visited in ascending index order, matching the
+  // original all-pairs sweep. Cell size covers the largest possible minDist
+  // plus slack for movement within one iteration.
+  const maxWidth = Math.max(1, ...cityNodes.map((n) => n.widthScale));
+  const HASH_CELL = maxWidth * BUILDING_BASE + MIN_ALLEY + 1;
   for (let iter = 0; iter < OVERLAP_ITERS; iter++) {
+    const buckets = new Map<string, number[]>();
     for (let i = 0; i < cityNodes.length; i++) {
-      for (let j = i + 1; j < cityNodes.length; j++) {
+      const key = `${Math.floor(cityNodes[i].cx / HASH_CELL)},${Math.floor(cityNodes[i].cz / HASH_CELL)}`;
+      let bucket = buckets.get(key);
+      if (!bucket) { bucket = []; buckets.set(key, bucket); }
+      bucket.push(i);
+    }
+    const candidates: number[] = [];
+    for (let i = 0; i < cityNodes.length; i++) {
+      const gx = Math.floor(cityNodes[i].cx / HASH_CELL);
+      const gz = Math.floor(cityNodes[i].cz / HASH_CELL);
+      candidates.length = 0;
+      for (let ox = -1; ox <= 1; ox++) {
+        for (let oz = -1; oz <= 1; oz++) {
+          const bucket = buckets.get(`${gx + ox},${gz + oz}`);
+          if (!bucket) continue;
+          for (const j of bucket) if (j > i) candidates.push(j);
+        }
+      }
+      candidates.sort((a, b) => a - b);
+      for (const j of candidates) {
         const a = cityNodes[i];
         const b = cityNodes[j];
         const dx = b.cx - a.cx;

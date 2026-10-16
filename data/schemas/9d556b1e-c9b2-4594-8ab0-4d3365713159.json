@@ -1,0 +1,96 @@
+{
+  "databaseId": "9d556b1e-c9b2-4594-8ab0-4d3365713159",
+  "databaseName": "Leadership Emails",
+  "fields": [
+    {
+      "id": "%3EDFH",
+      "name": "From",
+      "type": "rich_text"
+    },
+    {
+      "id": "AmY%7C",
+      "name": "To",
+      "type": "multi_select",
+      "options": []
+    },
+    {
+      "id": "O%3DBl",
+      "name": "Date Sent",
+      "type": "date"
+    },
+    {
+      "id": "R%3B%3Bs",
+      "name": "Email Link",
+      "type": "url"
+    },
+    {
+      "id": "ew_a",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        {
+          "id": "330aa2fd-1609-442e-ba16-c27d3b9904b3",
+          "name": "Draft",
+          "color": "default"
+        },
+        {
+          "id": "190011bc-b3e2-4692-9a31-9d9938da4f8b",
+          "name": "Reviewed",
+          "color": "blue"
+        },
+        {
+          "id": "f:My",
+          "name": "Archive",
+          "color": "red"
+        },
+        {
+          "id": "0a616738-f8a5-42a4-892b-af2721b4d33b",
+          "name": "Sent",
+          "color": "green"
+        }
+      ]
+    },
+    {
+      "id": "iWNO",
+      "name": "Projects",
+      "type": "relation"
+    },
+    {
+      "id": "ki%5CZ",
+      "name": "Category",
+      "type": "select",
+      "options": [
+        {
+          "id": "\\D_@",
+          "name": "Announcement",
+          "color": "blue"
+        },
+        {
+          "id": "@aJl",
+          "name": "Update",
+          "color": "green"
+        },
+        {
+          "id": "{VRU",
+          "name": "Action Required",
+          "color": "red"
+        },
+        {
+          "id": "ATu>",
+          "name": "FYI",
+          "color": "gray"
+        },
+        {
+          "id": "CEEM",
+          "name": "Policy",
+          "color": "purple"
+        }
+      ]
+    },
+    {
+      "id": "title",
+      "name": "Subject",
+      "type": "title"
+    }
+  ]
+}

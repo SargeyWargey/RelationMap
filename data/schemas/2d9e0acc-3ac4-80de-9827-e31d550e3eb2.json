@@ -1,0 +1,267 @@
+{
+  "databaseId": "2d9e0acc-3ac4-80de-9827-e31d550e3eb2",
+  "databaseName": "Project Timelines",
+  "fields": [
+    {
+      "id": "%3AMsv",
+      "name": "IT Standup",
+      "type": "select",
+      "options": [
+        {
+          "id": "a4341a26-fc0a-4942-ad59-378cbbbd44e4",
+          "name": "Yes",
+          "color": "green"
+        },
+        {
+          "id": "2ec0aed0-1dc9-434a-93c3-93a1a8b8e72e",
+          "name": "No",
+          "color": "default"
+        }
+      ]
+    },
+    {
+      "id": "%3Bff%5E",
+      "name": "Project",
+      "type": "relation"
+    },
+    {
+      "id": "%3Elrk",
+      "name": "Number of resources",
+      "type": "rollup"
+    },
+    {
+      "id": "%3FL%3Eu",
+      "name": "Supervisor",
+      "type": "rollup"
+    },
+    {
+      "id": "E%3AD%60",
+      "name": "Track",
+      "type": "select",
+      "options": [
+        {
+          "id": "WerQ",
+          "name": "Integration",
+          "color": "blue"
+        },
+        {
+          "id": "{pba",
+          "name": "Customization",
+          "color": "purple"
+        },
+        {
+          "id": "d6ca1af4-c11b-4743-877e-2376f4d965db",
+          "name": "Manual",
+          "color": "orange"
+        },
+        {
+          "id": "faa942fb-c277-4de5-a109-30c316751102",
+          "name": "Business",
+          "color": "brown"
+        },
+        {
+          "id": "d78fc14f-2b84-4c27-a0c2-d96d143426dc",
+          "name": "Third Party",
+          "color": "red"
+        },
+        {
+          "id": "fpcq",
+          "name": "Kuwait",
+          "color": "red"
+        },
+        {
+          "id": "waAY",
+          "name": "Canada",
+          "color": "blue"
+        },
+        {
+          "id": "WgyI",
+          "name": "Mexico",
+          "color": "green"
+        },
+        {
+          "id": "rPE[",
+          "name": "Germany",
+          "color": "yellow"
+        },
+        {
+          "id": "cbdZ",
+          "name": "United Kingdom",
+          "color": "purple"
+        },
+        {
+          "id": "fKSc",
+          "name": "AR/AP",
+          "color": "gray"
+        },
+        {
+          "id": "c92560db-1e2d-4f94-86b7-525f9c6c1c52",
+          "name": "Accounting",
+          "color": "default"
+        },
+        {
+          "id": "7b3b5f28-1d03-42bd-8994-92f8b01d1d45",
+          "name": "Amazon eCommerce",
+          "color": "pink"
+        },
+        {
+          "id": "168dd40e-c080-4504-bb05-671ae8db3e6f",
+          "name": "Walmart eCommerce",
+          "color": "purple"
+        },
+        {
+          "id": "0a01ed9f-b3c7-47f5-a085-949bad84797d",
+          "name": "Sam's Club Roadshow",
+          "color": "gray"
+        },
+        {
+          "id": "948d3e73-06b1-4c9e-8510-0834487bef0b",
+          "name": "Covenient Store",
+          "color": "orange"
+        },
+        {
+          "id": "b6882125-831d-4923-a651-62d3ba6a82ac",
+          "name": "Walmart Expansion",
+          "color": "purple"
+        },
+        {
+          "id": "41bb1106-2448-483a-9c22-2d083c2704af",
+          "name": "Product Development",
+          "color": "green"
+        },
+        {
+          "id": "a2f509cb-c434-4b37-a3b0-aa9f5492bf14",
+          "name": "Buy-Side",
+          "color": "green"
+        },
+        {
+          "id": "5701effd-f1ca-4c06-829e-802bdcd6a76b",
+          "name": "Sell-Side",
+          "color": "blue"
+        },
+        {
+          "id": "[UxU",
+          "name": "Flywire (FinTech)",
+          "color": "pink"
+        },
+        {
+          "id": "c31f4933-6e62-4318-b594-84220258ec68",
+          "name": "Phase 2",
+          "color": "yellow"
+        }
+      ]
+    },
+    {
+      "id": "Ez%40q",
+      "name": "Firmed or Planned",
+      "type": "select",
+      "options": [
+        {
+          "id": "WerQ",
+          "name": "Firmed",
+          "color": "green"
+        },
+        {
+          "id": "{pba",
+          "name": "Planned",
+          "color": "yellow"
+        }
+      ]
+    },
+    {
+      "id": "N%3E%3DY",
+      "name": "Blocking",
+      "type": "relation"
+    },
+    {
+      "id": "R~rH",
+      "name": "Resources",
+      "type": "relation"
+    },
+    {
+      "id": "TRLW",
+      "name": "End Date",
+      "type": "date"
+    },
+    {
+      "id": "Xzxe",
+      "name": "Stories",
+      "type": "relation"
+    },
+    {
+      "id": "%5EDKH",
+      "name": "Blocked by",
+      "type": "relation"
+    },
+    {
+      "id": "bKzj",
+      "name": "Resource Teams",
+      "type": "rollup"
+    },
+    {
+      "id": "b%5EB%3A",
+      "name": "Date",
+      "type": "date"
+    },
+    {
+      "id": "eX%3Aa",
+      "name": "Start-Date",
+      "type": "rollup"
+    },
+    {
+      "id": "kgpQ",
+      "name": "CPG - Process",
+      "type": "relation"
+    },
+    {
+      "id": "l_x%7C",
+      "name": "Project Weeks",
+      "type": "relation"
+    },
+    {
+      "id": "mCRM",
+      "name": "IT Weekly Hours",
+      "type": "number"
+    },
+    {
+      "id": "pcF%5B",
+      "name": "Stories 1",
+      "type": "relation"
+    },
+    {
+      "id": "rRaA",
+      "name": "Total Hours",
+      "type": "formula"
+    },
+    {
+      "id": "sKb~",
+      "name": "Start Date",
+      "type": "date"
+    },
+    {
+      "id": "vTHo",
+      "name": "End-Date",
+      "type": "rollup"
+    },
+    {
+      "id": "wFK%5D",
+      "name": "Project Status",
+      "type": "rollup"
+    },
+    {
+      "id": "zOIy",
+      "name": "Resource",
+      "type": "people"
+    },
+    {
+      "id": "%7C%3EfQ",
+      "name": "Weekly Hours",
+      "type": "number"
+    },
+    {
+      "id": "title",
+      "name": "Name",
+      "type": "title"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 /**
- * Orrery layout engine — pure math, no Three.js dependencies.
- * All functions are deterministic given the same inputs.
+ * Orrery appearance helpers — pure, deterministic per record ID.
+ * Placement and orbits live in `orreryUniverse.ts`.
  */
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -29,32 +29,6 @@ export type MoonType =
   | "dusty"
   | "tidally-locked";
 
-export type TierSizeConstants = { minSize: number; maxSize: number };
-
-/** Tier-specific size ranges — moons always smaller than planets, planets smaller than stars, etc. */
-export const TIER_SIZE: Record<"galaxy" | "star" | "planet" | "moon", TierSizeConstants> = {
-  galaxy: { minSize: 8,    maxSize: 40   },
-  star:   { minSize: 0.8,  maxSize: 5.0  },
-  planet: { minSize: 0.3,  maxSize: 2.0  },
-  moon:   { minSize: 0.08, maxSize: 0.5  },
-};
-
-export type OrbitalParams = {
-  orbitalRadius: number;  // world units from focal point
-  angularSpeed:  number;  // rad/s at 1× speed multiplier
-  inclination:   number;  // radians — orbit tilt from reference plane
-  eccentricity:  number;  // 0 = circle, max 0.25
-  initialPhase:  number;  // starting angle in radians
-};
-
-export type Vec3 = { x: number; y: number; z: number };
-
-export type TierNode = {
-  id: string;
-  createdTime: string;    // ISO date string (may be empty)
-  connectionCount: number;
-};
-
 // ─── Internal hash utilities ──────────────────────────────────────────────────
 
 /** FNV-1a 32-bit hash → float in [0, 1) */
@@ -70,45 +44,6 @@ function hashFloat(s: string): number {
 /** Salted hash — derive multiple independent floats from the same ID */
 function h(id: string, salt: string): number {
   return hashFloat(id + "\x00" + salt);
-}
-
-// ─── 3.2 computeSize ─────────────────────────────────────────────────────────
-
-/**
- * Computes the final rendered size for a cosmic object using:
- *   rawSize = (connectionCount / maxConn) × 0.6 + (ageScore) × 0.4
- *   finalSize = minSize + rawSize × (maxSize − minSize)
- *
- * ageScore: 0 = newest record in tier, 1 = oldest — older → larger.
- */
-export function computeSize(
-  node: TierNode,
-  allTierNodes: TierNode[],
-  tierConstants: TierSizeConstants,
-): number {
-  const now = Date.now();
-
-  function parseMs(iso: string): number {
-    if (!iso) return now;
-    const t = new Date(iso).getTime();
-    return Number.isNaN(t) ? now : t;
-  }
-
-  // Connection count signal
-  const maxConn = Math.max(1, ...allTierNodes.map((n) => n.connectionCount));
-  const connScore = node.connectionCount / maxConn;
-
-  // Age signal: older (smaller createdMs) → higher ageScore
-  const createdMs = parseMs(node.createdTime);
-  const allCreatedMs = allTierNodes.map((n) => parseMs(n.createdTime));
-  const oldestMs = Math.min(...allCreatedMs);
-  const newestMs = Math.max(...allCreatedMs);
-  const ageRange = newestMs - oldestMs || 1;
-  const ageScore = (newestMs - createdMs) / ageRange; // 0 = newest, 1 = oldest
-
-  const rawSize = connScore * 0.6 + ageScore * 0.4;
-  const { minSize, maxSize } = tierConstants;
-  return minSize + rawSize * (maxSize - minSize);
 }
 
 // ─── 3.3 assignGalaxyShape ───────────────────────────────────────────────────
@@ -129,170 +64,6 @@ const GALAXY_SHAPES: GalaxyShape[] = [
 export function assignGalaxyShape(galaxyId: string): GalaxyShape {
   const idx = Math.floor(h(galaxyId, "shape") * GALAXY_SHAPES.length);
   return GALAXY_SHAPES[Math.min(idx, GALAXY_SHAPES.length - 1)];
-}
-
-// ─── 3.4 distributeStarsInGalaxy ─────────────────────────────────────────────
-
-/**
- * Returns 3D positions in galaxy-local space (galactic center = origin).
- * XZ = galactic plane, Y = out-of-plane scatter (small).
- *
- * These positions define each star's initial location within the galaxy shape.
- * The canvas derives orbital radii from the XZ distance to origin.
- */
-export function distributeStarsInGalaxy(
-  starIds: string[],
-  shape: GalaxyShape,
-  galaxyId: string,
-): Vec3[] {
-  const N = starIds.length;
-  if (N === 0) return [];
-
-  // Galaxy-level parameters — seeded from galaxy ID for consistency
-  const galaxySize      = 80 + h(galaxyId, "size") * 120;      // 80–200 world units radius
-  const numArms         = h(galaxyId, "arms") < 0.5 ? 2 : 4;
-  const windingTight    = 0.4 + h(galaxyId, "winding") * 0.8; // logarithmic spiral tightness
-  const numClumps       = 3 + Math.floor(h(galaxyId, "clumps") * 4); // 3–6 for irregular
-  const ringRatio       = 0.4 + h(galaxyId, "ring") * 0.25;    // ring radius as fraction of galaxySize
-
-  const positions: Vec3[] = [];
-
-  for (let i = 0; i < N; i++) {
-    const id = starIds[i];
-    const t1 = h(id, "t1");
-    const t2 = h(id, "t2");
-    const t3 = h(id, "t3");
-    const t4 = h(id, "t4");
-    const t5 = h(id, "t5");
-
-    let x = 0, y = 0, z = 0;
-
-    switch (shape) {
-      case "spiral": {
-        // Logarithmic spiral arms — each star assigned to one arm
-        const arm      = Math.floor(t1 * numArms);
-        const armAngle = (arm / numArms) * Math.PI * 2;
-        const r        = (0.05 + t2 * 0.95) * galaxySize;
-        const theta    = armAngle + windingTight * Math.log(r / 10 + 1) + (t3 - 0.5) * 0.8;
-        const scatter  = (t4 - 0.5) * galaxySize * 0.12;
-        x = r * Math.cos(theta) + scatter * Math.cos(theta + Math.PI / 2);
-        z = r * Math.sin(theta) + scatter * Math.sin(theta + Math.PI / 2);
-        y = (t5 - 0.5) * galaxySize * 0.06;
-        break;
-      }
-
-      case "barred-spiral": {
-        if (t1 < 0.35) {
-          // Central bar along X axis
-          const barLength = galaxySize * 0.4;
-          x = (t2 - 0.5) * 2 * barLength;
-          z = (t3 - 0.5) * barLength * 0.18;
-          y = (t4 - 0.5) * galaxySize * 0.05;
-        } else {
-          // Arms from bar ends (two arms: +X end and −X end)
-          const armIdx   = t1 < 0.675 ? 0 : 1;
-          const barEnd   = (armIdx === 0 ? 1 : -1) * galaxySize * 0.4;
-          const armAngle = armIdx === 0 ? 0.1 : Math.PI + 0.1;
-          const r        = (0.1 + t2 * 0.9) * galaxySize * 0.7;
-          const theta    = armAngle + windingTight * Math.log(r / 10 + 1) + (t3 - 0.5) * 0.7;
-          x = barEnd + r * Math.cos(theta);
-          z = r * Math.sin(theta) * 0.9;
-          y = (t4 - 0.5) * galaxySize * 0.06;
-        }
-        break;
-      }
-
-      case "elliptical": {
-        // 3D ellipsoidal density via sum-of-uniforms approximation of Gaussian
-        const gx = (t1 + t2 + t3 - 1.5) * galaxySize * 0.4;
-        const gz = (t2 + t3 + t4 - 1.5) * galaxySize * 0.3;
-        const gy = (t3 + t4 + t5 - 1.5) * galaxySize * 0.2;
-        x = gx; z = gz; y = gy;
-        break;
-      }
-
-      case "irregular": {
-        // Chaotic clumpy distribution — a few seeded clump centers
-        const clumpIdx  = Math.floor(t1 * numClumps);
-        const clumpCx   = (h(galaxyId, `cx${clumpIdx}`) - 0.5) * galaxySize * 1.2;
-        const clumpCz   = (h(galaxyId, `cz${clumpIdx}`) - 0.5) * galaxySize * 1.2;
-        const clumpSize = galaxySize * (0.15 + h(galaxyId, `cs${clumpIdx}`) * 0.25);
-        x = clumpCx + (t2 - 0.5) * clumpSize * 2;
-        z = clumpCz + (t3 - 0.5) * clumpSize * 2;
-        y = (t4 - 0.5) * galaxySize * 0.12;
-        break;
-      }
-
-      case "ring": {
-        // Dense stellar ring around a sparse center
-        const ringRadius = galaxySize * ringRatio;
-        const ringWidth  = galaxySize * 0.15;
-        const r          = ringRadius + (t1 - 0.5) * ringWidth;
-        const theta      = t2 * Math.PI * 2;
-        x = r * Math.cos(theta);
-        z = r * Math.sin(theta);
-        y = (t3 - 0.5) * galaxySize * 0.08;
-        break;
-      }
-
-      case "lenticular": {
-        // Flat disc, uniform density, no spiral arms
-        // sqrt(t) maps uniform to radially-uniform disc density
-        const r     = Math.sqrt(t1) * galaxySize * 0.85;
-        const theta = t2 * Math.PI * 2;
-        x = r * Math.cos(theta);
-        z = r * Math.sin(theta);
-        y = (t3 - 0.5) * galaxySize * 0.04; // very flat
-        break;
-      }
-    }
-
-    positions.push({ x, y, z });
-  }
-
-  return positions;
-}
-
-// ─── 3.5 computeOrbitalParams ────────────────────────────────────────────────
-
-/**
- * Returns orbital parameters for an array of objects (planets around a star,
- * moons around a planet, or stars around a galactic center).
- *
- * Objects are ordered by index — index 0 = innermost orbit.
- * Kepler approximation: ω ∝ r^(−3/2) so inner objects orbit faster.
- *
- * @param objectIds       - per-object ID strings for seeding
- * @param baseRadius      - orbital radius of the innermost object
- * @param radiusSpread    - total radial range (outermost = baseRadius + radiusSpread)
- * @param speedBase       - angular speed of innermost orbit (rad/s at 1× multiplier)
- * @param maxInclination  - max orbit tilt in radians (± this value)
- */
-export function computeOrbitalParams(
-  objectIds: string[],
-  baseRadius: number,
-  radiusSpread: number,
-  speedBase: number,
-  maxInclination: number,
-): OrbitalParams[] {
-  const N = objectIds.length;
-  if (N === 0) return [];
-
-  const step = N > 1 ? radiusSpread / (N - 1) : 0;
-
-  return objectIds.map((id, i) => {
-    const jitter       = (h(id, "rjitter") - 0.5) * step * 0.4;
-    const orbitalRadius = Math.max(baseRadius * 0.5, baseRadius + i * step + jitter);
-
-    // Kepler: ω ∝ r^(-3/2) — normalised to innermost orbit
-    const angularSpeed  = speedBase * Math.pow(baseRadius / orbitalRadius, 1.5);
-
-    const inclination   = (h(id, "incl")  - 0.5) * 2 * maxInclination;
-    const eccentricity  =  0.05 + h(id, "ecc")   * 0.20; // 0.05 – 0.25
-    const initialPhase  =  h(id, "phase") * Math.PI * 2;
-
-    return { orbitalRadius, angularSpeed, inclination, eccentricity, initialPhase };
-  });
 }
 
 // ─── 3.6 assignPlanetType ────────────────────────────────────────────────────
@@ -442,47 +213,4 @@ export function assignGalaxyColor(
 
   const rgb = hslToRgb(newH, newS, newL);
   return toHex(rgb.r, rgb.g, rgb.b);
-}
-
-// ─── 3.10 distributeGalaxies ─────────────────────────────────────────────────
-
-/**
- * Places galaxies in 3D universe space using a Fibonacci sphere distribution.
- * Galaxy IDs are sorted before indexing so positions are stable across
- * additions/removals of other galaxies.
- *
- * @param galaxyIds  - list of galaxy record IDs
- * @param spread     - universe radius in world units (default 2000)
- */
-export function distributeGalaxies(galaxyIds: string[], spread = 2000): Vec3[] {
-  const N = galaxyIds.length;
-  if (N === 0) return [];
-
-  // Sort IDs to assign stable indices regardless of insertion order
-  const sorted   = [...galaxyIds].sort();
-  const indexMap = new Map(sorted.map((id, i) => [id, i]));
-
-  const goldenRatio = (1 + Math.sqrt(5)) / 2;
-
-  return galaxyIds.map((id) => {
-    const i = indexMap.get(id)!;
-
-    // Fibonacci sphere — evenly distributes points on a sphere surface
-    const theta = Math.acos(1 - (2 * (i + 0.5)) / N);
-    const phi   = 2 * Math.PI * (i / goldenRatio);
-
-    // Per-ID radial jitter ±15% so galaxies sit at varied distances
-    const radialJitter = 0.85 + h(id, "radial") * 0.30;
-    const r            = spread * radialJitter;
-
-    // Small angular jitter for organic feel (won't break distribution noticeably)
-    const tFinal = theta + (h(id, "tj") - 0.5) * 0.20;
-    const pFinal = phi   + (h(id, "pj") - 0.5) * 0.40;
-
-    return {
-      x: r * Math.sin(tFinal) * Math.cos(pFinal),
-      y: r * Math.cos(tFinal) * 0.30, // flatten to disc-like universe shape
-      z: r * Math.sin(tFinal) * Math.sin(pFinal),
-    };
-  });
 }
